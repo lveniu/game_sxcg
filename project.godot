@@ -1,0 +1,49 @@
+; Engine Configuration File.
+; Godot version: 4.x
+; Template: git@github.com:lveniu/godot4-git-template.git
+
+[application]
+
+config/name="游戏项目"
+config/description="游戏开发仓库"
+config/version="0.1.0"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+run/main_scene="res://scenes/main.tscn"
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+
+[input]
+
+; 示例输入映射（可按需修改）
+ui_accept={"deadzone": 0.5, "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":4194309,"physical_keycode":0,"key_label":0,"unicode":0,"echo":false,"script":null)
+, Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":32,"physical_keycode":0,"key_label":0,"unicode":32,"echo":false,"script":null)
+]}
+ui_select={"deadzone": 0.5, "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":32,"physical_keycode":0,"key_label":0,"unicode":32,"echo":false,"script":null)
+]}
+
+[layer_names]
+
+; 物理碰撞层命名（可选）
+3d_physics/layer_1="World"
+3d_physics/layer_2="Player"
+3d_physics/layer_3="Enemy"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+
+[autoload]
+
+; 全局单例（按需启用）
+; GameState="*res://src/autoload/game_state.gd"
+
+[debug]
+
+; 开发调试配置
+settings/stdout/print_fps=true
