@@ -1,29 +1,55 @@
-# 游戏项目
+# GameSXCG
 
-Godot 4.3 项目模板
+Unity 2022.3 LTS 游戏项目
 
 ## 目录结构
 
 ```
-├── .github/         # GitHub Actions 工作流
-├── assets/          # 线索素材
-├── docs/            # 项目文档
-├── exports/         # 构建/打包输出
-├── scenes/          # 场景文件 (.tscn)
-│   ├── main.tscn    # 主场景
-└── src/             # 源代码 (.gd)
-    └── autoload/    # 全局自动加载脚本
+game_sxcg/
+│
+├── Assets/                 # Unity 资源目录
+│   ├── Art/                 # 美术资源（Sprite、Audio、Animation）
+│   ├── Prefabs/             # 预制体
+│   ├── Resources/           # 运行时动态加载资源
+│   ├── Scenes/              # 场景文件
+│   └── Scripts/             # C# 脚本
+│       └── autoload/        # 全局管理器
+│
+├── Packages/               # UPM 包管理
+├── ProjectSettings/        # 项目配置
+├── docs/                   # 项目文档
+│   ├── planning/          # 规划文档
+│   ├── versions/          # 版本记录
+│   └── management/        # 管理流程
+└── exports/                # 构建输出（CI/CD）
 ```
+
+## 技术栈
+
+- **引擎**: Unity 2022.3 LTS
+- **编辑器**: VS 2022 / VS Code + C# Dev Kit
+- **版本控制**: Git + 分支模型
 
 ## 分支规范
 
-- `main`  - 发布/稳定分支
-- `dev`   - 开发分支（日常开发）
-- `feat/*` - 功能分支（从 dev 切出）
-- `fix/*`  - Bug 修复分支
+| 分支 | 说明 |
+|------|------|
+| `main` | 发布/稳定分支 |
+| `dev`  | 日常开发（所有功能合并到此） |
+| `feat/*` | 功能分支（从 dev 切出） |
+| `fix/*`  | Bug 修复分支 |
+| `hotfix/*` | 紧急修复（从 main 切出） |
 
 ## 快速开始
 
-1. 打开 Godot 4.3
-2. 导入本项目
-3. 运行 `scenes/main.tscn`
+1. 安装 Unity Hub + Unity 2022.3 LTS
+2. 克隆本仓库：`git clone git@github.com:lveniu/game_sxcg.git`
+3. 用 Unity Hub 打开 `game_sxcg` 文件夹
+4. 打开 `Assets/Scenes/MainScene`
+5. 点击 Play
+
+## 相关文档
+
+- [游戏规划](docs/planning/GAME_DESIGN.md)
+- [版本记录](docs/versions/CHANGELOG.md)
+- [开发管理](docs/management/WORKFLOW.md)

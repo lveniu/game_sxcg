@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!159 &1
+EditorSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 12
+  m_ExternalVersionControlSupport: Visible Meta Files
+  m_SerializationMode: 2
+  m_LineEndingsForNewScripts: 2
+  m_DefaultBehaviorMode: 1
+  m_PrefabRegularEnvironment: {fileID: 0}
+  m_PrefabUIEnvironment: {fileID: 0}
+  m_SpritePackerMode: 5
+  m_SpritePackerCacheSize: 10485760
+  m_SpritePackerPaddingPower: 1
+  m_Bc7TextureCompressor: 0
+  m_AssetPipelineMode: 1
+  m_RefreshImportMode: 0
+  m_CacheServerMode: 0
+  m_CacheServerEndpoint: 
+  m_CacheServerNamespacePrefix: default
+  m_CacheServerEnableDownload: 1
+  m_CacheServerEnableUpload: 1
+  m_CacheServerEnableAuth: 0
+  m_CacheServerEnableTls: 0
+  m_CacheServerValidationMode: 2
+  m_CacheServerDownloadBatchSize: 128
+  m_EnableEnlightenBakedGI: 0
+  m_EnableAsyncShaderCompilation: 1
+  m_ArtifactGarbageCollection: 1
+  m_ArtifactDirectorySizeLimit: 0
+  m_CompressAssetsOnImport: 1
+  m_CrashReportMode: 1
+  m_DirectoriesToAlwaysTreatAsDomains: []
+  m_SynchronousStartup: 0
+  m_SynchronousImportMode: 0
+  m_SynchronousShaderCompilation: 0
+  m_SynchronousAssetStoreSearch: 0
+  m_NumberOfWorkers: 0
+  m_CurrentBuildTarget: 
+  m_CurrentBuildTargetGroup: 
+  m_TestBuildTarget: 
+  m_TestBuildTargetGroup: 
+  m_TestBuildTargetPlatform: 
+  m_TestBuildTargetPlatformGroup: 
