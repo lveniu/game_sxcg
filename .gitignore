@@ -1,0 +1,24 @@
+# Godot 4 specific ignores
+.godot/
+*.tmp
+*.import
+
+# Imported assets (not raw assets)
+.import/
+
+# Mono / C# specific
+.mono/
+data_*/
+
+# System-specific
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.csproj.user
+
+# Build artifacts
+build/
+dist/
