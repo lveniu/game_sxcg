@@ -149,7 +149,10 @@ public static class GameBalance
 
     // ========== 骰子联动倍率 ==========
 
-    public static float GetComboMultiplier(DiceCombinationType combo, string cardName)
+    /// <summary>
+    /// 获取骰子组合的基础倍率
+    /// </summary>
+    public static float GetComboMultiplier(DiceCombinationType combo)
     {
         return combo switch
         {

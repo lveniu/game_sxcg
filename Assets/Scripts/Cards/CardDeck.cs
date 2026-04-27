@@ -205,6 +205,17 @@ public class CardDeck : MonoBehaviour
     }
 
     /// <summary>
+    /// 对场上所有英雄执行操作（跳过null）
+    /// </summary>
+    private void ApplyToAllHeroes(System.Action<Hero> action)
+    {
+        foreach (var hero in fieldHeroes)
+        {
+            if (hero != null) action(hero);
+        }
+    }
+
+    /// <summary>
     /// 打出战斗卡（返回是否触发联动）
     /// </summary>
     public bool PlayBattleCard(CardInstance card, DiceCombination combo)
@@ -217,157 +228,119 @@ public class CardDeck : MonoBehaviour
         switch (card.Data.effectId)
         {
             case CardEffectId.Slash:
-                // 斩击：本场攻击+50%，对子时翻倍
-                foreach (var hero in fieldHeroes)
-                    hero.BattleAttack = Mathf.RoundToInt(hero.Attack * (1 + card.Data.effectValue / 100f * multiplier));
+                ApplyToAllHeroes(h => h.BattleAttack = Mathf.RoundToInt(h.Attack * (1 + card.Data.effectValue / 100f * multiplier)));
                 break;
 
             case CardEffectId.ShieldBash:
-                // 护盾冲击：获得护盾，三条时护盾+50%
                 int shieldAmount = Mathf.RoundToInt(card.Data.effectValue * multiplier);
-                foreach (var hero in fieldHeroes)
-                    hero.AddShield(shieldAmount);
+                ApplyToAllHeroes(h => h.AddShield(shieldAmount));
                 break;
 
             case CardEffectId.FindWeakness:
-                // 寻找弱点：暴击率+30%，顺子时额外+20%
-                foreach (var hero in fieldHeroes)
-                    hero.BattleCritRate += (card.Data.effectValue / 100f * multiplier);
+                ApplyToAllHeroes(h => h.BattleCritRate += card.Data.effectValue / 100f * multiplier);
                 break;
 
             case CardEffectId.FlameSlash:
-                // 火焰斩：本场攻击附加20%火焰伤害，三条时变AOE
                 float flameBonus = card.Data.effectValue / 100f * multiplier;
-                foreach (var hero in fieldHeroes)
+                ApplyToAllHeroes(h =>
                 {
-                    hero.BattleAttack = Mathf.RoundToInt(hero.Attack * (1 + flameBonus));
-                    hero.HasFlameAOE = hasCombo; // 三条时AOE
-                }
+                    h.BattleAttack = Mathf.RoundToInt(h.Attack * (1 + flameBonus));
+                    h.HasFlameAOE = hasCombo;
+                });
                 break;
 
             case CardEffectId.FrostArmor:
-                // 冰霜护甲：获得护盾并减速，顺子时护盾翻倍
                 int frostShield = Mathf.RoundToInt(card.Data.effectValue * multiplier);
-                foreach (var hero in fieldHeroes)
+                ApplyToAllHeroes(h =>
                 {
-                    hero.AddShield(frostShield);
-                    hero.HasFrostSlow = true;
-                }
+                    h.AddShield(frostShield);
+                    h.HasFrostSlow = true;
+                });
                 break;
 
             case CardEffectId.WindStep:
-                // 疾风步：本场速度+50%，对子时闪避+20%
-                foreach (var hero in fieldHeroes)
+                ApplyToAllHeroes(h =>
                 {
-                    hero.BattleSpeed = Mathf.RoundToInt(hero.Speed * (1 + card.Data.effectValue / 100f));
-                    if (hasCombo) hero.BattleDodgeRate += 0.2f;
-                }
+                    h.BattleSpeed = Mathf.RoundToInt(h.Speed * (1 + card.Data.effectValue / 100f));
+                    if (hasCombo) h.BattleDodgeRate += 0.2f;
+                });
                 break;
 
             case CardEffectId.FatalBlow:
-                // 致命一击：暴击伤害+50%，三条时必暴
-                foreach (var hero in fieldHeroes)
+                ApplyToAllHeroes(h =>
                 {
-                    hero.BattleCritDamage += card.Data.effectValue / 100f;
-                    if (hasCombo) hero.BattleCritRate = 1f; // 必暴
-                }
+                    h.BattleCritDamage += card.Data.effectValue / 100f;
+                    if (hasCombo) h.BattleCritRate = 1f;
+                });
                 break;
 
             case CardEffectId.Fireball:
-                // 火球术：本场攻击变AOE，三条时伤害+50%
-                foreach (var hero in fieldHeroes)
+                ApplyToAllHeroes(h =>
                 {
-                    hero.HasFlameAOE = true;
-                    hero.BattleAttack = Mathf.RoundToInt(hero.Attack * (1 + card.Data.effectValue / 100f * multiplier));
-                }
+                    h.HasFlameAOE = true;
+                    h.BattleAttack = Mathf.RoundToInt(h.Attack * (1 + card.Data.effectValue / 100f * multiplier));
+                });
                 break;
 
             case CardEffectId.ChainStrike:
-                // 连环斩：本场攻击2次，对子时3次
-                foreach (var hero in fieldHeroes)
-                {
-                    hero.ChainStrikeCount = hasCombo ? 3 : card.Data.effectValue;
-                }
+                ApplyToAllHeroes(h => h.ChainStrikeCount = hasCombo ? 3 : card.Data.effectValue);
                 break;
 
             case CardEffectId.LifeSteal:
-                // 吸血攻击：造成伤害的30%转化为生命，顺子时50%
-                foreach (var hero in fieldHeroes)
-                {
-                    hero.LifeStealRate = card.Data.effectValue / 100f * multiplier;
-                }
+                ApplyToAllHeroes(h => h.LifeStealRate = card.Data.effectValue / 100f * multiplier);
                 break;
 
             case CardEffectId.PoisonBlade:
-                // 毒刃：本场攻击附加中毒，对子时毒害翻倍
-                foreach (var hero in fieldHeroes)
+                ApplyToAllHeroes(h =>
                 {
-                    hero.PoisonDamage = Mathf.RoundToInt(card.Data.effectValue * multiplier);
-                    hero.HasPoisonBlade = true;
-                }
+                    h.PoisonDamage = Mathf.RoundToInt(card.Data.effectValue * multiplier);
+                    h.HasPoisonBlade = true;
+                });
                 break;
 
             case CardEffectId.EnergyBurst:
-                // 能量爆发：本场攻击、防御、速度+20%，三条时+30%
                 float burstBonus = card.Data.effectValue / 100f * multiplier;
-                foreach (var hero in fieldHeroes)
+                ApplyToAllHeroes(h =>
                 {
-                    hero.BattleAttack = Mathf.RoundToInt(hero.Attack * (1 + burstBonus));
-                    hero.BattleDefense = Mathf.RoundToInt(hero.Defense * (1 + burstBonus));
-                    hero.BattleSpeed = Mathf.RoundToInt(hero.Speed * (1 + burstBonus));
-                }
+                    h.BattleAttack = Mathf.RoundToInt(h.Attack * (1 + burstBonus));
+                    h.BattleDefense = Mathf.RoundToInt(h.Defense * (1 + burstBonus));
+                    h.BattleSpeed = Mathf.RoundToInt(h.Speed * (1 + burstBonus));
+                });
                 break;
 
             case CardEffectId.ArmorBreak:
-                // 破甲攻击：本场攻击降低目标50%防御，对时降为0
-                foreach (var hero in fieldHeroes)
-                    hero.HasArmorBreak = true;
+                ApplyToAllHeroes(h => h.HasArmorBreak = true);
                 break;
 
             case CardEffectId.GroupHeal:
-                // 群体治疗：立即恢复全体友方20%生命
                 int healPercent = Mathf.RoundToInt(card.Data.effectValue * multiplier);
-                foreach (var hero in fieldHeroes)
-                {
-                    int healAmount = Mathf.RoundToInt(hero.MaxHealth * healPercent / 100f);
-                    hero.Heal(healAmount);
-                }
+                ApplyToAllHeroes(h => h.Heal(Mathf.RoundToInt(h.MaxHealth * healPercent / 100f)));
                 break;
 
             case CardEffectId.LightningChain:
-                // 闪电链：攻击弹射到3个目标，顺子时5次
-                foreach (var hero in fieldHeroes)
-                    hero.LightningChainBounces = hasCombo ? 5 : card.Data.effectValue;
+                ApplyToAllHeroes(h => h.LightningChainBounces = hasCombo ? 5 : card.Data.effectValue);
                 break;
 
             case CardEffectId.Thorns:
-                // 荊棘反伤：本场受击时反弩30%伤害
-                foreach (var hero in fieldHeroes)
-                    hero.BattleThornsRate = card.Data.effectValue / 100f * multiplier;
+                ApplyToAllHeroes(h => h.BattleThornsRate = card.Data.effectValue / 100f * multiplier);
                 break;
 
             case CardEffectId.BerserkPotion:
-                // 狂暴药水：本场攻击+80%，防御-30%
                 float berserkAtkBonus = card.Data.effectValue / 100f * multiplier;
-                foreach (var hero in fieldHeroes)
+                ApplyToAllHeroes(h =>
                 {
-                    hero.BattleAttack = Mathf.RoundToInt(hero.Attack * (1 + berserkAtkBonus));
-                    hero.BattleDefense = Mathf.RoundToInt(hero.Defense * 0.7f); // 防御-30%
-                    hero.HasBerserk = true;
-                }
+                    h.BattleAttack = Mathf.RoundToInt(h.Attack * (1 + berserkAtkBonus));
+                    h.BattleDefense = Mathf.RoundToInt(h.Defense * 0.7f);
+                    h.HasBerserk = true;
+                });
                 break;
 
             case CardEffectId.ShieldResonance:
-                // 护盾共振：给全体友方施加30%生命值护盾
-                foreach (var hero in fieldHeroes)
-                {
-                    int shield = Mathf.RoundToInt(hero.MaxHealth * card.Data.effectValue / 100f * multiplier);
-                    hero.AddShield(shield);
-                }
+                ApplyToAllHeroes(h => h.AddShield(Mathf.RoundToInt(h.MaxHealth * card.Data.effectValue / 100f * multiplier)));
                 break;
 
             case CardEffectId.Reroll:
-                // 重摇卡由 DiceRoller 处理，这里不处理
+                // 重摇卡由 DiceRoller 处理
                 break;
         }
 
@@ -395,11 +368,7 @@ public class CardDeck : MonoBehaviour
     /// </summary>
     public void ApplyDiceCombinationToField(DiceCombination combo)
     {
-        foreach (var hero in fieldHeroes)
-        {
-            if (hero == null) continue;
-            hero.ApplyDiceCombination(combo);
-        }
+        ApplyToAllHeroes(h => h.ApplyDiceCombination(combo));
     }
 
     /// <summary>
@@ -407,12 +376,7 @@ public class CardDeck : MonoBehaviour
     /// </summary>
     public void ApplyPositioningToField(GridManager grid)
     {
-        foreach (var hero in fieldHeroes)
-        {
-            if (hero == null) continue;
-            var row = grid.GetRow(hero.GridPosition);
-            hero.ApplyRowEffect(row);
-        }
+        ApplyToAllHeroes(h => h.ApplyRowEffect(grid.GetRow(h.GridPosition)));
     }
 
     /// <summary>

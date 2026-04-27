@@ -178,9 +178,9 @@ public class Hero : MonoBehaviour
     }
 
     /// <summary>
-    /// 应用骰子组合效果
+    /// 重置所有战斗状态（卡牌特殊效果 + 局内属性）
     /// </summary>
-    public void ApplyDiceCombination(DiceCombination combo)
+    private void ClearBattleEffects()
     {
         BattleAttack = Attack;
         BattleAttackSpeed = 1f;
@@ -199,6 +199,14 @@ public class Hero : MonoBehaviour
         HasArmorBreak = false;
         LightningChainBounces = 0;
         HasBerserk = false;
+    }
+
+    /// <summary>
+    /// 应用骰子组合效果
+    /// </summary>
+    public void ApplyDiceCombination(DiceCombination combo)
+    {
+        ClearBattleEffects();
 
         switch (combo.Type)
         {
@@ -223,23 +231,7 @@ public class Hero : MonoBehaviour
     /// </summary>
     public void ResetBattleStats()
     {
-        BattleAttack = Attack;
-        BattleAttackSpeed = 1f;
-        BattleCritRate = CritRate;
-        BattleDefense = Defense;
-        BattleSpeed = Speed;
-        BattleDodgeRate = 0f;
-        BattleCritDamage = 0.5f;
-        HasFlameAOE = false;
-        HasFrostSlow = false;
-        HasPoisonBlade = false;
-        ChainStrikeCount = 0;
-        LifeStealRate = 0f;
-        PoisonDamage = 0;
-        BattleThornsRate = 0f;
-        HasArmorBreak = false;
-        LightningChainBounces = 0;
-        HasBerserk = false;
+        ClearBattleEffects();
     }
 
     /// <summary>

@@ -51,51 +51,36 @@ public static class AutoChessAI
         // 刺客优先攻击血量最低/后排脆皮
         if (self.Data.heroClass == HeroClass.Assassin)
         {
-            Hero weakest = null;
-            int minHealth = int.MaxValue;
-            foreach (var enemy in enemies)
-            {
-                if (enemy == null || enemy.IsDead) continue;
-                if (enemy.CurrentHealth < minHealth)
-                {
-                    minHealth = enemy.CurrentHealth;
-                    weakest = enemy;
-                }
-            }
+            var weakest = FindBest(enemies, (a, b) => a.CurrentHealth < b.CurrentHealth);
             if (weakest != null) return weakest;
         }
 
         // Boss优先攻击攻击最高的目标（威胁最大）
         if (self.Data.heroName == "Boss")
         {
-            Hero highestAtk = null;
-            int maxAtk = -1;
-            foreach (var enemy in enemies)
-            {
-                if (enemy == null || enemy.IsDead) continue;
-                if (enemy.BattleAttack > maxAtk)
-                {
-                    maxAtk = enemy.BattleAttack;
-                    highestAtk = enemy;
-                }
-            }
+            var highestAtk = FindBest(enemies, (a, b) => a.BattleAttack > b.BattleAttack);
             if (highestAtk != null) return highestAtk;
         }
 
         // 默认：找距离最近的活着的敌人
-        Hero nearest = null;
-        float minDist = float.MaxValue;
-        foreach (var enemy in enemies)
+        return FindBest(enemies, (a, b) =>
+            Vector2Int.Distance(self.GridPosition, a.GridPosition) <
+            Vector2Int.Distance(self.GridPosition, b.GridPosition));
+    }
+
+    /// <summary>
+    /// 通用查找：返回满足条件的最优目标
+    /// </summary>
+    static Hero FindBest(List<Hero> heroes, System.Func<Hero, Hero, bool> isBetter)
+    {
+        Hero best = null;
+        foreach (var h in heroes)
         {
-            if (enemy == null || enemy.IsDead) continue;
-            float dist = Vector2Int.Distance(self.GridPosition, enemy.GridPosition);
-            if (dist < minDist)
-            {
-                minDist = dist;
-                nearest = enemy;
-            }
+            if (h == null || h.IsDead) continue;
+            if (best == null || isBetter(h, best))
+                best = h;
         }
-        return nearest;
+        return best;
     }
 
     /// <summary>
@@ -103,19 +88,7 @@ public static class AutoChessAI
     /// </summary>
     static Hero FindWeakestAlly(List<Hero> allies)
     {
-        Hero weakest = null;
-        float minHealthRatio = float.MaxValue;
-        foreach (var ally in allies)
-        {
-            if (ally == null || ally.IsDead) continue;
-            float ratio = (float)ally.CurrentHealth / ally.MaxHealth;
-            if (ratio < minHealthRatio)
-            {
-                minHealthRatio = ratio;
-                weakest = ally;
-            }
-        }
-        return weakest;
+        return FindBest(allies, (a, b) => (float)a.CurrentHealth / a.MaxHealth < (float)b.CurrentHealth / b.MaxHealth);
     }
 
     /// <summary>
@@ -182,18 +155,5 @@ public static class AutoChessAI
                 }
                 break;
         }
-    }
-
-    /// <summary>
-    /// 伤害计算 — 使用统一公式
-    /// </summary>
-    static int CalculateDamage(Hero attacker, Hero defender)
-    {
-        return GameBalance.CalculateDamage(
-            attacker.BattleAttack,
-            attacker.BattleCritRate,
-            attacker.BattleCritDamage,
-            defender.BattleDefense
-        );
     }
 }
