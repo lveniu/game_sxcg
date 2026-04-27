@@ -59,6 +59,9 @@ public class Hero : MonoBehaviour
         int actual = Mathf.Max(1, damage - BattleDefense);
         CurrentHealth -= actual;
         if (CurrentHealth < 0) CurrentHealth = 0;
+
+        // 伤害飘字
+        DamagePopup.Instance?.ShowDamage(transform.position, actual);
     }
 
     /// <summary>
@@ -67,6 +70,9 @@ public class Hero : MonoBehaviour
     public void Heal(int amount)
     {
         CurrentHealth = Mathf.Min(MaxHealth, CurrentHealth + amount);
+
+        // 治疗飘字
+        DamagePopup.Instance?.ShowHeal(transform.position, amount);
     }
 
     /// <summary>
