@@ -10,6 +10,9 @@ public class Hero : MonoBehaviour
     public bool IsEvolved { get; private set; }
     public bool IsDead => CurrentHealth <= 0;
 
+    // 装备
+    public System.Collections.Generic.Dictionary<EquipmentSlot, EquipmentData> EquippedItems { get; private set; } = new();
+
     // 基础属性（受星级影响）
     public int MaxHealth { get; private set; }
     public int Attack { get; private set; }
@@ -54,16 +57,55 @@ public class Hero : MonoBehaviour
     }
 
     /// <summary>
-    /// 根据星级重新计算属性：1星=1x, 2星=1.5x, 3星=2x
+    /// 根据星级和装备重新计算属性
     /// </summary>
     public void RecalculateStats()
     {
         float multiplier = GameBalance.GetStarMultiplier(StarLevel);
-        MaxHealth = Mathf.RoundToInt(Data.baseHealth * multiplier);
-        Attack = Mathf.RoundToInt(Data.baseAttack * multiplier);
-        Defense = Mathf.RoundToInt(Data.baseDefense * multiplier);
-        Speed = Mathf.RoundToInt(Data.baseSpeed * multiplier);
-        CritRate = Mathf.Clamp01(Data.baseCritRate * multiplier);
+        int equipHealth = 0, equipAtk = 0, equipDef = 0, equipSpd = 0;
+        float equipCrit = 0f;
+
+        foreach (var item in EquippedItems.Values)
+        {
+            if (item == null) continue;
+            equipHealth += item.healthBonus;
+            equipAtk += item.attackBonus;
+            equipDef += item.defenseBonus;
+            equipSpd += item.speedBonus;
+            equipCrit += item.critRateBonus;
+        }
+
+        MaxHealth = Mathf.RoundToInt(Data.baseHealth * multiplier) + equipHealth;
+        Attack = Mathf.RoundToInt(Data.baseAttack * multiplier) + equipAtk;
+        Defense = Mathf.RoundToInt(Data.baseDefense * multiplier) + equipDef;
+        Speed = Mathf.RoundToInt(Data.baseSpeed * multiplier) + equipSpd;
+        CritRate = Mathf.Clamp01(Data.baseCritRate * multiplier + equipCrit);
+    }
+
+    /// <summary>
+    /// 装备物品
+    /// </summary>
+    public void Equip(EquipmentData equipment)
+    {
+        if (equipment == null) return;
+        EquippedItems[equipment.slot] = equipment;
+        RecalculateStats();
+        Debug.Log($"{Data.heroName} 装备了 {equipment.equipmentName}");
+    }
+
+    /// <summary>
+    /// 卸下装备
+    /// </summary>
+    public EquipmentData Unequip(EquipmentSlot slot)
+    {
+        if (EquippedItems.TryGetValue(slot, out var equipment))
+        {
+            EquippedItems.Remove(slot);
+            RecalculateStats();
+            Debug.Log($"{Data.heroName} 卸下了 {equipment.equipmentName}");
+            return equipment;
+        }
+        return null;
     }
 
     /// <summary>

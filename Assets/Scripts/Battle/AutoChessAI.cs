@@ -9,16 +9,30 @@ public static class AutoChessAI
     /// <summary>
     /// 单位执行一次行动
     /// </summary>
-    public static void TakeAction(Hero self, List<Hero> enemies)
+    public static void TakeAction(Hero self, List<Hero> enemies, List<Hero> allies)
     {
         if (self == null || self.IsDead) return;
+
+        // 治疗者AI：优先治疗血量最低的友方
+        if (self.Data.heroName == "治疗者" && allies != null && allies.Count > 0)
+        {
+            Hero weakest = FindWeakestAlly(allies);
+            if (weakest != null && weakest.CurrentHealth < weakest.MaxHealth * 0.8f)
+            {
+                int heal = Mathf.RoundToInt(self.Data.activeSkill?.effectValue ?? 15);
+                weakest.Heal(heal);
+                Debug.Log($"{self.Data.heroName} 治疗 {weakest.Data.heroName} 恢复 {heal} 生命");
+                return;
+            }
+        }
+
         if (enemies == null || enemies.Count == 0) return;
 
         // 寻找目标
         Hero target = FindTarget(self, enemies);
         if (target == null) return;
 
-        // 检查是否释放技能（简化：每次行动有30%概率放技能）
+        // 检查是否释放技能
         if (self.Data.activeSkill != null && Random.value < 0.3f)
         {
             UseSkill(self, target, enemies);
@@ -30,17 +44,50 @@ public static class AutoChessAI
     }
 
     /// <summary>
-    /// 寻找目标 — 简化为找距离最近的活着的敌人
+    /// 寻找目标 — 根据职业选择优先级
     /// </summary>
     static Hero FindTarget(Hero self, List<Hero> enemies)
     {
+        // 刺客优先攻击血量最低/后排脆皮
+        if (self.Data.heroClass == HeroClass.Assassin)
+        {
+            Hero weakest = null;
+            int minHealth = int.MaxValue;
+            foreach (var enemy in enemies)
+            {
+                if (enemy == null || enemy.IsDead) continue;
+                if (enemy.CurrentHealth < minHealth)
+                {
+                    minHealth = enemy.CurrentHealth;
+                    weakest = enemy;
+                }
+            }
+            if (weakest != null) return weakest;
+        }
+
+        // Boss优先攻击攻击最高的目标（威胁最大）
+        if (self.Data.heroName == "Boss")
+        {
+            Hero highestAtk = null;
+            int maxAtk = -1;
+            foreach (var enemy in enemies)
+            {
+                if (enemy == null || enemy.IsDead) continue;
+                if (enemy.BattleAttack > maxAtk)
+                {
+                    maxAtk = enemy.BattleAttack;
+                    highestAtk = enemy;
+                }
+            }
+            if (highestAtk != null) return highestAtk;
+        }
+
+        // 默认：找距离最近的活着的敌人
         Hero nearest = null;
         float minDist = float.MaxValue;
-
         foreach (var enemy in enemies)
         {
             if (enemy == null || enemy.IsDead) continue;
-
             float dist = Vector2Int.Distance(self.GridPosition, enemy.GridPosition);
             if (dist < minDist)
             {
@@ -49,6 +96,26 @@ public static class AutoChessAI
             }
         }
         return nearest;
+    }
+
+    /// <summary>
+    /// 找血量最低的友方
+    /// </summary>
+    static Hero FindWeakestAlly(List<Hero> allies)
+    {
+        Hero weakest = null;
+        float minHealthRatio = float.MaxValue;
+        foreach (var ally in allies)
+        {
+            if (ally == null || ally.IsDead) continue;
+            float ratio = (float)ally.CurrentHealth / ally.MaxHealth;
+            if (ratio < minHealthRatio)
+            {
+                minHealthRatio = ratio;
+                weakest = ally;
+            }
+        }
+        return weakest;
     }
 
     /// <summary>

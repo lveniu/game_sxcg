@@ -63,14 +63,14 @@ public class BattleManager : MonoBehaviour
             foreach (var unit in playerUnits)
             {
                 if (unit == null || unit.IsDead) continue;
-                AutoChessAI.TakeAction(unit, enemyUnits);
+                AutoChessAI.TakeAction(unit, enemyUnits, playerUnits);
             }
 
             // 敌方单位行动
             foreach (var unit in enemyUnits)
             {
                 if (unit == null || unit.IsDead) continue;
-                AutoChessAI.TakeAction(unit, playerUnits);
+                AutoChessAI.TakeAction(unit, playerUnits, enemyUnits);
             }
 
             // 清理死亡单位
