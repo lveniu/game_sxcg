@@ -11,15 +11,16 @@ public static class GameData
 
     public static HeroData CreateTankHero()
     {
+        var stats = GameBalance.GetHeroTemplate("坦克");
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "坦克";
-        data.heroClass = HeroClass.Tank;
-        data.baseHealth = 150;
-        data.baseAttack = 8;
-        data.baseDefense = 10;
-        data.baseSpeed = 6;
-        data.baseCritRate = 0.02f;
-        data.summonCost = 2;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateShieldBashSkill();
         data.evolutionForm = CreateTankEvolved();
@@ -29,15 +30,16 @@ public static class GameData
 
     public static HeroData CreateArcherHero()
     {
+        var stats = GameBalance.GetHeroTemplate("射手");
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "射手";
-        data.heroClass = HeroClass.Archer;
-        data.baseHealth = 80;
-        data.baseAttack = 14;
-        data.baseDefense = 4;
-        data.baseSpeed = 10;
-        data.baseCritRate = 0.08f;
-        data.summonCost = 2;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreatePierceShotSkill();
         data.evolutionForm = CreateArcherEvolved();
@@ -47,15 +49,16 @@ public static class GameData
 
     public static HeroData CreateAssassinHero()
     {
+        var stats = GameBalance.GetHeroTemplate("刺客");
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "刺客";
-        data.heroClass = HeroClass.Assassin;
-        data.baseHealth = 70;
-        data.baseAttack = 16;
-        data.baseDefense = 3;
-        data.baseSpeed = 14;
-        data.baseCritRate = 0.12f;
-        data.summonCost = 1;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateBackstabSkill();
         data.evolutionForm = CreateAssassinEvolved();
@@ -65,32 +68,34 @@ public static class GameData
 
     // ========== 敌人数据模板 ==========
 
-    public static HeroData CreateEnemyGrunt()
+    public static HeroData CreateEnemyGrunt(int levelId = 1)
     {
+        var stats = GameBalance.GetEnemyTemplate("小怪", levelId);
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "小怪";
-        data.heroClass = HeroClass.Tank;
-        data.baseHealth = 60;
-        data.baseAttack = 6;
-        data.baseDefense = 3;
-        data.baseSpeed = 5;
-        data.baseCritRate = 0f;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
         data.summonCost = 0;
         data.normalAttack = CreateNormalAttack();
         data.description = "普通小怪";
         return data;
     }
 
-    public static HeroData CreateEnemyElite()
+    public static HeroData CreateEnemyElite(int levelId = 1)
     {
+        var stats = GameBalance.GetEnemyTemplate("精英", levelId);
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "精英";
-        data.heroClass = HeroClass.Archer;
-        data.baseHealth = 120;
-        data.baseAttack = 12;
-        data.baseDefense = 6;
-        data.baseSpeed = 8;
-        data.baseCritRate = 0.05f;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
         data.summonCost = 0;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreatePierceShotSkill();
@@ -98,16 +103,17 @@ public static class GameData
         return data;
     }
 
-    public static HeroData CreateEnemyBoss()
+    public static HeroData CreateEnemyBoss(int levelId = 1)
     {
+        var stats = GameBalance.GetEnemyTemplate("Boss", levelId);
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "Boss";
-        data.heroClass = HeroClass.Tank;
-        data.baseHealth = 300;
-        data.baseAttack = 15;
-        data.baseDefense = 10;
-        data.baseSpeed = 5;
-        data.baseCritRate = 0.1f;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
         data.summonCost = 0;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateAOESmashSkill();
@@ -414,32 +420,34 @@ public static class GameData
 
     // ========== 扩展敌人 ==========
 
-    public static HeroData CreateEnemyBomber()
+    public static HeroData CreateEnemyBomber(int levelId = 1)
     {
+        var stats = GameBalance.GetEnemyTemplate("自爆怪", levelId);
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "自爆怪";
-        data.heroClass = HeroClass.Tank;
-        data.baseHealth = 40;
-        data.baseAttack = 4;
-        data.baseDefense = 1;
-        data.baseSpeed = 8;
-        data.baseCritRate = 0f;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
         data.summonCost = 0;
         data.normalAttack = CreateNormalAttack();
         data.description = "死亡时对周围造成高额伤害";
         return data;
     }
 
-    public static HeroData CreateEnemyHealer()
+    public static HeroData CreateEnemyHealer(int levelId = 1)
     {
+        var stats = GameBalance.GetEnemyTemplate("治疗者", levelId);
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "治疗者";
-        data.heroClass = HeroClass.Archer;
-        data.baseHealth = 50;
-        data.baseAttack = 5;
-        data.baseDefense = 2;
-        data.baseSpeed = 4;
-        data.baseCritRate = 0f;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
         data.summonCost = 0;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateHealSkill();
@@ -464,15 +472,16 @@ public static class GameData
 
     public static HeroData CreateTankEvolved()
     {
+        var stats = GameBalance.GetHeroTemplate("链甲使者");
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "链甲使者";
-        data.heroClass = HeroClass.Tank;
-        data.baseHealth = 200;
-        data.baseAttack = 10;
-        data.baseDefense = 15;
-        data.baseSpeed = 5;
-        data.baseCritRate = 0.03f;
-        data.summonCost = 2;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateShieldReflectSkill();
         data.description = "极致防御，护盾反弹伤害";
@@ -481,15 +490,16 @@ public static class GameData
 
     public static HeroData CreateArcherEvolved()
     {
+        var stats = GameBalance.GetHeroTemplate("巡游射手");
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "巡游射手";
-        data.heroClass = HeroClass.Archer;
-        data.baseHealth = 100;
-        data.baseAttack = 18;
-        data.baseDefense = 5;
-        data.baseSpeed = 12;
-        data.baseCritRate = 0.12f;
-        data.summonCost = 2;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreatePierceShotSkill();
         data.description = "超远射程，穿透敌阵";
@@ -498,15 +508,16 @@ public static class GameData
 
     public static HeroData CreateAssassinEvolved()
     {
+        var stats = GameBalance.GetHeroTemplate("影舞者");
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "影舞者";
-        data.heroClass = HeroClass.Assassin;
-        data.baseHealth = 85;
-        data.baseAttack = 22;
-        data.baseDefense = 4;
-        data.baseSpeed = 18;
-        data.baseCritRate = 0.2f;
-        data.summonCost = 1;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateBackstabSkill();
         data.description = "极速闪避，背刺必暴";
@@ -530,15 +541,16 @@ public static class GameData
 
     public static HeroData CreateMageHero()
     {
+        var stats = GameBalance.GetHeroTemplate("法师");
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "法师";
-        data.heroClass = HeroClass.Archer; // 用Archer作为远程占位
-        data.baseHealth = 70;
-        data.baseAttack = 12;
-        data.baseDefense = 3;
-        data.baseSpeed = 8;
-        data.baseCritRate = 0.05f;
-        data.summonCost = 2;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateFireballSkill();
         data.description = "远程AOE法术输出";
@@ -547,15 +559,16 @@ public static class GameData
 
     public static HeroData CreateWarriorHero()
     {
+        var stats = GameBalance.GetHeroTemplate("战士");
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "战士";
-        data.heroClass = HeroClass.Tank;
-        data.baseHealth = 110;
-        data.baseAttack = 10;
-        data.baseDefense = 8;
-        data.baseSpeed = 6;
-        data.baseCritRate = 0.05f;
-        data.summonCost = 2;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateWhirlwindSkill();
         data.description = "近战连击型输出";
@@ -588,48 +601,51 @@ public static class GameData
 
     // ========== 再扩展敌人 ==========
 
-    public static HeroData CreateEnemyShielder()
+    public static HeroData CreateEnemyShielder(int levelId = 1)
     {
+        var stats = GameBalance.GetEnemyTemplate("护盾怪", levelId);
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "护盾怪";
-        data.heroClass = HeroClass.Tank;
-        data.baseHealth = 80;
-        data.baseAttack = 5;
-        data.baseDefense = 8;
-        data.baseSpeed = 4;
-        data.baseCritRate = 0f;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
         data.summonCost = 0;
         data.normalAttack = CreateNormalAttack();
         data.description = "开场自带护盾";
         return data;
     }
 
-    public static HeroData CreateEnemySplitter()
+    public static HeroData CreateEnemySplitter(int levelId = 1)
     {
+        var stats = GameBalance.GetEnemyTemplate("分裂怪", levelId);
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "分裂怪";
-        data.heroClass = HeroClass.Tank;
-        data.baseHealth = 100;
-        data.baseAttack = 6;
-        data.baseDefense = 2;
-        data.baseSpeed = 5;
-        data.baseCritRate = 0f;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
         data.summonCost = 0;
         data.normalAttack = CreateNormalAttack();
         data.description = "死亡时分裂成2个小怪";
         return data;
     }
 
-    public static HeroData CreateEnemyStealth()
+    public static HeroData CreateEnemyStealth(int levelId = 1)
     {
+        var stats = GameBalance.GetEnemyTemplate("隐身怪", levelId);
         var data = ScriptableObject.CreateInstance<HeroData>();
         data.heroName = "隐身怪";
-        data.heroClass = HeroClass.Assassin;
-        data.baseHealth = 60;
-        data.baseAttack = 10;
-        data.baseDefense = 2;
-        data.baseSpeed = 12;
-        data.baseCritRate = 0.1f;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
         data.summonCost = 0;
         data.normalAttack = CreateNormalAttack();
         data.description = "每3回合隐身1回合";

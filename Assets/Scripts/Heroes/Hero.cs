@@ -54,20 +54,20 @@ public class Hero : MonoBehaviour
     /// </summary>
     public void RecalculateStats()
     {
-        float multiplier = 1f + (StarLevel - 1) * 0.5f;
+        float multiplier = GameBalance.GetStarMultiplier(StarLevel);
         MaxHealth = Mathf.RoundToInt(Data.baseHealth * multiplier);
         Attack = Mathf.RoundToInt(Data.baseAttack * multiplier);
         Defense = Mathf.RoundToInt(Data.baseDefense * multiplier);
         Speed = Mathf.RoundToInt(Data.baseSpeed * multiplier);
-        CritRate = Data.baseCritRate * multiplier;
+        CritRate = Mathf.Clamp01(Data.baseCritRate * multiplier);
     }
 
     /// <summary>
-    /// 接受伤害
+    /// 接受伤害（伤害已经由GameBalance.CalculateDamage计算好）
     /// </summary>
     public void TakeDamage(int damage)
     {
-        int actual = Mathf.Max(1, damage - BattleDefense);
+        int actual = Mathf.Max(0, damage);
         CurrentHealth -= actual;
         if (CurrentHealth < 0) CurrentHealth = 0;
 

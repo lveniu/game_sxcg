@@ -76,7 +76,7 @@ public static class AutoChessAI
         {
             case SkillTargetType.Single:
                 {
-                    int dmg = Mathf.RoundToInt(self.BattleAttack * skill.damageMultiplier);
+                    int dmg = GameBalance.CalculateDamage(self.BattleAttack, self.BattleCritRate, self.BattleCritDamage, target.BattleDefense, skill.damageMultiplier);
                     target.TakeDamage(dmg);
                     Debug.Log($"{self.Data.heroName} 释放 [{skill.skillName}] → {target.Data.heroName} 造成 {dmg} 伤害");
                 }
@@ -87,7 +87,7 @@ public static class AutoChessAI
                     foreach (var enemy in enemies)
                     {
                         if (enemy == null || enemy.IsDead) continue;
-                        int dmg = Mathf.RoundToInt(self.BattleAttack * skill.damageMultiplier * 0.6f);
+                        int dmg = GameBalance.CalculateDamage(self.BattleAttack, self.BattleCritRate, self.BattleCritDamage, enemy.BattleDefense, skill.damageMultiplier * 0.6f);
                         enemy.TakeDamage(dmg);
                     }
                     Debug.Log($"{self.Data.heroName} 释放 [{skill.skillName}] AOE 伤害");
@@ -105,18 +105,15 @@ public static class AutoChessAI
     }
 
     /// <summary>
-    /// 伤害计算 — 攻击 × 暴击 - 防御
+    /// 伤害计算 — 使用统一公式
     /// </summary>
     static int CalculateDamage(Hero attacker, Hero defender)
     {
-        float attack = attacker.BattleAttack;
-        float critChance = attacker.BattleCritRate;
-        bool isCrit = Random.value < critChance;
-
-        float damage = attack;
-        if (isCrit) damage *= 2f;
-
-        damage = Mathf.Max(1, damage - defender.BattleDefense);
-        return Mathf.RoundToInt(damage);
+        return GameBalance.CalculateDamage(
+            attacker.BattleAttack,
+            attacker.BattleCritRate,
+            attacker.BattleCritDamage,
+            defender.BattleDefense
+        );
     }
 }
