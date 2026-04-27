@@ -1,55 +1,59 @@
 # GameSXCG
 
-Unity 2022.3 LTS 游戏项目
+> **Dice-Driven Roguelike Auto-Battler**
+>
+> 掷骰子 → 召唤英雄 → 打卡组筑 → 自动战斗
 
-## 目录结构
+## 快速启动
+
+1. 用 **Unity 2022.3 LTS** 打开本项目
+2. 打开任意空场景（或创建新场景）
+3. 顶部菜单 → `GameSXCG` → `Setup Main Scene`
+4. 点 **Play**
+
+## 项目结构
 
 ```
-game_sxcg/
-│
-├── Assets/                 # Unity 资源目录
-│   ├── Art/                 # 美术资源（Sprite、Audio、Animation）
-│   ├── Prefabs/             # 预制体
-│   ├── Resources/           # 运行时动态加载资源
-│   ├── Scenes/              # 场景文件
-│   └── Scripts/             # C# 脚本
-│       └── autoload/        # 全局管理器
-│
-├── Packages/               # UPM 包管理
-├── ProjectSettings/        # 项目配置
-├── docs/                   # 项目文档
-│   ├── planning/          # 规划文档
-│   ├── versions/          # 版本记录
-│   └── management/        # 管理流程
-└── exports/                # 构建输出（CI/CD）
+Assets/
+├── Scripts/
+│   ├── Core/         状态机
+│   ├── Dice/         骰子系统
+│   ├── Heroes/       英雄/技能
+│   ├── Cards/        卡牌/卡组
+│   ├── Grid/         棋盘3×4
+│   ├── Battle/       自动战斗AI
+│   ├── UI/           6个核心界面
+│   ├── Data/         默认游戏数据
+│   └── Tests/        整合测试
+├── Editor/         场景搭建工具
+├── Scenes/         场景文件
+└── docs/planning/  GDD + MVP设计文档
 ```
+
+## 核心循环
+
+```
+[选英雄] → [掷骰子+重摇] → [出牌+站位] → [自动战斗] → [结算奖励]
+     ↓ 失败                                              ↓ 胜利
+   [游戏结束]                                         [下一关]
+```
+
+## 开发状态
+
+| 模块 | 状态 |
+|------|------|
+| 骰子系统 | ✅ 完成 |
+| 状态机 | ✅ 完成 |
+| 卡牌系统 | ✅ 完成 |
+| 英雄系统 | ✅ 完成 |
+| 棋盘系统 | ✅ 完成 |
+| 自走棋战斗 | ✅ 完成 |
+| UI 界面 | ✅ 完成 |
+| 整合测试 | ✅ 完成 |
 
 ## 技术栈
 
-- **引擎**: Unity 2022.3 LTS
-- **编辑器**: VS 2022 / VS Code + C# Dev Kit
-- **版本控制**: Git + 分支模型
-
-## 分支规范
-
-| 分支 | 说明 |
-|------|------|
-| `main` | 发布/稳定分支 |
-| `dev`  | 日常开发（所有功能合并到此） |
-| `feat/*` | 功能分支（从 dev 切出） |
-| `fix/*`  | Bug 修复分支 |
-| `hotfix/*` | 紧急修复（从 main 切出） |
-
-## 快速开始
-
-1. 安装 Unity Hub + Unity 2022.3 LTS
-2. 克隆本仓库：`git clone git@github.com:lveniu/game_sxcg.git`
-3. 用 Unity Hub 打开 `game_sxcg` 文件夹
-4. 打开 `Assets/Scenes/MainScene`
-5. 点击 Play
-
-## 相关文档
-
-- [游戏规划](docs/planning/GAME_DESIGN.md)
-- [版本记录](docs/versions/CHANGELOG.md)
-- [开发管理](docs/management/WORKFLOW.md)
+- Unity 2022.3 LTS
+- UGUI (原生UI)
+- C# 脚本
+- 无第三方依赖

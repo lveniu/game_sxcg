@@ -59,6 +59,7 @@ public class SceneSetup : EditorWindow
         EnsureManager<CardDeck>("CardDeck");
         EnsureManager<GridManager>("GridManager");
         EnsureManager<BattleManager>("BattleManager");
+        EnsureManager<LevelManager>("LevelManager");
     }
 
     static T EnsureManager<T>(string name) where T : MonoBehaviour

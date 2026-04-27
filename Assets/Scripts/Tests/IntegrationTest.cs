@@ -276,50 +276,14 @@ public class IntegrationTest : MonoBehaviour
 
     List<Hero> CreateEnemiesForLevel(int level)
     {
-        var enemies = new List<Hero>();
-
-        if (level == 1)
+        var lm = LevelManager.Instance;
+        if (lm == null)
         {
-            // 第1关: 2个小怪
-            for (int i = 0; i < 2; i++)
-            {
-                var data = GameData.CreateEnemyGrunt();
-                var go = new GameObject($"Enemy_{i}");
-                var enemy = go.AddComponent<Hero>();
-                enemy.Initialize(data);
-                enemy.GridPosition = new Vector2Int(i, 3);
-                enemies.Add(enemy);
-            }
+            var go = new GameObject("LevelManager");
+            lm = go.AddComponent<LevelManager>();
         }
-        else if (level == 2)
-        {
-            // 第2关: 1精英 + 1小怪
-            var eliteData = GameData.CreateEnemyElite();
-            var go1 = new GameObject("Enemy_Elite");
-            var elite = go1.AddComponent<Hero>();
-            elite.Initialize(eliteData);
-            elite.GridPosition = new Vector2Int(1, 3);
-            enemies.Add(elite);
-
-            var gruntData = GameData.CreateEnemyGrunt();
-            var go2 = new GameObject("Enemy_Grunt");
-            var grunt = go2.AddComponent<Hero>();
-            grunt.Initialize(gruntData);
-            grunt.GridPosition = new Vector2Int(0, 3);
-            enemies.Add(grunt);
-        }
-        else
-        {
-            // 第3关: Boss
-            var bossData = GameData.CreateEnemyBoss();
-            var go = new GameObject("Enemy_Boss");
-            var boss = go.AddComponent<Hero>();
-            boss.Initialize(bossData);
-            boss.GridPosition = new Vector2Int(1, 3);
-            enemies.Add(boss);
-        }
-
-        return enemies;
+        lm.LoadLevel(level);
+        return lm.SpawnEnemies();
     }
 
     IEnumerator EndGame()
