@@ -7,118 +7,91 @@ using System.Collections.Generic;
 /// </summary>
 public static class GameData
 {
+    static HeroData CreateHeroFromTemplate(string displayName, string templateKey, SkillData normalAtk, SkillData activeSkill = null, HeroData evoForm = null, string desc = "")
+    {
+        var stats = GameBalance.GetHeroTemplate(templateKey);
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = displayName;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
+        data.normalAttack = normalAtk;
+        data.activeSkill = activeSkill;
+        data.evolutionForm = evoForm;
+        data.description = desc;
+        return data;
+    }
+
+    static HeroData CreateEnemyFromTemplate(string displayName, string templateKey, int levelId, SkillData activeSkill = null, string desc = "")
+    {
+        var stats = GameBalance.GetEnemyTemplate(templateKey, levelId);
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = displayName;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = 0;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = activeSkill;
+        data.description = desc;
+        return data;
+    }
+
+    static CardData CreateCard(string name, CardType type, CardRarity rarity, CardEffectId effectId, int cost, string desc,
+        int effectValue = 0, DiceCombinationType combo = DiceCombinationType.None, float comboMultiplier = 1f)
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = name;
+        card.cardType = type;
+        card.rarity = rarity;
+        card.effectId = effectId;
+        card.cost = cost;
+        card.effectValue = effectValue;
+        card.requiredCombo = combo;
+        card.comboMultiplier = comboMultiplier;
+        card.description = desc;
+        return card;
+    }
+
     // ========== 英雄数据 ==========
 
     public static HeroData CreateTankHero()
     {
-        var stats = GameBalance.GetHeroTemplate("坦克");
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "坦克";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = stats.SummonCost;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateShieldBashSkill();
-        data.evolutionForm = CreateTankEvolved();
-        data.description = "高防高血，吸收伤害，护盾反弹";
-        return data;
+        return CreateHeroFromTemplate("坦克", "坦克", CreateNormalAttack(), CreateShieldBashSkill(), CreateTankEvolved(), "高防高血，吸收伤害，护盾反弹");
     }
 
     public static HeroData CreateArcherHero()
     {
-        var stats = GameBalance.GetHeroTemplate("射手");
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "射手";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = stats.SummonCost;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreatePierceShotSkill();
-        data.evolutionForm = CreateArcherEvolved();
-        data.description = "远程输出，越远越痛";
-        return data;
+        return CreateHeroFromTemplate("射手", "射手", CreateNormalAttack(), CreatePierceShotSkill(), CreateArcherEvolved(), "远程输出，越远越痛");
     }
 
     public static HeroData CreateAssassinHero()
     {
-        var stats = GameBalance.GetHeroTemplate("刺客");
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "刺客";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = stats.SummonCost;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateBackstabSkill();
-        data.evolutionForm = CreateAssassinEvolved();
-        data.description = "高速爆发，闪避背刺";
-        return data;
+        return CreateHeroFromTemplate("刺客", "刺客", CreateNormalAttack(), CreateBackstabSkill(), CreateAssassinEvolved(), "高速爆发，闪避背刺");
     }
 
     // ========== 敌人数据模板 ==========
 
     public static HeroData CreateEnemyGrunt(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("小怪", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "小怪";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.description = "普通小怪";
-        return data;
+        return CreateEnemyFromTemplate("小怪", "小怪", levelId, desc: "普通小怪");
     }
 
     public static HeroData CreateEnemyElite(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("精英", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "精英";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreatePierceShotSkill();
-        data.description = "精英敌人";
-        return data;
+        return CreateEnemyFromTemplate("精英", "精英", levelId, CreatePierceShotSkill(), "精英敌人");
     }
 
     public static HeroData CreateEnemyBoss(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("Boss", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "Boss";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateAOESmashSkill();
-        data.description = "Boss战";
-        return data;
+        return CreateEnemyFromTemplate("Boss", "Boss", levelId, CreateAOESmashSkill(), "Boss战");
     }
 
     // ========== 技能数据 ==========
@@ -188,110 +161,42 @@ public static class GameData
 
     public static CardData CreatePowerTrainingCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "力量训练";
-        card.cardType = CardType.Attribute;
-        card.rarity = CardRarity.White;
-        card.effectId = CardEffectId.PowerTraining;
-        card.cost = 0;
-        card.effectValue = 3;
-        card.description = "本局永久+3攻击";
-        return card;
+        return CreateCard("力量训练", CardType.Attribute, CardRarity.White, CardEffectId.PowerTraining, 0, "本局永久+3攻击", 3);
     }
 
     public static CardData CreateArmorTrainingCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "坚固护甲";
-        card.cardType = CardType.Attribute;
-        card.rarity = CardRarity.White;
-        card.effectId = CardEffectId.ArmorTraining;
-        card.cost = 0;
-        card.effectValue = 3;
-        card.description = "本局永久+3防御";
-        return card;
+        return CreateCard("坚固护甲", CardType.Attribute, CardRarity.White, CardEffectId.ArmorTraining, 0, "本局永久+3防御", 3);
     }
 
     public static CardData CreateSpeedTrainingCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "灵敏训练";
-        card.cardType = CardType.Attribute;
-        card.rarity = CardRarity.White;
-        card.effectId = CardEffectId.SpeedTraining;
-        card.cost = 0;
-        card.effectValue = 2;
-        card.description = "本局永久+2速度";
-        return card;
+        return CreateCard("灵敏训练", CardType.Attribute, CardRarity.White, CardEffectId.SpeedTraining, 0, "本局永久+2速度", 2);
     }
 
     public static CardData CreateSlashCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "斩击";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.White;
-        card.effectId = CardEffectId.Slash;
-        card.cost = 1;
-        card.effectValue = 50; // +50%攻击
-        card.requiredCombo = DiceCombinationType.Pair;
-        card.comboMultiplier = 2f; // 对子时翻倍
-        card.description = "本场攻击+50%，对子时伤害翻倍";
-        return card;
+        return CreateCard("斩击", CardType.Battle, CardRarity.White, CardEffectId.Slash, 1, "本场攻击+50%，对子时伤害翻倍", 50, DiceCombinationType.Pair, 2f);
     }
 
     public static CardData CreateRerollCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "重摇";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.White;
-        card.effectId = CardEffectId.Reroll;
-        card.cost = 1;
-        card.description = "消耗1点，重新掷该骰子";
-        return card;
+        return CreateCard("重摇", CardType.Battle, CardRarity.White, CardEffectId.Reroll, 1, "消耗1点，重新掷该骰子");
     }
 
     public static CardData CreateShieldBashCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "护盾冲击";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Blue;
-        card.effectId = CardEffectId.ShieldBash;
-        card.cost = 2;
-        card.effectValue = 30;
-        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
-        card.comboMultiplier = 1.5f;
-        card.description = "消耗2点，获得护盾并冲撞，三条时护盾+50%";
-        return card;
+        return CreateCard("护盾冲击", CardType.Battle, CardRarity.Blue, CardEffectId.ShieldBash, 2, "消耗2点，获得护盾并冲撞，三条时护盾+50%", 30, DiceCombinationType.ThreeOfAKind, 1.5f);
     }
 
     public static CardData CreateFindWeaknessCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "寻找弱点";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Blue;
-        card.effectId = CardEffectId.FindWeakness;
-        card.cost = 1;
-        card.effectValue = 30;
-        card.requiredCombo = DiceCombinationType.Straight;
-        card.comboMultiplier = 1.67f; // 顺子时额外+20%，总共+50%
-        card.description = "本场暴击率+30%，顺子时额外+20%";
-        return card;
+        return CreateCard("寻找弱点", CardType.Battle, CardRarity.Blue, CardEffectId.FindWeakness, 1, "本场暴击率+30%，顺子时额外+20%", 30, DiceCombinationType.Straight, 1.67f);
     }
 
     public static CardData CreateEvolutionAwakenCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "进化觉醒";
-        card.cardType = CardType.Evolution;
-        card.rarity = CardRarity.Purple;
-        card.effectId = CardEffectId.EvolutionAwaken;
-        card.cost = 3;
-        card.description = "消耗3个相同点数，解锁进化形态";
-        return card;
+        return CreateCard("进化觉醒", CardType.Evolution, CardRarity.Purple, CardEffectId.EvolutionAwaken, 3, "消耗3个相同点数，解锁进化形态");
     }
 
     // ========== 初始卡组 ==========
@@ -340,125 +245,44 @@ public static class GameData
 
     public static CardData CreateFlameSlashCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "火焰斩";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Blue;
-        card.effectId = CardEffectId.FlameSlash;
-        card.cost = 2;
-        card.effectValue = 20; // +20%火焰伤害
-        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
-        card.comboMultiplier = 2f; // 三条时变AOE
-        card.description = "本场攻击附加20%火焰伤害，三条时变成范围AOE";
-        return card;
+        return CreateCard("火焰斩", CardType.Battle, CardRarity.Blue, CardEffectId.FlameSlash, 2, "本场攻击附加20%火焰伤害，三条时变成范围AOE", 20, DiceCombinationType.ThreeOfAKind, 2f);
     }
 
     public static CardData CreateFrostArmorCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "冰霜护甲";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Blue;
-        card.effectId = CardEffectId.FrostArmor;
-        card.cost = 1;
-        card.effectValue = 25;
-        card.requiredCombo = DiceCombinationType.Straight;
-        card.comboMultiplier = 2f;
-        card.description = "获得护盾并减速敌人，顺子时护盾翻倍";
-        return card;
+        return CreateCard("冰霜护甲", CardType.Battle, CardRarity.Blue, CardEffectId.FrostArmor, 1, "获得护盾并减速敌人，顺子时护盾翻倍", 25, DiceCombinationType.Straight, 2f);
     }
 
     public static CardData CreateWindStepCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "疾风步";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Blue;
-        card.effectId = CardEffectId.WindStep;
-        card.cost = 1;
-        card.effectValue = 50;
-        card.requiredCombo = DiceCombinationType.Pair;
-        card.comboMultiplier = 1.5f;
-        card.description = "本场速度+50%，对子时闪避+20%";
-        return card;
+        return CreateCard("疾风步", CardType.Battle, CardRarity.Blue, CardEffectId.WindStep, 1, "本场速度+50%，对子时闪避+20%", 50, DiceCombinationType.Pair, 1.5f);
     }
 
     public static CardData CreateHolyBlessCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "神圣祝福";
-        card.cardType = CardType.Attribute;
-        card.rarity = CardRarity.Gold;
-        card.effectId = CardEffectId.HolyBless;
-        card.cost = 0;
-        card.effectValue = 5;
-        card.description = "本局永久+5生命上限";
-        return card;
+        return CreateCard("神圣祝福", CardType.Attribute, CardRarity.Gold, CardEffectId.HolyBless, 0, "本局永久+5生命上限", 5);
     }
 
     public static CardData CreateFatalBlowCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "致命一击";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Purple;
-        card.effectId = CardEffectId.FatalBlow;
-        card.cost = 2;
-        card.effectValue = 50;
-        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
-        card.comboMultiplier = 2f; // 三条时必暴
-        card.description = "本场暴击伤害+50%，三条时必暴";
-        return card;
+        return CreateCard("致命一击", CardType.Battle, CardRarity.Purple, CardEffectId.FatalBlow, 2, "本场暴击伤害+50%，三条时必暴", 50, DiceCombinationType.ThreeOfAKind, 2f);
     }
 
     public static CardData CreateSummonBoostCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "召唤强化";
-        card.cardType = CardType.Attribute;
-        card.rarity = CardRarity.Blue;
-        card.effectId = CardEffectId.SummonBoost;
-        card.cost = 0;
-        card.effectValue = 1;
-        card.description = "本局永久-1召唤消耗（最低1）";
-        return card;
+        return CreateCard("召唤强化", CardType.Attribute, CardRarity.Blue, CardEffectId.SummonBoost, 0, "本局永久-1召唤消耗（最低1）", 1);
     }
 
     // ========== 扩展敌人 ==========
 
     public static HeroData CreateEnemyBomber(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("自爆怪", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "自爆怪";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.description = "死亡时对周围造成高额伤害";
-        return data;
+        return CreateEnemyFromTemplate("自爆怪", "自爆怪", levelId, desc: "死亡时对周围造成高额伤害");
     }
 
     public static HeroData CreateEnemyHealer(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("治疗者", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "治疗者";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateHealSkill();
-        data.description = "每回合给友方回血";
-        return data;
+        return CreateEnemyFromTemplate("治疗者", "治疗者", levelId, CreateHealSkill(), "每回合给友方回血");
     }
 
     static SkillData CreateHealSkill()
@@ -514,20 +338,7 @@ public static class GameData
 
     public static HeroData CreateAssassinEvolved()
     {
-        var stats = GameBalance.GetHeroTemplate("影舞者");
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "影舞者";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = stats.SummonCost;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateBackstabSkill();
-        data.description = "极速闪避，背刺必暴";
-        return data;
+        return CreateHeroFromTemplate("影舞者", "影舞者", CreateNormalAttack(), CreateBackstabSkill(), desc: "极速闪避，背刺必暴");
     }
 
     static SkillData CreateShieldReflectSkill()
@@ -547,76 +358,22 @@ public static class GameData
 
     public static HeroData CreateMageHero()
     {
-        var stats = GameBalance.GetHeroTemplate("法师");
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "法师";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = stats.SummonCost;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateFireballSkill();
-        data.evolutionForm = CreateMageEvolved();
-        data.description = "远程AOE法术输出";
-        return data;
+        return CreateHeroFromTemplate("法师", "法师", CreateNormalAttack(), CreateFireballSkill(), CreateMageEvolved(), "远程AOE法术输出");
     }
 
     public static HeroData CreateWarriorHero()
     {
-        var stats = GameBalance.GetHeroTemplate("战士");
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "战士";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = stats.SummonCost;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateWhirlwindSkill();
-        data.evolutionForm = CreateWarriorEvolved();
-        data.description = "近战连击型输出";
-        return data;
+        return CreateHeroFromTemplate("战士", "战士", CreateNormalAttack(), CreateWhirlwindSkill(), CreateWarriorEvolved(), "近战连击型输出");
     }
 
     public static HeroData CreateMageEvolved()
     {
-        var stats = GameBalance.GetHeroTemplate("大法师");
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "大法师";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = stats.SummonCost;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateMeteorSkill();
-        data.description = "元素的终极代言，陨石毁天灭地";
-        return data;
+        return CreateHeroFromTemplate("大法师", "大法师", CreateNormalAttack(), CreateMeteorSkill(), desc: "元素的终极代言，陨石毁天灭地");
     }
 
     public static HeroData CreateWarriorEvolved()
     {
-        var stats = GameBalance.GetHeroTemplate("狂战士");
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "狂战士";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = stats.SummonCost;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateBerserkSkill();
-        data.description = "鲜血与屠杀的化身，越战越勇";
-        return data;
+        return CreateHeroFromTemplate("狂战士", "狂战士", CreateNormalAttack(), CreateBerserkSkill(), desc: "鲜血与屠杀的化身，越战越勇");
     }
 
     static SkillData CreateFireballSkill()
@@ -672,105 +429,32 @@ public static class GameData
 
     public static HeroData CreateEnemyShielder(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("护盾怪", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "护盾怪";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.description = "开场自带护盾";
-        return data;
+        return CreateEnemyFromTemplate("护盾怪", "护盾怪", levelId, desc: "开场自带护盾");
     }
 
     public static HeroData CreateEnemySplitter(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("分裂怪", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "分裂怪";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.description = "死亡时分裂成2个小怪";
-        return data;
+        return CreateEnemyFromTemplate("分裂怪", "分裂怪", levelId, desc: "死亡时分裂成2个小怪");
     }
 
     public static HeroData CreateEnemyStealth(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("隐身怪", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "隐身怪";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.description = "每3回合隐身1回合";
-        return data;
+        return CreateEnemyFromTemplate("隐身怪", "隐身怪", levelId, desc: "每3回合隐身1回合");
     }
 
     public static HeroData CreateEnemyCurseMage(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("诅咒巫师", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "诅咒巫师";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateCurseSkill();
-        data.description = "攻击降低目标攻击力，持续2回合";
-        return data;
+        return CreateEnemyFromTemplate("诅咒巫师", "诅咒巫师", levelId, CreateCurseSkill(), "攻击降低目标攻击力，持续2回合");
     }
 
     public static HeroData CreateEnemyHeavyKnight(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("重装骑士", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "重装骑士";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.description = "极高防御，每次受击只造成1点伤害";
-        return data;
+        return CreateEnemyFromTemplate("重装骑士", "重装骑士", levelId, desc: "极高防御，每次受击只造成1点伤害");
     }
 
     public static HeroData CreateEnemyVenomSpider(int levelId = 1)
     {
-        var stats = GameBalance.GetEnemyTemplate("毒液蜘蛛", levelId);
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "毒液蜘蛛";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = 0;
-        data.normalAttack = CreateNormalAttack();
-        data.description = "攻击附带剧毒，每回合扣血";
-        return data;
+        return CreateEnemyFromTemplate("毒液蜘蛛", "毒液蜘蛛", levelId, desc: "攻击附带剧毒，每回合扣血");
     }
 
     static SkillData CreateCurseSkill()
@@ -790,90 +474,32 @@ public static class GameData
 
     public static CardData CreateFireballCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "火球术";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Purple;
-        card.effectId = CardEffectId.Fireball;
-        card.cost = 2;
-        card.effectValue = 30;
-        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
-        card.comboMultiplier = 1.5f;
-        card.description = "本场攻击变AOE，三条时伤害+50%";
-        return card;
+        return CreateCard("火球术", CardType.Battle, CardRarity.Purple, CardEffectId.Fireball, 2, "本场攻击变AOE，三条时伤害+50%", 30, DiceCombinationType.ThreeOfAKind, 1.5f);
     }
 
     public static CardData CreateChainStrikeCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "连环斩";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Blue;
-        card.effectId = CardEffectId.ChainStrike;
-        card.cost = 2;
-        card.effectValue = 2; // 攻击2次
-        card.requiredCombo = DiceCombinationType.Pair;
-        card.comboMultiplier = 2f; // 对子时3次
-        card.description = "本场攻击2次，对子时3次";
-        return card;
+        return CreateCard("连环斩", CardType.Battle, CardRarity.Blue, CardEffectId.ChainStrike, 2, "本场攻击2次，对子时3次", 2, DiceCombinationType.Pair, 2f);
     }
 
     public static CardData CreateLifeStealCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "吸血攻击";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Blue;
-        card.effectId = CardEffectId.LifeSteal;
-        card.cost = 1;
-        card.effectValue = 30; // 30%吸血
-        card.requiredCombo = DiceCombinationType.Straight;
-        card.comboMultiplier = 1.67f;
-        card.description = "本场攻击造成伤害的30%转化为生命，顺子时50%";
-        return card;
+        return CreateCard("吸血攻击", CardType.Battle, CardRarity.Blue, CardEffectId.LifeSteal, 1, "本场攻击造成伤害的30%转化为生命，顺子时50%", 30, DiceCombinationType.Straight, 1.67f);
     }
 
     public static CardData CreateReviveCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "复活术";
-        card.cardType = CardType.Attribute;
-        card.rarity = CardRarity.Gold;
-        card.effectId = CardEffectId.Revive;
-        card.cost = 0;
-        card.effectValue = 1;
-        card.description = "本局永久+1复活次数";
-        return card;
+        return CreateCard("复活术", CardType.Attribute, CardRarity.Gold, CardEffectId.Revive, 0, "本局永久+1复活次数", 1);
     }
 
     public static CardData CreatePoisonBladeCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "毒刃";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Blue;
-        card.effectId = CardEffectId.PoisonBlade;
-        card.cost = 1;
-        card.effectValue = 5; // 每回合5点
-        card.requiredCombo = DiceCombinationType.Pair;
-        card.comboMultiplier = 2f;
-        card.description = "本场攻击附加中毒，对子时毒害翻倍";
-        return card;
+        return CreateCard("毒刃", CardType.Battle, CardRarity.Blue, CardEffectId.PoisonBlade, 1, "本场攻击附加中毒，对子时毒害翻倍", 5, DiceCombinationType.Pair, 2f);
     }
 
     public static CardData CreateEnergyBurstCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "能量爆发";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Purple;
-        card.effectId = CardEffectId.EnergyBurst;
-        card.cost = 3;
-        card.effectValue = 20; // 全属性+20%
-        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
-        card.comboMultiplier = 1.5f;
-        card.description = "本场攻击、防御、速度+20%，三条时+30%";
-        return card;
+        return CreateCard("能量爆发", CardType.Battle, CardRarity.Purple, CardEffectId.EnergyBurst, 3, "本场攻击、防御、速度+20%，三条时+30%", 20, DiceCombinationType.ThreeOfAKind, 1.5f);
     }
 
     // ========== 第四轮新卡牌 ==========
@@ -895,32 +521,12 @@ public static class GameData
 
     public static CardData CreateGroupHealCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "群体治疗";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Purple;
-        card.effectId = CardEffectId.GroupHeal;
-        card.cost = 2;
-        card.effectValue = 20; // 每人恢复20%生命
-        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
-        card.comboMultiplier = 1.5f;
-        card.description = "立即恢复全体友方20%生命，三条时30%";
-        return card;
+        return CreateCard("群体治疗", CardType.Battle, CardRarity.Purple, CardEffectId.GroupHeal, 2, "立即恢复全体友方20%生命，三条时30%", 20, DiceCombinationType.ThreeOfAKind, 1.5f);
     }
 
     public static CardData CreateLightningChainCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "闪电链";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Purple;
-        card.effectId = CardEffectId.LightningChain;
-        card.cost = 2;
-        card.effectValue = 3; // 弹射3次
-        card.requiredCombo = DiceCombinationType.Straight;
-        card.comboMultiplier = 2f;
-        card.description = "攻击弹射到3个目标，顺子时5次";
-        return card;
+        return CreateCard("闪电链", CardType.Battle, CardRarity.Purple, CardEffectId.LightningChain, 2, "攻击弹射到3个目标，顺子时5次", 3, DiceCombinationType.Straight, 2f);
     }
 
     public static CardData CreateThornsCard()
@@ -940,32 +546,12 @@ public static class GameData
 
     public static CardData CreateBerserkPotionCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "狂暴药水";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Purple;
-        card.effectId = CardEffectId.BerserkPotion;
-        card.cost = 2;
-        card.effectValue = 80; // 攻击+80%
-        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
-        card.comboMultiplier = 1.5f;
-        card.description = "本场攻击+80%，但防御-30%，三条时攻击+120%";
-        return card;
+        return CreateCard("狂暴药水", CardType.Battle, CardRarity.Purple, CardEffectId.BerserkPotion, 2, "本场攻击+80%，但防御-30%，三条时攻击+120%", 80, DiceCombinationType.ThreeOfAKind, 1.5f);
     }
 
     public static CardData CreateShieldResonanceCard()
     {
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.cardName = "护盾共振";
-        card.cardType = CardType.Battle;
-        card.rarity = CardRarity.Gold;
-        card.effectId = CardEffectId.ShieldResonance;
-        card.cost = 2;
-        card.effectValue = 30; // 30%生命值护盾
-        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
-        card.comboMultiplier = 2f;
-        card.description = "给全体友方施加30%生命值护盾，三条时60%";
-        return card;
+        return CreateCard("护盾共振", CardType.Battle, CardRarity.Gold, CardEffectId.ShieldResonance, 2, "给全体友方施加30%生命值护盾，三条时60%", 30, DiceCombinationType.ThreeOfAKind, 2f);
     }
 }
 
