@@ -313,6 +313,14 @@ public static class GameData
         cards.Add(new CardInstance(CreateFlameSlashCard()));
         cards.Add(new CardInstance(CreateFrostArmorCard()));
         cards.Add(new CardInstance(CreateWindStepCard()));
+        cards.Add(new CardInstance(CreateHolyBlessCard()));
+        cards.Add(new CardInstance(CreateFatalBlowCard()));
+        cards.Add(new CardInstance(CreateSummonBoostCard()));
+        cards.Add(new CardInstance(CreateFireballCard()));
+        cards.Add(new CardInstance(CreateChainStrikeCard()));
+        cards.Add(new CardInstance(CreateLifeStealCard()));
+        cards.Add(new CardInstance(CreatePoisonBladeCard()));
+        cards.Add(new CardInstance(CreateEnergyBurstCard()));
         return cards;
     }
 
@@ -517,5 +525,206 @@ public static class GameData
         skill.description = "获得护盾，受击时反弹伤害";
         return skill;
     }
+
+    // ========== 再扩展英雄 ==========
+
+    public static HeroData CreateMageHero()
+    {
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "法师";
+        data.heroClass = HeroClass.Archer; // 用Archer作为远程占位
+        data.baseHealth = 70;
+        data.baseAttack = 12;
+        data.baseDefense = 3;
+        data.baseSpeed = 8;
+        data.baseCritRate = 0.05f;
+        data.summonCost = 2;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = CreateFireballSkill();
+        data.description = "远程AOE法术输出";
+        return data;
+    }
+
+    public static HeroData CreateWarriorHero()
+    {
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "战士";
+        data.heroClass = HeroClass.Tank;
+        data.baseHealth = 110;
+        data.baseAttack = 10;
+        data.baseDefense = 8;
+        data.baseSpeed = 6;
+        data.baseCritRate = 0.05f;
+        data.summonCost = 2;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = CreateWhirlwindSkill();
+        data.description = "近战连击型输出";
+        return data;
+    }
+
+    static SkillData CreateFireballSkill()
+    {
+        var skill = ScriptableObject.CreateInstance<SkillData>();
+        skill.skillName = "火球术";
+        skill.damageMultiplier = 1.8f;
+        skill.cooldown = 5f;
+        skill.targetType = SkillTargetType.AOE;
+        skill.effectType = SkillEffectType.Damage;
+        skill.description = "发射火球对所有敌人造成伤害";
+        return skill;
+    }
+
+    static SkillData CreateWhirlwindSkill()
+    {
+        var skill = ScriptableObject.CreateInstance<SkillData>();
+        skill.skillName = "旋风斩";
+        skill.damageMultiplier = 1.3f;
+        skill.cooldown = 4f;
+        skill.targetType = SkillTargetType.AOE;
+        skill.effectType = SkillEffectType.Damage;
+        skill.description = "旋转攻击周围所有敌人";
+        return skill;
+    }
+
+    // ========== 再扩展敌人 ==========
+
+    public static HeroData CreateEnemyShielder()
+    {
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "护盾怪";
+        data.heroClass = HeroClass.Tank;
+        data.baseHealth = 80;
+        data.baseAttack = 5;
+        data.baseDefense = 8;
+        data.baseSpeed = 4;
+        data.baseCritRate = 0f;
+        data.summonCost = 0;
+        data.normalAttack = CreateNormalAttack();
+        data.description = "开场自带护盾";
+        return data;
+    }
+
+    public static HeroData CreateEnemySplitter()
+    {
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "分裂怪";
+        data.heroClass = HeroClass.Tank;
+        data.baseHealth = 100;
+        data.baseAttack = 6;
+        data.baseDefense = 2;
+        data.baseSpeed = 5;
+        data.baseCritRate = 0f;
+        data.summonCost = 0;
+        data.normalAttack = CreateNormalAttack();
+        data.description = "死亡时分裂成2个小怪";
+        return data;
+    }
+
+    public static HeroData CreateEnemyStealth()
+    {
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "隐身怪";
+        data.heroClass = HeroClass.Assassin;
+        data.baseHealth = 60;
+        data.baseAttack = 10;
+        data.baseDefense = 2;
+        data.baseSpeed = 12;
+        data.baseCritRate = 0.1f;
+        data.summonCost = 0;
+        data.normalAttack = CreateNormalAttack();
+        data.description = "每3回合隐身1回合";
+        return data;
+    }
+
+    // ========== 再扩展卡牌 ==========
+
+    public static CardData CreateFireballCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "火球术";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Purple;
+        card.effectId = CardEffectId.Fireball;
+        card.cost = 2;
+        card.effectValue = 30;
+        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
+        card.comboMultiplier = 1.5f;
+        card.description = "本场攻击变AOE，三条时伤害+50%";
+        return card;
+    }
+
+    public static CardData CreateChainStrikeCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "连环斩";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Blue;
+        card.effectId = CardEffectId.ChainStrike;
+        card.cost = 2;
+        card.effectValue = 2; // 攻击2次
+        card.requiredCombo = DiceCombinationType.Pair;
+        card.comboMultiplier = 2f; // 对子时3次
+        card.description = "本场攻击2次，对子时3次";
+        return card;
+    }
+
+    public static CardData CreateLifeStealCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "吸血攻击";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Blue;
+        card.effectId = CardEffectId.LifeSteal;
+        card.cost = 1;
+        card.effectValue = 30; // 30%吸血
+        card.requiredCombo = DiceCombinationType.Straight;
+        card.comboMultiplier = 1.67f;
+        card.description = "本场攻击造成伤害的30%转化为生命，顺子时50%";
+        return card;
+    }
+
+    public static CardData CreateReviveCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "复活术";
+        card.cardType = CardType.Attribute;
+        card.rarity = CardRarity.Gold;
+        card.effectId = CardEffectId.Revive;
+        card.cost = 0;
+        card.effectValue = 1;
+        card.description = "本局永久+1复活次数";
+        return card;
+    }
+
+    public static CardData CreatePoisonBladeCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "毒刃";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Blue;
+        card.effectId = CardEffectId.PoisonBlade;
+        card.cost = 1;
+        card.effectValue = 5; // 每回合5点
+        card.requiredCombo = DiceCombinationType.Pair;
+        card.comboMultiplier = 2f;
+        card.description = "本场攻击附加中毒，对子时毒害翻倍";
+        return card;
+    }
+
+    public static CardData CreateEnergyBurstCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "能量爆发";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Purple;
+        card.effectId = CardEffectId.EnergyBurst;
+        card.cost = 3;
+        card.effectValue = 20; // 全属性+20%
+        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
+        card.comboMultiplier = 1.5f;
+        card.description = "本场攻击、防御、速度+20%，三条时+30%";
+        return card;
+    }
 }
+
 

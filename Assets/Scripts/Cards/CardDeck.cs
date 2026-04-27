@@ -26,6 +26,7 @@ public class CardDeck : MonoBehaviour
     public int BonusSpeed { get; private set; }
     public int BonusMaxHealth { get; private set; }
     public int SummonCostReduction { get; private set; }
+    public int ReviveCount { get; private set; }
 
     void Awake()
     {
@@ -174,6 +175,9 @@ public class CardDeck : MonoBehaviour
             case CardEffectId.SummonBoost:
                 SummonCostReduction += card.Data.effectValue;
                 break;
+            case CardEffectId.Revive:
+                ReviveCount += card.Data.effectValue;
+                break;
         }
 
         handCards.Remove(card);
@@ -269,6 +273,51 @@ public class CardDeck : MonoBehaviour
                 }
                 break;
 
+            case CardEffectId.Fireball:
+                // 火球术：本场攻击变AOE，三条时伤害+50%
+                foreach (var hero in fieldHeroes)
+                {
+                    hero.HasFlameAOE = true;
+                    hero.BattleAttack = Mathf.RoundToInt(hero.Attack * (1 + card.Data.effectValue / 100f * multiplier));
+                }
+                break;
+
+            case CardEffectId.ChainStrike:
+                // 连环斩：本场攻击2次，对子时3次
+                foreach (var hero in fieldHeroes)
+                {
+                    hero.ChainStrikeCount = hasCombo ? 3 : card.Data.effectValue;
+                }
+                break;
+
+            case CardEffectId.LifeSteal:
+                // 吸血攻击：造成伤害的30%转化为生命，顺子时50%
+                foreach (var hero in fieldHeroes)
+                {
+                    hero.LifeStealRate = card.Data.effectValue / 100f * multiplier;
+                }
+                break;
+
+            case CardEffectId.PoisonBlade:
+                // 毒刃：本场攻击附加中毒，对子时毒害翻倍
+                foreach (var hero in fieldHeroes)
+                {
+                    hero.PoisonDamage = Mathf.RoundToInt(card.Data.effectValue * multiplier);
+                    hero.HasPoisonBlade = true;
+                }
+                break;
+
+            case CardEffectId.EnergyBurst:
+                // 能量爆发：本场攻击、防御、速度+20%，三条时+30%
+                float burstBonus = card.Data.effectValue / 100f * multiplier;
+                foreach (var hero in fieldHeroes)
+                {
+                    hero.BattleAttack = Mathf.RoundToInt(hero.Attack * (1 + burstBonus));
+                    hero.BattleDefense = Mathf.RoundToInt(hero.Defense * (1 + burstBonus));
+                    hero.BattleSpeed = Mathf.RoundToInt(hero.Speed * (1 + burstBonus));
+                }
+                break;
+
             case CardEffectId.Reroll:
                 // 重摇卡由 DiceRoller 处理，这里不处理
                 break;
@@ -330,6 +379,7 @@ public class CardDeck : MonoBehaviour
         BonusSpeed = 0;
         BonusMaxHealth = 0;
         SummonCostReduction = 0;
+        ReviveCount = 0;
     }
 
     /// <summary>

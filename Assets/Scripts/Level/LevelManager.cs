@@ -136,6 +136,37 @@ public class LevelManager : MonoBehaviour
                 config.goldReward = 80;
                 config.rewardCards.Add(GameData.CreateEvolutionAwakenCard());
                 break;
+            case 6:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyShielder(), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(), gridPosition = new Vector2Int(2, 3) });
+                config.goldReward = 50;
+                config.rewardCards.Add(GameData.CreateArmorTrainingCard());
+                break;
+            case 7:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemySplitter(), gridPosition = new Vector2Int(1, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(), gridPosition = new Vector2Int(0, 3) });
+                config.goldReward = 60;
+                config.rewardCards.Add(GameData.CreateChainStrikeCard());
+                break;
+            case 8:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyStealth(), gridPosition = new Vector2Int(1, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyElite(), gridPosition = new Vector2Int(0, 3) });
+                config.goldReward = 70;
+                config.rewardCards.Add(GameData.CreateFindWeaknessCard());
+                break;
+            case 9:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyShielder(), gridPosition = new Vector2Int(2, 3) });
+                config.goldReward = 90;
+                config.rewardCards.Add(GameData.CreateEnergyBurstCard());
+                break;
+            case 10:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(), gridPosition = new Vector2Int(2, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyHealer(), gridPosition = new Vector2Int(1, 3) });
+                config.goldReward = 150;
+                config.rewardCards.Add(GameData.CreateReviveCard());
+                break;
             default:
                 config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(), gridPosition = new Vector2Int(1, 3) });
                 config.goldReward = 50 + levelId * 10;

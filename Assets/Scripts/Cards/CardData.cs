@@ -33,7 +33,14 @@ public enum CardEffectId
     WindStep,         // 疾风步
     HolyBless,        // 神圣祝福
     FatalBlow,        // 致命一击
-    SummonBoost       // 召唤强化
+    SummonBoost,      // 召唤强化
+    // 再扩展
+    Fireball,         // 火球术
+    ChainStrike,      // 连环斩
+    LifeSteal,        // 吸血攻击
+    Revive,           // 复活术
+    PoisonBlade,      // 毒刃
+    EnergyBurst       // 能量爆发
 }
 
 [CreateAssetMenu(fileName = "CardData", menuName = "Game/Card Data")]

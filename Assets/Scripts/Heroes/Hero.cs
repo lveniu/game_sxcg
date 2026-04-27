@@ -32,6 +32,10 @@ public class Hero : MonoBehaviour
     // 卡牌特殊状态
     public bool HasFlameAOE { get; set; }
     public bool HasFrostSlow { get; set; }
+    public bool HasPoisonBlade { get; set; }
+    public int ChainStrikeCount { get; set; }
+    public float LifeStealRate { get; set; }
+    public int PoisonDamage { get; set; }
 
     // 棋盘位置
     public Vector2Int GridPosition { get; set; }
@@ -129,6 +133,10 @@ public class Hero : MonoBehaviour
         BattleCritDamage = 0.5f;
         HasFlameAOE = false;
         HasFrostSlow = false;
+        HasPoisonBlade = false;
+        ChainStrikeCount = 0;
+        LifeStealRate = 0f;
+        PoisonDamage = 0;
 
         switch (combo.Type)
         {
@@ -162,6 +170,10 @@ public class Hero : MonoBehaviour
         BattleCritDamage = 0.5f;
         HasFlameAOE = false;
         HasFrostSlow = false;
+        HasPoisonBlade = false;
+        ChainStrikeCount = 0;
+        LifeStealRate = 0f;
+        PoisonDamage = 0;
     }
 
     /// <summary>
