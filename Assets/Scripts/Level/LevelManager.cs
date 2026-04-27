@@ -104,22 +104,43 @@ public class LevelManager : MonoBehaviour
         config.levelId = levelId;
         config.levelName = $"第{levelId}关";
 
-        if (levelId == 1)
+        switch (levelId)
         {
-            config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(), gridPosition = new Vector2Int(0, 3) });
-            config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(), gridPosition = new Vector2Int(2, 3) });
-            config.rewardCards.Add(GameData.CreatePowerTrainingCard());
-        }
-        else if (levelId == 2)
-        {
-            config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyElite(), gridPosition = new Vector2Int(1, 3) });
-            config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(), gridPosition = new Vector2Int(0, 3) });
-            config.rewardCards.Add(GameData.CreateSlashCard());
-        }
-        else
-        {
-            config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(), gridPosition = new Vector2Int(1, 3) });
-            config.rewardCards.Add(GameData.CreateShieldBashCard());
+            case 1:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(), gridPosition = new Vector2Int(2, 3) });
+                config.goldReward = 20;
+                config.rewardCards.Add(GameData.CreatePowerTrainingCard());
+                break;
+            case 2:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyElite(), gridPosition = new Vector2Int(1, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(), gridPosition = new Vector2Int(0, 3) });
+                config.goldReward = 30;
+                config.rewardCards.Add(GameData.CreateSlashCard());
+                break;
+            case 3:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(), gridPosition = new Vector2Int(1, 3) });
+                config.goldReward = 50;
+                config.rewardCards.Add(GameData.CreateShieldBashCard());
+                break;
+            case 4:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBomber(), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyElite(), gridPosition = new Vector2Int(2, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(), gridPosition = new Vector2Int(1, 3) });
+                config.goldReward = 40;
+                config.rewardCards.Add(GameData.CreateFlameSlashCard());
+                break;
+            case 5:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyHealer(), gridPosition = new Vector2Int(2, 3) });
+                config.goldReward = 80;
+                config.rewardCards.Add(GameData.CreateEvolutionAwakenCard());
+                break;
+            default:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(), gridPosition = new Vector2Int(1, 3) });
+                config.goldReward = 50 + levelId * 10;
+                config.rewardCards.Add(GameData.CreatePowerTrainingCard());
+                break;
         }
 
         return config;

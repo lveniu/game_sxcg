@@ -22,6 +22,7 @@ public static class GameData
         data.summonCost = 2;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateShieldBashSkill();
+        data.evolutionForm = CreateTankEvolved();
         data.description = "高防高血，吸收伤害，护盾反弹";
         return data;
     }
@@ -39,6 +40,7 @@ public static class GameData
         data.summonCost = 2;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreatePierceShotSkill();
+        data.evolutionForm = CreateArcherEvolved();
         data.description = "远程输出，越远越痛";
         return data;
     }
@@ -56,6 +58,7 @@ public static class GameData
         data.summonCost = 1;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateBackstabSkill();
+        data.evolutionForm = CreateAssassinEvolved();
         data.description = "高速爆发，闪避背刺";
         return data;
     }
@@ -307,6 +310,212 @@ public static class GameData
         cards.Add(new CardInstance(CreateSlashCard()));
         cards.Add(new CardInstance(CreateShieldBashCard()));
         cards.Add(new CardInstance(CreateFindWeaknessCard()));
+        cards.Add(new CardInstance(CreateFlameSlashCard()));
+        cards.Add(new CardInstance(CreateFrostArmorCard()));
+        cards.Add(new CardInstance(CreateWindStepCard()));
         return cards;
     }
+
+    // ========== 扩展卡牌 ==========
+
+    public static CardData CreateFlameSlashCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "火焰斩";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Blue;
+        card.effectId = CardEffectId.FlameSlash;
+        card.cost = 2;
+        card.effectValue = 20; // +20%火焰伤害
+        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
+        card.comboMultiplier = 2f; // 三条时变AOE
+        card.description = "本场攻击附加20%火焰伤害，三条时变成范围AOE";
+        return card;
+    }
+
+    public static CardData CreateFrostArmorCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "冰霜护甲";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Blue;
+        card.effectId = CardEffectId.FrostArmor;
+        card.cost = 1;
+        card.effectValue = 25;
+        card.requiredCombo = DiceCombinationType.Straight;
+        card.comboMultiplier = 2f;
+        card.description = "获得护盾并减速敌人，顺子时护盾翻倍";
+        return card;
+    }
+
+    public static CardData CreateWindStepCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "疾风步";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Blue;
+        card.effectId = CardEffectId.WindStep;
+        card.cost = 1;
+        card.effectValue = 50;
+        card.requiredCombo = DiceCombinationType.Pair;
+        card.comboMultiplier = 1.5f;
+        card.description = "本场速度+50%，对子时闪避+20%";
+        return card;
+    }
+
+    public static CardData CreateHolyBlessCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "神圣祝福";
+        card.cardType = CardType.Attribute;
+        card.rarity = CardRarity.Gold;
+        card.effectId = CardEffectId.HolyBless;
+        card.cost = 0;
+        card.effectValue = 5;
+        card.description = "本局永久+5生命上限";
+        return card;
+    }
+
+    public static CardData CreateFatalBlowCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "致命一击";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Purple;
+        card.effectId = CardEffectId.FatalBlow;
+        card.cost = 2;
+        card.effectValue = 50;
+        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
+        card.comboMultiplier = 2f; // 三条时必暴
+        card.description = "本场暴击伤害+50%，三条时必暴";
+        return card;
+    }
+
+    public static CardData CreateSummonBoostCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "召唤强化";
+        card.cardType = CardType.Attribute;
+        card.rarity = CardRarity.Blue;
+        card.effectId = CardEffectId.SummonBoost;
+        card.cost = 0;
+        card.effectValue = 1;
+        card.description = "本局永久-1召唤消耗（最低1）";
+        return card;
+    }
+
+    // ========== 扩展敌人 ==========
+
+    public static HeroData CreateEnemyBomber()
+    {
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "自爆怪";
+        data.heroClass = HeroClass.Tank;
+        data.baseHealth = 40;
+        data.baseAttack = 4;
+        data.baseDefense = 1;
+        data.baseSpeed = 8;
+        data.baseCritRate = 0f;
+        data.summonCost = 0;
+        data.normalAttack = CreateNormalAttack();
+        data.description = "死亡时对周围造成高额伤害";
+        return data;
+    }
+
+    public static HeroData CreateEnemyHealer()
+    {
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "治疗者";
+        data.heroClass = HeroClass.Archer;
+        data.baseHealth = 50;
+        data.baseAttack = 5;
+        data.baseDefense = 2;
+        data.baseSpeed = 4;
+        data.baseCritRate = 0f;
+        data.summonCost = 0;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = CreateHealSkill();
+        data.description = "每回合给友方回血";
+        return data;
+    }
+
+    static SkillData CreateHealSkill()
+    {
+        var skill = ScriptableObject.CreateInstance<SkillData>();
+        skill.skillName = "治疗之光";
+        skill.damageMultiplier = 0f;
+        skill.cooldown = 3f;
+        skill.targetType = SkillTargetType.Single;
+        skill.effectType = SkillEffectType.Heal;
+        skill.effectValue = 15;
+        skill.description = "为友方单位回复生命";
+        return skill;
+    }
+
+    // ========== 英雄进化形态 ==========
+
+    public static HeroData CreateTankEvolved()
+    {
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "链甲使者";
+        data.heroClass = HeroClass.Tank;
+        data.baseHealth = 200;
+        data.baseAttack = 10;
+        data.baseDefense = 15;
+        data.baseSpeed = 5;
+        data.baseCritRate = 0.03f;
+        data.summonCost = 2;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = CreateShieldReflectSkill();
+        data.description = "极致防御，护盾反弹伤害";
+        return data;
+    }
+
+    public static HeroData CreateArcherEvolved()
+    {
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "巡游射手";
+        data.heroClass = HeroClass.Archer;
+        data.baseHealth = 100;
+        data.baseAttack = 18;
+        data.baseDefense = 5;
+        data.baseSpeed = 12;
+        data.baseCritRate = 0.12f;
+        data.summonCost = 2;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = CreatePierceShotSkill();
+        data.description = "超远射程，穿透敌阵";
+        return data;
+    }
+
+    public static HeroData CreateAssassinEvolved()
+    {
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "影舞者";
+        data.heroClass = HeroClass.Assassin;
+        data.baseHealth = 85;
+        data.baseAttack = 22;
+        data.baseDefense = 4;
+        data.baseSpeed = 18;
+        data.baseCritRate = 0.2f;
+        data.summonCost = 1;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = CreateBackstabSkill();
+        data.description = "极速闪避，背刺必暴";
+        return data;
+    }
+
+    static SkillData CreateShieldReflectSkill()
+    {
+        var skill = ScriptableObject.CreateInstance<SkillData>();
+        skill.skillName = "护盾反弹";
+        skill.damageMultiplier = 1f;
+        skill.cooldown = 4f;
+        skill.targetType = SkillTargetType.Single;
+        skill.effectType = SkillEffectType.Damage;
+        skill.effectValue = 30; // 反弹30%伤害
+        skill.description = "获得护盾，受击时反弹伤害";
+        return skill;
+    }
 }
+

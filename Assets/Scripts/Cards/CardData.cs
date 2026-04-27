@@ -26,7 +26,14 @@ public enum CardEffectId
     Reroll,           // 重摇
     ShieldBash,       // 护盾冲击
     FindWeakness,     // 寻找弱点
-    EvolutionAwaken   // 进化觉醒
+    EvolutionAwaken,  // 进化觉醒
+    // 扩展
+    FlameSlash,       // 火焰斩
+    FrostArmor,       // 冰霜护甲
+    WindStep,         // 疾风步
+    HolyBless,        // 神圣祝福
+    FatalBlow,        // 致命一击
+    SummonBoost       // 召唤强化
 }
 
 [CreateAssetMenu(fileName = "CardData", menuName = "Game/Card Data")]

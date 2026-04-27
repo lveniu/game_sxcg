@@ -24,6 +24,8 @@ public class CardDeck : MonoBehaviour
     public int BonusAttack { get; private set; }
     public int BonusDefense { get; private set; }
     public int BonusSpeed { get; private set; }
+    public int BonusMaxHealth { get; private set; }
+    public int SummonCostReduction { get; private set; }
 
     void Awake()
     {
@@ -63,6 +65,8 @@ public class CardDeck : MonoBehaviour
             return null;
         }
 
+        int actualCost = Mathf.Max(1, heroData.summonCost - SummonCostReduction);
+
         var go = new GameObject($"Hero_{heroData.heroName}");
         var hero = go.AddComponent<Hero>();
         hero.Initialize(heroData, starLevel);
@@ -71,8 +75,11 @@ public class CardDeck : MonoBehaviour
         hero.Attack += BonusAttack;
         hero.Defense += BonusDefense;
         hero.Speed += BonusSpeed;
+        hero.MaxHealth += BonusMaxHealth;
+        hero.CurrentHealth = hero.MaxHealth;
 
         fieldHeroes.Add(hero);
+        Debug.Log($"召唤英雄：{heroData.heroName}，成本：{actualCost} (原价：{heroData.summonCost})");
         return hero;
     }
 
@@ -160,6 +167,13 @@ public class CardDeck : MonoBehaviour
                 BonusSpeed += card.Data.effectValue;
                 ApplyAttributeToField(speed: card.Data.effectValue);
                 break;
+            case CardEffectId.HolyBless:
+                BonusMaxHealth += card.Data.effectValue;
+                ApplyAttributeToField(maxHealth: card.Data.effectValue);
+                break;
+            case CardEffectId.SummonBoost:
+                SummonCostReduction += card.Data.effectValue;
+                break;
         }
 
         handCards.Remove(card);
@@ -170,12 +184,19 @@ public class CardDeck : MonoBehaviour
     /// <summary>
     /// 将属性加成应用到场上所有英雄
     /// </summary>
-    private void ApplyAttributeToField(int attack = 0, int defense = 0, int speed = 0)
+    private void ApplyAttributeToField(int attack = 0, int defense = 0, int speed = 0, int maxHealth = 0)
     {
         foreach (var hero in fieldHeroes)
         {
             if (hero == null) continue;
-            // 注：这里只加基础属性，战斗中属性在战斗开始时重算
+            if (attack != 0) hero.Attack += attack;
+            if (defense != 0) hero.Defense += defense;
+            if (speed != 0) hero.Speed += speed;
+            if (maxHealth != 0)
+            {
+                hero.MaxHealth += maxHealth;
+                hero.CurrentHealth += maxHealth;
+            }
         }
     }
 
@@ -208,6 +229,44 @@ public class CardDeck : MonoBehaviour
                 // 寻找弱点：暴击率+30%，顺子时额外+20%
                 foreach (var hero in fieldHeroes)
                     hero.BattleCritRate += (card.Data.effectValue / 100f * multiplier);
+                break;
+
+            case CardEffectId.FlameSlash:
+                // 火焰斩：本场攻击附加20%火焰伤害，三条时变AOE
+                float flameBonus = card.Data.effectValue / 100f * multiplier;
+                foreach (var hero in fieldHeroes)
+                {
+                    hero.BattleAttack = Mathf.RoundToInt(hero.Attack * (1 + flameBonus));
+                    hero.HasFlameAOE = hasCombo; // 三条时AOE
+                }
+                break;
+
+            case CardEffectId.FrostArmor:
+                // 冰霜护甲：获得护盾并减速，顺子时护盾翻倍
+                int frostShield = Mathf.RoundToInt(card.Data.effectValue * multiplier);
+                foreach (var hero in fieldHeroes)
+                {
+                    hero.AddShield(frostShield);
+                    hero.HasFrostSlow = true;
+                }
+                break;
+
+            case CardEffectId.WindStep:
+                // 疾风步：本场速度+50%，对子时闪避+20%
+                foreach (var hero in fieldHeroes)
+                {
+                    hero.BattleSpeed = Mathf.RoundToInt(hero.Speed * (1 + card.Data.effectValue / 100f));
+                    if (hasCombo) hero.BattleDodgeRate += 0.2f;
+                }
+                break;
+
+            case CardEffectId.FatalBlow:
+                // 致命一击：暴击伤害+50%，三条时必暴
+                foreach (var hero in fieldHeroes)
+                {
+                    hero.BattleCritDamage += card.Data.effectValue / 100f;
+                    if (hasCombo) hero.BattleCritRate = 1f; // 必暴
+                }
                 break;
 
             case CardEffectId.Reroll:
@@ -269,6 +328,8 @@ public class CardDeck : MonoBehaviour
         BonusAttack = 0;
         BonusDefense = 0;
         BonusSpeed = 0;
+        BonusMaxHealth = 0;
+        SummonCostReduction = 0;
     }
 
     /// <summary>

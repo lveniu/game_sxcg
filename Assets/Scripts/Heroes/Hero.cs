@@ -25,6 +25,13 @@ public class Hero : MonoBehaviour
     public float BattleAttackSpeed { get; set; } = 1f;
     public float BattleCritRate { get; set; }
     public int BattleDefense { get; set; }
+    public int BattleSpeed { get; set; }
+    public float BattleDodgeRate { get; set; }
+    public float BattleCritDamage { get; set; } = 0.5f; // 暴击伤害加成 (50%)
+
+    // 卡牌特殊状态
+    public bool HasFlameAOE { get; set; }
+    public bool HasFrostSlow { get; set; }
 
     // 棋盘位置
     public Vector2Int GridPosition { get; set; }
@@ -117,6 +124,11 @@ public class Hero : MonoBehaviour
         BattleAttackSpeed = 1f;
         BattleCritRate = CritRate;
         BattleDefense = Defense;
+        BattleSpeed = Speed;
+        BattleDodgeRate = 0f;
+        BattleCritDamage = 0.5f;
+        HasFlameAOE = false;
+        HasFrostSlow = false;
 
         switch (combo.Type)
         {
@@ -137,6 +149,22 @@ public class Hero : MonoBehaviour
     }
 
     /// <summary>
+    /// 重置战斗属性（每场战斗前调用）
+    /// </summary>
+    public void ResetBattleStats()
+    {
+        BattleAttack = Attack;
+        BattleAttackSpeed = 1f;
+        BattleCritRate = CritRate;
+        BattleDefense = Defense;
+        BattleSpeed = Speed;
+        BattleDodgeRate = 0f;
+        BattleCritDamage = 0.5f;
+        HasFlameAOE = false;
+        HasFrostSlow = false;
+    }
+
+    /// <summary>
     /// 应用站位行效果
     /// </summary>
     public void ApplyRowEffect(GridRow row)
@@ -153,17 +181,6 @@ public class Hero : MonoBehaviour
                     BattleAttack = Mathf.RoundToInt(Attack * 1.2f);
                 break;
         }
-    }
-
-    /// <summary>
-    /// 重置战斗属性（每场战斗前调用）
-    /// </summary>
-    public void ResetBattleStats()
-    {
-        BattleAttack = Attack;
-        BattleAttackSpeed = 1f;
-        BattleCritRate = CritRate;
-        BattleDefense = Defense;
     }
 
     void OnDestroy()
