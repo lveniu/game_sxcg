@@ -36,6 +36,10 @@ public class Hero : MonoBehaviour
     public int ChainStrikeCount { get; set; }
     public float LifeStealRate { get; set; }
     public int PoisonDamage { get; set; }
+    public float BattleThornsRate { get; set; }
+    public bool HasArmorBreak { get; set; }
+    public int LightningChainBounces { get; set; }
+    public bool HasBerserk { get; set; }
 
     // 棋盘位置
     public Vector2Int GridPosition { get; set; }
@@ -65,11 +69,23 @@ public class Hero : MonoBehaviour
     /// <summary>
     /// 接受伤害（伤害已经由GameBalance.CalculateDamage计算好）
     /// </summary>
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, Hero attacker = null)
     {
         int actual = Mathf.Max(0, damage);
         CurrentHealth -= actual;
         if (CurrentHealth < 0) CurrentHealth = 0;
+
+        // 荊棘反伤
+        if (attacker != null && BattleThornsRate > 0f && !attacker.IsDead)
+        {
+            int thornsDmg = Mathf.RoundToInt(actual * BattleThornsRate);
+            if (thornsDmg > 0)
+            {
+                attacker.CurrentHealth -= thornsDmg;
+                if (attacker.CurrentHealth < 0) attacker.CurrentHealth = 0;
+                Debug.Log($"{Data.heroName} 荊棘反伤 {attacker.Data.heroName} {thornsDmg} 点伤害");
+            }
+        }
 
         // 伤害飘字
         DamagePopup.Instance?.ShowDamage(transform.position, actual);
@@ -137,6 +153,10 @@ public class Hero : MonoBehaviour
         ChainStrikeCount = 0;
         LifeStealRate = 0f;
         PoisonDamage = 0;
+        BattleThornsRate = 0f;
+        HasArmorBreak = false;
+        LightningChainBounces = 0;
+        HasBerserk = false;
 
         switch (combo.Type)
         {
@@ -174,6 +194,10 @@ public class Hero : MonoBehaviour
         ChainStrikeCount = 0;
         LifeStealRate = 0f;
         PoisonDamage = 0;
+        BattleThornsRate = 0f;
+        HasArmorBreak = false;
+        LightningChainBounces = 0;
+        HasBerserk = false;
     }
 
     /// <summary>

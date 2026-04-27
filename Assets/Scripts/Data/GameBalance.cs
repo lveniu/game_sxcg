@@ -38,6 +38,8 @@ public static class GameBalance
             "链甲使者" => new HeroStatTemplate(200, 10, 15, 5, 0.03f, 2, HeroClass.Tank),
             "巡游射手" => new HeroStatTemplate(100, 18, 5, 12, 0.12f, 2, HeroClass.Archer),
             "影舞者" => new HeroStatTemplate(85, 22, 4, 18, 0.20f, 1, HeroClass.Assassin),
+            "大法师" => new HeroStatTemplate(85, 18, 4, 10, 0.08f, 2, HeroClass.Archer),
+            "狂战士" => new HeroStatTemplate(130, 14, 10, 8, 0.08f, 2, HeroClass.Tank),
             _ => new HeroStatTemplate(100, 10, 5, 8, 0.05f, 1, HeroClass.Tank)
         };
     }
@@ -57,6 +59,9 @@ public static class GameBalance
             "护盾怪" => new HeroStatTemplate(80, 5, 8, 4, 0f, 0, HeroClass.Tank),
             "分裂怪" => new HeroStatTemplate(100, 6, 2, 5, 0f, 0, HeroClass.Tank),
             "隐身怪" => new HeroStatTemplate(60, 10, 2, 12, 0.1f, 0, HeroClass.Assassin),
+            "诅咒巫师" => new HeroStatTemplate(70, 8, 4, 6, 0.05f, 0, HeroClass.Archer),
+            "重装骑士" => new HeroStatTemplate(180, 10, 12, 4, 0.03f, 0, HeroClass.Tank),
+            "毒液蜘蛛" => new HeroStatTemplate(90, 7, 5, 7, 0.08f, 0, HeroClass.Assassin),
             _ => new HeroStatTemplate(60, 6, 3, 5, 0f, 0, HeroClass.Tank)
         };
 
@@ -132,6 +137,12 @@ public static class GameBalance
             "复活术" => new CardStatTemplate(CardType.Attribute, CardRarity.Gold, 0, 1),
             "毒刃" => new CardStatTemplate(CardType.Battle, CardRarity.Blue, 1, 5),
             "能量爆发" => new CardStatTemplate(CardType.Battle, CardRarity.Purple, 3, 20),
+            "破甲攻击" => new CardStatTemplate(CardType.Battle, CardRarity.Blue, 1, 50),
+            "群体治疗" => new CardStatTemplate(CardType.Battle, CardRarity.Purple, 2, 20),
+            "闪电链" => new CardStatTemplate(CardType.Battle, CardRarity.Purple, 2, 3),
+            "荊棘反伤" => new CardStatTemplate(CardType.Battle, CardRarity.Blue, 1, 30),
+            "狂暴药水" => new CardStatTemplate(CardType.Battle, CardRarity.Purple, 2, 80),
+            "护盾共振" => new CardStatTemplate(CardType.Battle, CardRarity.Gold, 2, 30),
             _ => new CardStatTemplate(CardType.Attribute, CardRarity.White, 0, 0)
         };
     }

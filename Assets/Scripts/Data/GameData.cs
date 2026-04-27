@@ -327,6 +327,12 @@ public static class GameData
         cards.Add(new CardInstance(CreateLifeStealCard()));
         cards.Add(new CardInstance(CreatePoisonBladeCard()));
         cards.Add(new CardInstance(CreateEnergyBurstCard()));
+        cards.Add(new CardInstance(CreateArmorBreakCard()));
+        cards.Add(new CardInstance(CreateGroupHealCard()));
+        cards.Add(new CardInstance(CreateLightningChainCard()));
+        cards.Add(new CardInstance(CreateThornsCard()));
+        cards.Add(new CardInstance(CreateBerserkPotionCard()));
+        cards.Add(new CardInstance(CreateShieldResonanceCard()));
         return cards;
     }
 
@@ -553,6 +559,7 @@ public static class GameData
         data.summonCost = stats.SummonCost;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateFireballSkill();
+        data.evolutionForm = CreateMageEvolved();
         data.description = "远程AOE法术输出";
         return data;
     }
@@ -571,7 +578,44 @@ public static class GameData
         data.summonCost = stats.SummonCost;
         data.normalAttack = CreateNormalAttack();
         data.activeSkill = CreateWhirlwindSkill();
+        data.evolutionForm = CreateWarriorEvolved();
         data.description = "近战连击型输出";
+        return data;
+    }
+
+    public static HeroData CreateMageEvolved()
+    {
+        var stats = GameBalance.GetHeroTemplate("大法师");
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "大法师";
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = CreateMeteorSkill();
+        data.description = "元素的终极代言，陨石毁天灭地";
+        return data;
+    }
+
+    public static HeroData CreateWarriorEvolved()
+    {
+        var stats = GameBalance.GetHeroTemplate("狂战士");
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "狂战士";
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = CreateBerserkSkill();
+        data.description = "鲜血与屠杀的化身，越战越勇";
         return data;
     }
 
@@ -596,6 +640,31 @@ public static class GameData
         skill.targetType = SkillTargetType.AOE;
         skill.effectType = SkillEffectType.Damage;
         skill.description = "旋转攻击周围所有敌人";
+        return skill;
+    }
+
+    static SkillData CreateMeteorSkill()
+    {
+        var skill = ScriptableObject.CreateInstance<SkillData>();
+        skill.skillName = "陨石术";
+        skill.damageMultiplier = 2.5f;
+        skill.cooldown = 6f;
+        skill.targetType = SkillTargetType.AOE;
+        skill.effectType = SkillEffectType.Damage;
+        skill.description = "召唤陨石砸向敌阵，造成巨大AOE伤害";
+        return skill;
+    }
+
+    static SkillData CreateBerserkSkill()
+    {
+        var skill = ScriptableObject.CreateInstance<SkillData>();
+        skill.skillName = "狂暴斩";
+        skill.damageMultiplier = 2f;
+        skill.cooldown = 5f;
+        skill.targetType = SkillTargetType.Single;
+        skill.effectType = SkillEffectType.Damage;
+        skill.effectValue = 20; // 吸血20%伤害
+        skill.description = "猛烈攻击并吸收伤害的20%为生命";
         return skill;
     }
 
@@ -650,6 +719,71 @@ public static class GameData
         data.normalAttack = CreateNormalAttack();
         data.description = "每3回合隐身1回合";
         return data;
+    }
+
+    public static HeroData CreateEnemyCurseMage(int levelId = 1)
+    {
+        var stats = GameBalance.GetEnemyTemplate("诅咒巫师", levelId);
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "诅咒巫师";
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = 0;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = CreateCurseSkill();
+        data.description = "攻击降低目标攻击力，持续2回合";
+        return data;
+    }
+
+    public static HeroData CreateEnemyHeavyKnight(int levelId = 1)
+    {
+        var stats = GameBalance.GetEnemyTemplate("重装骑士", levelId);
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "重装骑士";
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = 0;
+        data.normalAttack = CreateNormalAttack();
+        data.description = "极高防御，每次受击只造成1点伤害";
+        return data;
+    }
+
+    public static HeroData CreateEnemyVenomSpider(int levelId = 1)
+    {
+        var stats = GameBalance.GetEnemyTemplate("毒液蜘蛛", levelId);
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = "毒液蜘蛛";
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = 0;
+        data.normalAttack = CreateNormalAttack();
+        data.description = "攻击附带剧毒，每回合扣血";
+        return data;
+    }
+
+    static SkillData CreateCurseSkill()
+    {
+        var skill = ScriptableObject.CreateInstance<SkillData>();
+        skill.skillName = "减益诅咒";
+        skill.damageMultiplier = 0.8f;
+        skill.cooldown = 4f;
+        skill.targetType = SkillTargetType.Single;
+        skill.effectType = SkillEffectType.Debuff;
+        skill.effectValue = 20; // 降低20%攻击
+        skill.description = "诅咒目标，降低其攻击力";
+        return skill;
     }
 
     // ========== 再扩展卡牌 ==========
@@ -739,6 +873,98 @@ public static class GameData
         card.requiredCombo = DiceCombinationType.ThreeOfAKind;
         card.comboMultiplier = 1.5f;
         card.description = "本场攻击、防御、速度+20%，三条时+30%";
+        return card;
+    }
+
+    // ========== 第四轮新卡牌 ==========
+
+    public static CardData CreateArmorBreakCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "破甲攻击";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Blue;
+        card.effectId = CardEffectId.ArmorBreak;
+        card.cost = 1;
+        card.effectValue = 50; // 降低50%防御
+        card.requiredCombo = DiceCombinationType.Pair;
+        card.comboMultiplier = 2f;
+        card.description = "本场攻击降低目标50%防御，对时降为0";
+        return card;
+    }
+
+    public static CardData CreateGroupHealCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "群体治疗";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Purple;
+        card.effectId = CardEffectId.GroupHeal;
+        card.cost = 2;
+        card.effectValue = 20; // 每人恢复20%生命
+        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
+        card.comboMultiplier = 1.5f;
+        card.description = "立即恢复全体友方20%生命，三条时30%";
+        return card;
+    }
+
+    public static CardData CreateLightningChainCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "闪电链";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Purple;
+        card.effectId = CardEffectId.LightningChain;
+        card.cost = 2;
+        card.effectValue = 3; // 弹射3次
+        card.requiredCombo = DiceCombinationType.Straight;
+        card.comboMultiplier = 2f;
+        card.description = "攻击弹射到3个目标，顺子时5次";
+        return card;
+    }
+
+    public static CardData CreateThornsCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "荊棘反伤";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Blue;
+        card.effectId = CardEffectId.Thorns;
+        card.cost = 1;
+        card.effectValue = 30; // 反弩30%
+        card.requiredCombo = DiceCombinationType.Pair;
+        card.comboMultiplier = 2f;
+        card.description = "本场受击时反弩30%伤害，对时反弩60%";
+        return card;
+    }
+
+    public static CardData CreateBerserkPotionCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "狂暴药水";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Purple;
+        card.effectId = CardEffectId.BerserkPotion;
+        card.cost = 2;
+        card.effectValue = 80; // 攻击+80%
+        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
+        card.comboMultiplier = 1.5f;
+        card.description = "本场攻击+80%，但防御-30%，三条时攻击+120%";
+        return card;
+    }
+
+    public static CardData CreateShieldResonanceCard()
+    {
+        var card = ScriptableObject.CreateInstance<CardData>();
+        card.cardName = "护盾共振";
+        card.cardType = CardType.Battle;
+        card.rarity = CardRarity.Gold;
+        card.effectId = CardEffectId.ShieldResonance;
+        card.cost = 2;
+        card.effectValue = 30; // 30%生命值护盾
+        card.requiredCombo = DiceCombinationType.ThreeOfAKind;
+        card.comboMultiplier = 2f;
+        card.description = "给全体友方施加30%生命值护盾，三条时60%";
         return card;
     }
 }

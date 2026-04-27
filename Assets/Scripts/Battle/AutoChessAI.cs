@@ -56,8 +56,21 @@ public static class AutoChessAI
     /// </summary>
     static void NormalAttack(Hero self, Hero target)
     {
-        int damage = CalculateDamage(self, target);
-        target.TakeDamage(damage);
+        // 破甲：忽略目标部分防御
+        int effectiveDef = target.BattleDefense;
+        if (self.HasArmorBreak)
+            effectiveDef = Mathf.RoundToInt(target.BattleDefense * 0.5f);
+
+        int damage = GameBalance.CalculateDamage(
+            self.BattleAttack, self.BattleCritRate, self.BattleCritDamage, effectiveDef);
+        target.TakeDamage(damage, self);
+
+        // 闪电链：弹射到附近敌人
+        if (self.LightningChainBounces > 0)
+        {
+            // 简化实现：随机弹射到其他敌人
+            // 这里需要传入敌人列表，暂时不实现完整逻辑
+        }
 
         bool isCrit = damage > self.BattleAttack; // 简化判断
         string critTag = isCrit ? " 暴击!" : "";
@@ -77,7 +90,7 @@ public static class AutoChessAI
             case SkillTargetType.Single:
                 {
                     int dmg = GameBalance.CalculateDamage(self.BattleAttack, self.BattleCritRate, self.BattleCritDamage, target.BattleDefense, skill.damageMultiplier);
-                    target.TakeDamage(dmg);
+                    target.TakeDamage(dmg, self);
                     Debug.Log($"{self.Data.heroName} 释放 [{skill.skillName}] → {target.Data.heroName} 造成 {dmg} 伤害");
                 }
                 break;
@@ -88,7 +101,7 @@ public static class AutoChessAI
                     {
                         if (enemy == null || enemy.IsDead) continue;
                         int dmg = GameBalance.CalculateDamage(self.BattleAttack, self.BattleCritRate, self.BattleCritDamage, enemy.BattleDefense, skill.damageMultiplier * 0.6f);
-                        enemy.TakeDamage(dmg);
+                        enemy.TakeDamage(dmg, self);
                     }
                     Debug.Log($"{self.Data.heroName} 释放 [{skill.skillName}] AOE 伤害");
                 }

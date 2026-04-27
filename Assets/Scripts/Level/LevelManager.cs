@@ -167,6 +167,41 @@ public class LevelManager : MonoBehaviour
                 config.goldReward = 150;
                 config.rewardCards.Add(GameData.CreateReviveCard());
                 break;
+            case 11:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyCurseMage(levelId), gridPosition = new Vector2Int(1, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(levelId), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyGrunt(levelId), gridPosition = new Vector2Int(2, 3) });
+                config.goldReward = 100;
+                config.rewardCards.Add(GameData.CreateArmorBreakCard());
+                break;
+            case 12:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyHeavyKnight(levelId), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyElite(levelId), gridPosition = new Vector2Int(2, 3) });
+                config.goldReward = 110;
+                config.rewardCards.Add(GameData.CreateThornsCard());
+                break;
+            case 13:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyVenomSpider(levelId), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyVenomSpider(levelId), gridPosition = new Vector2Int(2, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyHealer(levelId), gridPosition = new Vector2Int(1, 3) });
+                config.goldReward = 120;
+                config.rewardCards.Add(GameData.CreateGroupHealCard());
+                break;
+            case 14:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(levelId), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyCurseMage(levelId), gridPosition = new Vector2Int(1, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyHeavyKnight(levelId), gridPosition = new Vector2Int(2, 3) });
+                config.goldReward = 140;
+                config.rewardCards.Add(GameData.CreateLightningChainCard());
+                break;
+            case 15:
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(levelId), gridPosition = new Vector2Int(0, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(levelId), gridPosition = new Vector2Int(2, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyVenomSpider(levelId), gridPosition = new Vector2Int(1, 3) });
+                config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyHealer(levelId), gridPosition = new Vector2Int(1, 4) });
+                config.goldReward = 200;
+                config.rewardCards.Add(GameData.CreateShieldResonanceCard());
+                break;
             default:
                 config.enemyWaves.Add(new EnemyWave { enemyData = GameData.CreateEnemyBoss(levelId), gridPosition = new Vector2Int(1, 3) });
                 config.goldReward = 50 + levelId * 10;

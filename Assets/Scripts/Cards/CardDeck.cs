@@ -318,6 +318,54 @@ public class CardDeck : MonoBehaviour
                 }
                 break;
 
+            case CardEffectId.ArmorBreak:
+                // 破甲攻击：本场攻击降低目标50%防御，对时降为0
+                foreach (var hero in fieldHeroes)
+                    hero.HasArmorBreak = true;
+                break;
+
+            case CardEffectId.GroupHeal:
+                // 群体治疗：立即恢复全体友方20%生命
+                int healPercent = Mathf.RoundToInt(card.Data.effectValue * multiplier);
+                foreach (var hero in fieldHeroes)
+                {
+                    int healAmount = Mathf.RoundToInt(hero.MaxHealth * healPercent / 100f);
+                    hero.Heal(healAmount);
+                }
+                break;
+
+            case CardEffectId.LightningChain:
+                // 闪电链：攻击弹射到3个目标，顺子时5次
+                foreach (var hero in fieldHeroes)
+                    hero.LightningChainBounces = hasCombo ? 5 : card.Data.effectValue;
+                break;
+
+            case CardEffectId.Thorns:
+                // 荊棘反伤：本场受击时反弩30%伤害
+                foreach (var hero in fieldHeroes)
+                    hero.BattleThornsRate = card.Data.effectValue / 100f * multiplier;
+                break;
+
+            case CardEffectId.BerserkPotion:
+                // 狂暴药水：本场攻击+80%，防御-30%
+                float berserkAtkBonus = card.Data.effectValue / 100f * multiplier;
+                foreach (var hero in fieldHeroes)
+                {
+                    hero.BattleAttack = Mathf.RoundToInt(hero.Attack * (1 + berserkAtkBonus));
+                    hero.BattleDefense = Mathf.RoundToInt(hero.Defense * 0.7f); // 防御-30%
+                    hero.HasBerserk = true;
+                }
+                break;
+
+            case CardEffectId.ShieldResonance:
+                // 护盾共振：给全体友方施加30%生命值护盾
+                foreach (var hero in fieldHeroes)
+                {
+                    int shield = Mathf.RoundToInt(hero.MaxHealth * card.Data.effectValue / 100f * multiplier);
+                    hero.AddShield(shield);
+                }
+                break;
+
             case CardEffectId.Reroll:
                 // 重摇卡由 DiceRoller 处理，这里不处理
                 break;

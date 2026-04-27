@@ -45,6 +45,9 @@ public class BattleManager : MonoBehaviour
         BattleTimer = 0f;
         PlayerWon = false;
 
+        // 应用连携技Buff
+        SynergySystem.ApplySynergies(playerUnits);
+
         Debug.Log($"战斗开始！我方{playerUnits.Count}人 vs 敌方{enemyUnits.Count}人");
 
         battleCoroutine = StartCoroutine(BattleLoop());

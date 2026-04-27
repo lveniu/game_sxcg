@@ -40,7 +40,14 @@ public enum CardEffectId
     LifeSteal,        // 吸血攻击
     Revive,           // 复活术
     PoisonBlade,      // 毒刃
-    EnergyBurst       // 能量爆发
+    EnergyBurst,      // 能量爆发
+    // 第四轮
+    ArmorBreak,       // 破甲攻击
+    GroupHeal,        // 群体治疗
+    LightningChain,   // 闪电链
+    Thorns,           // 荊棘反伤
+    BerserkPotion,    // 狂暴药水
+    ShieldResonance   // 护盾共振
 }
 
 [CreateAssetMenu(fileName = "CardData", menuName = "Game/Card Data")]
