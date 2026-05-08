@@ -32,6 +32,10 @@ namespace Game.UI
         public CardPlayPanel cardPlayPanel;
         public BattleGridPanel battleGridPanel;
 
+        [Header("子面板 - 结算子流程")]
+        public EventPanel eventPanel;
+        public ShopPanel shopPanel;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -115,6 +119,21 @@ namespace Game.UI
         public void ShowSubPanel(UIPanel panel)
         {
             if (panel != null) panel.Show();
+        }
+
+        /// <summary>显示子面板（按名称查找）</summary>
+        public void ShowSubPanel(string panelId)
+        {
+            var panel = panelId switch
+            {
+                "CardPlay" => (UIPanel)cardPlayPanel,
+                "BattleGrid" => battleGridPanel,
+                "Event" => eventPanel,
+                "Shop" => shopPanel,
+                _ => null
+            };
+            if (panel != null) panel.Show();
+            else Debug.LogWarning($"[UIManager] 未找到子面板：{panelId}");
         }
 
         /// <summary>隐藏子面板</summary>

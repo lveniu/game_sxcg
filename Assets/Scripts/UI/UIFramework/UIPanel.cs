@@ -22,6 +22,9 @@ namespace Game.UI
         /// <summary>面板是否正在显示</summary>
         public bool IsVisible { get; protected set; }
 
+        /// <summary>面板隐藏完成后的回调（用于子面板流程串联）</summary>
+        public event System.Action OnHidden;
+
         protected virtual void Awake()
         {
             canvasGroup = GetComponent<CanvasGroup>();
@@ -58,6 +61,7 @@ namespace Game.UI
             canvasGroup.DOFade(0f, 0.2f).SetEase(Ease.InQuad).OnComplete(() =>
             {
                 gameObject.SetActive(false);
+                OnHidden?.Invoke();
             });
 
             OnHide();
