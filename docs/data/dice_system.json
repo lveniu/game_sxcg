@@ -1,0 +1,168 @@
+{
+  "_version": "1.0.0",
+  "_description": "骰子系统核心参数: 3颗6面骰, 组合判定, 概率, 战斗效果",
+  "dice_config": {
+    "dice_count": 3,
+    "faces": 6,
+    "face_values": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "total_outcomes": 216,
+    "free_rerolls": 1,
+    "max_rerolls_from_relics": 3,
+    "roll_animation_duration_sec": 0.5,
+    "reroll_animation_duration_sec": 0.4
+  },
+  "combinations": [
+    {
+      "id": "three_of_a_kind",
+      "name_cn": "三条",
+      "name_en": "Three of a Kind",
+      "condition": "三个骰子点数相同",
+      "probability": 0.0278,
+      "occurrences_out_of_216": 6,
+      "sort_priority": 1,
+      "effects": {
+        "battle_type": "team_buff",
+        "attack_multiplier": 1.5,
+        "duration_rounds": 3,
+        "description_cn": "全体攻击+50%，持续3回合"
+      },
+      "visual": {
+        "border_color": "#FFD700",
+        "glow_intensity": 1.0,
+        "particle_effect": "golden_sparkle"
+      },
+      "_reserved": {}
+    },
+    {
+      "id": "straight",
+      "name_cn": "顺子",
+      "name_en": "Straight",
+      "condition": "三个骰子点数连续 (如 1-2-3, 4-5-6)",
+      "probability": 0.0556,
+      "occurrences_out_of_216": 12,
+      "sort_priority": 2,
+      "effects": {
+        "battle_type": "team_buff",
+        "attack_speed_multiplier": 1.2,
+        "dodge_bonus": 0.15,
+        "duration_rounds": 2,
+        "description_cn": "全体攻速+20%，闪避+15%，持续2回合"
+      },
+      "visual": {
+        "border_color": "#3498DB",
+        "glow_intensity": 0.8,
+        "particle_effect": "blue_stream"
+      },
+      "_reserved": {}
+    },
+    {
+      "id": "pair",
+      "name_cn": "对子",
+      "name_en": "Pair",
+      "condition": "两个骰子点数相同",
+      "probability": 0.3472,
+      "occurrences_out_of_216": 75,
+      "sort_priority": 3,
+      "effects": {
+        "battle_type": "single_burst",
+        "damage_multiplier": 2.0,
+        "target": "highest_attack_enemy",
+        "description_cn": "对敌方攻击最高的单位造成2倍伤害"
+      },
+      "visual": {
+        "border_color": "#2ECC71",
+        "glow_intensity": 0.5,
+        "particle_effect": "green_pulse"
+      },
+      "_reserved": {}
+    },
+    {
+      "id": "scattered",
+      "name_cn": "散牌",
+      "name_en": "Scattered / No Combo",
+      "condition": "无任何组合",
+      "probability": 0.5694,
+      "occurrences_out_of_216": 123,
+      "sort_priority": 4,
+      "effects": {
+        "battle_type": "fallback",
+        "attack_multiplier": 1.0,
+        "description_cn": "无加成，基础攻击（保底:骰子点数之和提供微量攻击加成）",
+        "sum_bonus_rate": 0.02
+      },
+      "visual": {
+        "border_color": "#95A5A6",
+        "glow_intensity": 0.0,
+        "particle_effect": "none"
+      },
+      "_reserved": {}
+    }
+  ],
+  "sum_bonus_table": {
+    "_description": "散牌保底: 骰子点数之和映射的微量攻击加成",
+    "min_sum": 3,
+    "max_sum": 18,
+    "bonus_formula": "sum * 0.02, 即 3=+6%, 18=+36%",
+    "_note": "即使无组合，高点数仍提供可观加成，降低挫败感"
+  },
+  "face_upgrade": {
+    "_description": "骰子面升级（肉鸽奖励中获取）",
+    "upgradeable_faces": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "special_faces": [
+      {
+        "id": "lightning",
+        "name_cn": "闪电",
+        "replaces_face": 6,
+        "effect": "chain_lightning",
+        "hits": 3,
+        "damage_per_hit_multiplier": 0.4
+      },
+      {
+        "id": "shield",
+        "name_cn": "护盾",
+        "replaces_face": 1,
+        "effect": "team_shield",
+        "shield_pct": 0.15,
+        "duration_rounds": 2
+      },
+      {
+        "id": "heal",
+        "name_cn": "治疗",
+        "replaces_face": 2,
+        "effect": "team_heal",
+        "heal_pct": 0.1
+      },
+      {
+        "id": "poison",
+        "name_cn": "毒素",
+        "replaces_face": 3,
+        "effect": "poison_dot",
+        "dot_pct": 0.05,
+        "duration_rounds": 3
+      },
+      {
+        "id": "critical",
+        "name_cn": "暴击",
+        "replaces_face": 5,
+        "effect": "guaranteed_crit",
+        "crit_damage_bonus": 0.5
+      }
+    ],
+    "_reserved": {}
+  },
+  "_reserved": {}
+}

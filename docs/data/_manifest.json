@@ -1,0 +1,54 @@
+{
+  "_version": "1.0.0",
+  "_description": "《三侠闯江湖》骰子肉鸽小游戏 — 数值配置总纲",
+  "_game_name": "三侠闯江湖 (Heroes & Dice)",
+  "_engine": "Unity (WeChat Mini Game)",
+  "_core_loop": "HeroSelect → DiceRoll → Battle → Settlement → RoguelikeReward ↺ / GameOver",
+  "_dice_count": 3,
+  "_dice_faces": 6,
+  "_free_rerolls": 1,
+  "_max_battle_time_sec": 20,
+  "_battle_tick_interval_sec": 0.3,
+  "_simulate_battle_max_rounds": 100,
+  "_difficulty_scale_formula": "1 + (level - 1) * 0.15  (前10关线性, 10关后增长放缓至0.08/关)",
+  "_hero_count": 3,
+  "_files": [
+    {
+      "file": "hero_classes.json",
+      "desc": "角色职业属性与成长曲线"
+    },
+    {
+      "file": "dice_system.json",
+      "desc": "骰子组合、概率与效果"
+    },
+    {
+      "file": "skills.json",
+      "desc": "英雄技能与骰子触发技能"
+    },
+    {
+      "file": "battle_formulas.json",
+      "desc": "战斗公式（伤害/暴击/站位/连携）"
+    },
+    {
+      "file": "relics.json",
+      "desc": "遗物数据与效果"
+    },
+    {
+      "file": "enemies.json",
+      "desc": "敌人/怪物数据"
+    },
+    {
+      "file": "levels.json",
+      "desc": "关卡配置与难度曲线"
+    },
+    {
+      "file": "drop_tables.json",
+      "desc": "掉落表与肉鸽奖励权重"
+    },
+    {
+      "file": "economy.json",
+      "desc": "经济系统（金币/商店/装备）"
+    }
+  ],
+  "_reserved": {}
+}

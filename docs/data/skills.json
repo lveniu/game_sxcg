@@ -1,0 +1,139 @@
+{
+  "_version": "1.0.0",
+  "_description": "英雄主动技能、被动技能、骰子组合触发技能",
+  "hero_skills": [
+    {
+      "hero_class": "warrior",
+      "normal_attack": {
+        "id": "warrior_slash",
+        "name_cn": "重斩",
+        "skill_multiplier": 1.0,
+        "target_type": "single",
+        "cooldown_rounds": 0,
+        "description_cn": "普通攻击，对单个敌人造成100%攻击力伤害"
+      },
+      "active_skill": {
+        "id": "warrior_shield_bash",
+        "name_cn": "盾击",
+        "skill_multiplier": 1.5,
+        "target_type": "single",
+        "additional_effect": "stun",
+        "stun_rounds": 1,
+        "cooldown_rounds": 3,
+        "description_cn": "对单个敌人造成150%伤害并眩晕1回合，3回合冷却"
+      },
+      "passive": {
+        "id": "warrior_iron_will",
+        "name_cn": "铁壁",
+        "effect": "defense_boost_below_30pct_hp",
+        "defense_multiplier": 1.5,
+        "trigger": "hp_below_30pct",
+        "description_cn": "血量低于30%时防御+50%"
+      },
+      "_reserved": {}
+    },
+    {
+      "hero_class": "mage",
+      "normal_attack": {
+        "id": "mage_bolt",
+        "name_cn": "魔弹",
+        "skill_multiplier": 0.8,
+        "target_type": "single",
+        "cooldown_rounds": 0,
+        "description_cn": "普通攻击，80%攻击力的魔法伤害"
+      },
+      "active_skill": {
+        "id": "mage_fireball",
+        "name_cn": "火球术",
+        "skill_multiplier": 1.2,
+        "target_type": "aoe",
+        "aoe_range": "all_enemies",
+        "burn_dot_pct": 0.05,
+        "burn_duration_rounds": 2,
+        "cooldown_rounds": 4,
+        "description_cn": "对所有敌人造成120%伤害，附带5%最大血量灼烧2回合"
+      },
+      "passive": {
+        "id": "mage_arcane_shield",
+        "name_cn": "奥术屏障",
+        "effect": "auto_shield_on_hit",
+        "shield_pct": 0.1,
+        "trigger": "on_take_damage",
+        "cooldown_rounds": 2,
+        "description_cn": "受击时自动获得10%最大血量的护盾，2回合冷却"
+      },
+      "_reserved": {}
+    },
+    {
+      "hero_class": "assassin",
+      "normal_attack": {
+        "id": "assassin_stab",
+        "name_cn": "匕刺",
+        "skill_multiplier": 1.0,
+        "target_type": "single",
+        "cooldown_rounds": 0,
+        "description_cn": "普通攻击，对单个敌人造成100%攻击力伤害"
+      },
+      "active_skill": {
+        "id": "assassin_shadow_strike",
+        "name_cn": "暗影突袭",
+        "skill_multiplier": 2.5,
+        "target_type": "single",
+        "guaranteed_crit": true,
+        "cooldown_rounds": 5,
+        "description_cn": "必定暴击的单体攻击，250%伤害，5回合冷却"
+      },
+      "passive": {
+        "id": "assassin_opportunist",
+        "name_cn": "伺机而动",
+        "effect": "bonus_crit_on_low_hp_enemy",
+        "crit_rate_bonus": 0.25,
+        "trigger": "enemy_hp_below_50pct",
+        "description_cn": "攻击血量低于50%的敌人时暴击率+25%"
+      },
+      "_reserved": {}
+    }
+  ],
+  "dice_combo_skills": {
+    "_description": "骰子组合在战斗中触发的技能效果，玩家点触释放",
+    "trigger_timing": "battle_start_phase",
+    "usage_limit_per_battle": 1,
+    "skills": [
+      {
+        "combo_id": "three_of_a_kind",
+        "skill_name_cn": "三连轰击",
+        "effect_type": "team_buff",
+        "attack_bonus_pct": 0.5,
+        "duration_rounds": 3,
+        "animation": "area_golden_wave"
+      },
+      {
+        "combo_id": "straight",
+        "skill_name_cn": "急速冲锋",
+        "effect_type": "team_buff",
+        "attack_speed_bonus_pct": 0.2,
+        "dodge_bonus_pct": 0.15,
+        "duration_rounds": 2,
+        "animation": "blue_wind_trail"
+      },
+      {
+        "combo_id": "pair",
+        "skill_name_cn": "精准打击",
+        "effect_type": "single_target",
+        "damage_multiplier": 2.0,
+        "target": "highest_attack_enemy",
+        "animation": "green_sniper_beam"
+      },
+      {
+        "combo_id": "scattered",
+        "skill_name_cn": "基础进攻",
+        "effect_type": "fallback",
+        "sum_attack_bonus_pct": 0.02,
+        "description_cn": "按骰子点数之和提供微量加成",
+        "animation": "none"
+      }
+    ],
+    "_reserved": {}
+  },
+  "_reserved": {}
+}

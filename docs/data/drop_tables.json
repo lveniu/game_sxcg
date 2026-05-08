@@ -1,0 +1,136 @@
+{
+  "_version": "1.0.0",
+  "_description": "掉落表: 肉鸽奖励权重、装备掉落概率、金币奖励",
+  "roguelike_rewards": {
+    "_description": "每关胜利后三选一奖励",
+    "max_choices": 3,
+    "reward_types": [
+      {
+        "id": "new_unit",
+        "name_cn": "新单位",
+        "description_cn": "获得一个新的英雄单位加入阵容",
+        "weight_by_phase": {
+          "phase_1_level_1_5": 35,
+          "phase_2_level_6_10": 25,
+          "phase_3_level_11_plus": 15
+        },
+        "pool": [
+          "warrior",
+          "mage",
+          "assassin"
+        ],
+        "star_rating_weights": {
+          "1": 70,
+          "2": 25,
+          "3": 5
+        },
+        "max_units_per_run": 6,
+        "_note": "阵容满6个后不再出现"
+      },
+      {
+        "id": "dice_face_upgrade",
+        "name_cn": "骰面升级",
+        "description_cn": "替换一颗骰子的某面为特殊效果面",
+        "weight_by_phase": {
+          "phase_1_level_1_5": 20,
+          "phase_2_level_6_10": 30,
+          "phase_3_level_11_plus": 35
+        },
+        "pool": "see dice_system.json face_upgrade.special_faces",
+        "max_upgrades_per_run": 5,
+        "_note": "越到后期骰面升级越重要"
+      },
+      {
+        "id": "stat_boost",
+        "name_cn": "属性强化",
+        "description_cn": "全体英雄某项属性提升",
+        "weight_by_phase": {
+          "phase_1_level_1_5": 30,
+          "phase_2_level_6_10": 25,
+          "phase_3_level_11_plus": 20
+        },
+        "pool": [
+          {
+            "stat": "max_health",
+            "boost_pct": 0.1,
+            "name_cn": "生命+10%"
+          },
+          {
+            "stat": "attack",
+            "boost_pct": 0.1,
+            "name_cn": "攻击+10%"
+          },
+          {
+            "stat": "defense",
+            "boost_pct": 0.1,
+            "name_cn": "防御+10%"
+          },
+          {
+            "stat": "speed",
+            "boost_pct": 0.08,
+            "name_cn": "速度+8%"
+          },
+          {
+            "stat": "crit_rate",
+            "boost_pct": 0.05,
+            "name_cn": "暴击率+5%"
+          }
+        ],
+        "_note": "前期提供基础数值建立阵容"
+      },
+      {
+        "id": "relic",
+        "name_cn": "遗物",
+        "description_cn": "获得一个被动遗物",
+        "weight_by_phase": {
+          "phase_1_level_1_5": 15,
+          "phase_2_level_6_10": 20,
+          "phase_3_level_11_plus": 30
+        },
+        "pool": "see relics.json",
+        "max_relics_per_run": 10,
+        "_note": "遗物在后期占比大幅提升"
+      }
+    ],
+    "guarantee_system": {
+      "_description": "保底机制: 连续N次不出现某类型时提高权重",
+      "trigger_missing_count": 3,
+      "weight_multiplier_on_guarantee": 2.0,
+      "_note": "防止玩家连续3次看不到某个奖励类型"
+    },
+    "dynamic_adjustment": {
+      "_description": "根据阵容缺失动态调整权重",
+      "rules": [
+        "units < 2 → new_unit权重 x2",
+        "no_relic → relic权重 x1.5",
+        "dice_faces_upgraded < 2 → dice_face_upgrade权重 x1.5"
+      ]
+    },
+    "_reserved": {}
+  },
+  "gold_rewards": {
+    "_description": "金币奖励计算",
+    "formula": "base_gold + level * level_bonus + bonus_for_milestone",
+    "base_gold": 20,
+    "level_bonus": 10,
+    "milestone_bonus": {
+      "every_5_levels": 20,
+      "boss_kill": 50
+    },
+    "examples": {
+      "level_1": 30,
+      "level_5": 90,
+      "level_10": 170,
+      "level_15": 270
+    },
+    "_reserved": {}
+  },
+  "equipment_drop": {
+    "_description": "装备掉落规则（小游戏版简化）",
+    "guaranteed_every_n_levels": 3,
+    "random_drop_chance": 0.3,
+    "no_drop_in_first_2_levels": true,
+    "_reserved": {}
+  },
+  "_reserved": {}
+}
