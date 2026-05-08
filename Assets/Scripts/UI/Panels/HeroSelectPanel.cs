@@ -43,8 +43,9 @@ namespace Game.UI
         /// <summary>选中的英雄职业</summary>
         public HeroClass SelectedClass { get; private set; }
 
-        // 英雄数据配置（临时硬编码，后续用ScriptableObject）
+        // 英雄数据配置（与面板显示一致，用于运行时创建HeroData）
         private static readonly string[] heroNames = { "铁壁战士", "奥术法师", "暗影刺客" };
+        private static readonly HeroClass[] heroClasses = { HeroClass.Warrior, HeroClass.Mage, HeroClass.Assassin };
         private static readonly string[] heroDescs = {
             "高防高血，近战输出，队伍前排坦克",
             "远程AOE法术输出，群体伤害专家",
@@ -102,7 +103,7 @@ namespace Game.UI
         private void SelectHero(int index)
         {
             selectedIndex = index;
-            SelectedClass = (HeroClass)index;
+            SelectedClass = heroClasses[index];
             confirmButton.interactable = true;
 
             // 更新选中高亮
@@ -120,9 +121,29 @@ namespace Game.UI
         {
             if (selectedIndex < 0) return;
 
-            // TODO: 通知后端创建选中英雄
-            // HeroManager.Instance.CreateHero(SelectedClass);
+            // 1. 创建运行时HeroData（ScriptableObject.CreateInstance）
+            HeroData heroData = ScriptableObject.CreateInstance<HeroData>();
+            heroData.heroName = heroNames[selectedIndex];
+            heroData.heroClass = heroClasses[selectedIndex];
+            heroData.baseHealth = heroStats[selectedIndex, 0];
+            heroData.baseAttack = heroStats[selectedIndex, 1];
+            heroData.baseDefense = heroStats[selectedIndex, 2];
+            heroData.baseSpeed = heroStats[selectedIndex, 3];
+            heroData.baseCritRate = 0.05f;
+            heroData.summonCost = heroClasses[selectedIndex] == HeroClass.Assassin ? 1 : 2;
 
+            // 2. 创建Hero GameObject并初始化
+            GameObject heroObj = new GameObject($"Hero_{heroData.heroName}");
+            Hero hero = heroObj.AddComponent<Hero>();
+            hero.Initialize(heroData, starLevel: 1);
+
+            // 3. 注册到RoguelikeGameManager
+            RoguelikeGameManager.Instance.SelectHero(hero);
+
+            Debug.Log($"[HeroSelect] 创建英雄: {heroData.heroName} ({heroData.heroClass}) " +
+                      $"HP={hero.MaxHealth} ATK={hero.Attack} DEF={hero.Defense} SPD={hero.Speed}");
+
+            // 4. 切换到骰子阶段
             GameStateMachine.Instance.ChangeState(GameState.DiceRoll);
         }
     }

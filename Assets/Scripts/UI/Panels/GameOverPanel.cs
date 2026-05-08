@@ -26,8 +26,15 @@ namespace Game.UI
 
         protected override void OnShow()
         {
+            // Remove old listeners first to avoid duplicates
+            restartButton?.onClick.RemoveAllListeners();
+            shareButton?.onClick.RemoveAllListeners();
+
+            // Bind fresh listeners
             restartButton?.onClick.AddListener(OnRestartClicked);
             shareButton?.onClick.AddListener(OnShareClicked);
+
+            PopulateStats();
         }
 
         protected override void OnHide()
@@ -36,10 +43,49 @@ namespace Game.UI
             shareButton?.onClick.RemoveAllListeners();
         }
 
+        private void PopulateStats()
+        {
+            var gsm = GameStateMachine.Instance;
+            var rgm = RoguelikeGameManager.Instance;
+
+            // Determine win or loss
+            bool isWin = gsm != null && gsm.IsGameWon;
+            if (resultTitle != null)
+                resultTitle.text = isWin ? "🏆 通关！" : "💀 阵亡";
+
+            // Level reached — prefer RoguelikeGameManager's tracked level
+            int level = rgm != null ? rgm.CurrentLevel : (gsm != null ? gsm.CurrentLevel : 0);
+            if (levelReachedText != null)
+                levelReachedText.text = $"到达关卡: {level}";
+
+            // Relic count from RoguelikeGameManager
+            int relicCount = 0;
+            if (rgm != null && rgm.RelicSystem != null)
+                relicCount = rgm.RelicSystem.RelicCount;
+            if (relicCountText != null)
+                relicCountText.text = $"收集遗物: {relicCount}";
+
+            // Kill count placeholder
+            if (killCountText != null)
+                killCountText.text = "击杀数: --";
+        }
+
         private void OnRestartClicked()
         {
-            // TODO: 重置游戏状态
-            GameStateMachine.Instance.ChangeState(GameState.MainMenu);
+            // 重置肉鸽状态
+            RoguelikeGameManager.Instance?.StartNewGame();
+
+            // 重置状态机的关卡计数
+            if (GameStateMachine.Instance != null)
+            {
+                // ResetGame会重置CurrentLevel=1, IsGameWon/IsGameLost=false
+                // 然后跳到HeroSelect — 但我们想回主菜单让玩家点击"开始游戏"
+                // 所以先重置数值，再跳转
+                GameStateMachine.Instance.ResetGame();
+                // ResetGame会自动ChangeState(HeroSelect)
+                // 如果想回主菜单，改用以下代码：
+                // GameStateMachine.Instance.ChangeState(GameState.MainMenu);
+            }
         }
 
         private void OnShareClicked()

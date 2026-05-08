@@ -53,6 +53,14 @@ namespace Game.UI
             
             // 初始隐藏所有面板
             HideAllPanels();
+            
+            // 如果状态机已经在某个状态（比如Start()先于本函数执行），
+            // 立即同步到当前状态
+            if (GameStateMachine.Instance != null && 
+                GameStateMachine.Instance.CurrentState != GameState.MainMenu)
+            {
+                SwitchPanel(GameStateMachine.Instance.CurrentState);
+            }
         }
 
         private void OnDestroy()
@@ -74,6 +82,16 @@ namespace Game.UI
                 { GameState.RoguelikeReward, roguelikeRewardPanel },
                 { GameState.GameOver, gameOverPanel }
             };
+        }
+
+        /// <summary>
+        /// 面板引用绑定完成后重建映射（供RuntimeSceneBootstrap调用）
+        /// Awake时面板可能还未创建，需要在绑定后重新构建
+        /// </summary>
+        public void RebuildPanelMap()
+        {
+            InitPanelMap();
+            HideAllPanels();
         }
 
         /// <summary>状态切换回调（签名匹配 GameStateMachine.OnStateChanged: Action&lt;GameState, GameState&gt;）</summary>

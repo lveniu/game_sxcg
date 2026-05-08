@@ -157,29 +157,40 @@ public class GameStateMachine : MonoBehaviour
         switch (state)
         {
             case GameState.MainMenu:
-                // TODO: 显示主菜单UI
+                // UI由NewUIManager自动处理
+                Debug.Log("[StateMachine] 进入主菜单");
                 break;
 
             case GameState.HeroSelect:
-                // TODO: 显示英雄选择界面（战/法/刺三选一）
+                // UI由NewUIManager自动处理
+                Debug.Log("[StateMachine] 进入英雄选择");
                 break;
 
             case GameState.DiceRoll:
                 OnLevelStarted?.Invoke(CurrentLevel);
-                // TODO: 初始化骰子投掷器，显示骰子UI
+                // 通知RoguelikeGameManager推进关卡（首次已在StartNewGame时设为0）
+                RoguelikeGameManager.Instance?.EnterNextLevel();
+                Debug.Log($"[StateMachine] 进入掷骰阶段 — 第{CurrentLevel}关");
                 break;
 
             case GameState.Battle:
-                // TODO: 启动BattleManager开始自动战斗
+                // 启动战斗：由RoguelikeGameManager协调BattleManager
+                RoguelikeGameManager.Instance?.StartBattle();
+                Debug.Log($"[StateMachine] 战斗开始 — 第{CurrentLevel}关");
                 break;
 
             case GameState.RoguelikeReward:
-                // TODO: 显示三选一奖励界面
+                // UI由NewUIManager自动显示RoguelikeRewardPanel
+                Debug.Log($"[StateMachine] 进入奖励选择 — 第{CurrentLevel}关");
                 break;
 
             case GameState.GameOver:
-                // TODO: 显示阵亡界面（走了多远）
-                Debug.Log($"[GameOver] 在第{CurrentLevel}关阵亡");
+                Debug.Log($"[GameOver] 在第{CurrentLevel}关结束");
+                break;
+
+            case GameState.Settlement:
+                // Settlement面板自行处理子面板流程
+                Debug.Log($"[StateMachine] 进入结算 — 第{CurrentLevel}关");
                 break;
         }
     }

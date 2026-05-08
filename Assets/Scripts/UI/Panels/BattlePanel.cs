@@ -180,6 +180,14 @@ namespace Game.UI
             speedButton?.onClick.RemoveAllListeners();
             skipButton?.onClick.RemoveAllListeners();
             diceSkillButton?.onClick.RemoveAllListeners();
+
+            // 清理DOTween动画，防止面板隐藏后回调操作已销毁的对象
+            resultPopup?.DOKill();
+            if (resultPopup != null) resultPopup.gameObject.SetActive(false);
+            vsDivider?.DOKill();
+
+            // 清理血条
+            ClearUnitBars();
         }
 
         /// <summary>

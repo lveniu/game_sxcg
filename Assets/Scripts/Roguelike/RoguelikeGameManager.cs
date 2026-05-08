@@ -70,15 +70,17 @@ public class RoguelikeGameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 进入下一关
+    /// 进入下一关（由GameStateMachine在DiceRoll状态进入时调用）
+    /// 关卡计数由GameStateMachine管理，这里同步并初始化子系统
     /// </summary>
     public void EnterNextLevel()
     {
-        CurrentLevel++;
+        // 同步关卡编号（GameStateMachine已在NextState中递增）
+        CurrentLevel = GameStateMachine.Instance?.CurrentLevel ?? CurrentLevel + 1;
         if (CurrentLevel > MaxLevelReached)
             MaxLevelReached = CurrentLevel;
 
-        RelicSystem.ResetForNewLevel();
+        if (RelicSystem != null) RelicSystem.ResetForNewLevel();
         OnLevelStarted?.Invoke(CurrentLevel);
         Debug.Log($"[肉鸽] 进入第 {CurrentLevel} 关");
     }

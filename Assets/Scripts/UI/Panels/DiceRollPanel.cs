@@ -61,8 +61,20 @@ namespace Game.UI
 
         protected override void OnShow()
         {
-            // 初始化骰子系统
-            diceRoller = new DiceRoller(diceCount: 3, sides: 6);
+            // 使用RoguelikeGameManager的DiceRoller（含遗物加成的重摇次数）
+            // 如果RoguelikeGameManager未初始化则创建临时的
+            var rgm = RoguelikeGameManager.Instance;
+            if (rgm != null && rgm.DiceRoller != null)
+            {
+                diceRoller = rgm.DiceRoller;
+                // 每关重置骰子：恢复重摇次数（基础1 + 遗物额外）
+                diceRoller.SetFreeRerolls(1 + (rgm.RelicSystem?.GetExtraRerolls() ?? 0));
+            }
+            else
+            {
+                diceRoller = new DiceRoller(diceCount: 3, sides: 6);
+            }
+            
             evaluator = new DiceCombinationEvaluator();
             currentValues = new int[] { 0, 0, 0 };
             currentCombo = null;
@@ -98,11 +110,14 @@ namespace Game.UI
             rerollButton?.onClick.RemoveAllListeners();
             confirmButton?.onClick.RemoveAllListeners();
 
-            if (diceRoller != null)
+            // 只取消临时创建的DiceRoller的事件订阅
+            // 共享的DiceRoller（来自RoguelikeGameManager）不取消，后续关卡继续使用
+            if (diceRoller != null && RoguelikeGameManager.Instance?.DiceRoller != diceRoller)
             {
                 diceRoller.OnDiceRolled -= OnDiceRolled;
                 diceRoller.OnRerollsExhausted -= OnRerollsExhausted;
             }
+            diceRoller = null;
         }
 
         #region 掷骰
@@ -231,8 +246,8 @@ namespace Game.UI
         {
             if (!hasRolled) return;
 
-            // TODO: 将骰子组合传给战斗系统
-            // BattleManager.Instance.SetDiceCombination(currentCombo);
+            // 将骰子组合传给肉鸽管理器，供战斗系统使用
+            RoguelikeGameManager.Instance?.SetDiceCombo(currentCombo);
 
             GameStateMachine.Instance.ChangeState(GameState.Battle);
         }
