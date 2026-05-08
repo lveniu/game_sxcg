@@ -49,4 +49,21 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log($"[GameManager] 开始第{level}关");
     }
+
+    /// <summary>
+    /// 获取当前骰子组合
+    /// </summary>
+    public DiceCombination GetCurrentDiceCombination()
+    {
+        if (DiceRoller == null) return new DiceCombination { Type = DiceCombinationType.None };
+        return DiceRoller.GetCurrentCombination();
+    }
+
+    /// <summary>
+    /// 获取骰子投掷器
+    /// </summary>
+    public DiceRoller GetDiceRoller()
+    {
+        return DiceRoller;
+    }
 }

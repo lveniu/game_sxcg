@@ -27,6 +27,11 @@ namespace Game.UI
         public RoguelikeRewardPanel roguelikeRewardPanel;
         public GameOverPanel gameOverPanel;
 
+        // 子面板（非状态驱动，手动显示/隐藏）
+        [Header("子面板 - 卡牌&站位阶段")]
+        public CardPlayPanel cardPlayPanel;
+        public BattleGridPanel battleGridPanel;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -104,6 +109,31 @@ namespace Game.UI
         public T GetCurrentPanel<T>() where T : UIPanel
         {
             return currentPanel as T;
+        }
+
+        /// <summary>显示子面板（非状态驱动，如卡牌面板、站位面板）</summary>
+        public void ShowSubPanel(UIPanel panel)
+        {
+            if (panel != null) panel.Show();
+        }
+
+        /// <summary>隐藏子面板</summary>
+        public void HideSubPanel(UIPanel panel)
+        {
+            if (panel != null) panel.Hide();
+        }
+
+        /// <summary>进入卡牌+站位阶段（DiceRoll结束后调用）</summary>
+        public void EnterCardPlayPhase()
+        {
+            ShowSubPanel(cardPlayPanel);
+        }
+
+        /// <summary>从卡牌阶段进入站位阶段</summary>
+        public void EnterPositioningPhase()
+        {
+            HideSubPanel(cardPlayPanel);
+            ShowSubPanel(battleGridPanel);
         }
     }
 }
