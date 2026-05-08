@@ -10,9 +10,9 @@ public class DiceRoller
     public Dice[] Dices { get; private set; }
 
     /// <summary>
-    /// 免费重摇次数（MVP固定2次）
+    /// 免费重摇次数（肉鸽模式默认1次）
     /// </summary>
-    public int FreeRerolls { get; private set; } = 2;
+    public int FreeRerolls { get; private set; } = 1;
 
     /// <summary>
     /// 已使用的重摇次数

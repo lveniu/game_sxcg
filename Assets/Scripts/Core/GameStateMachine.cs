@@ -2,18 +2,17 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// 游戏核心状态 — 管理赌狗流循环流程
+/// 游戏核心状态 — 肉鸽循环流程
+/// MainMenu → HeroSelect → DiceRoll → Battle → RoguelikeReward → 循环/GameOver
 /// </summary>
 public enum GameState
 {
-    MainMenu,       // 主菜单
-    HeroSelect,     // 选择初始英雄
-    DiceRoll,       // 骰子阶段（投掷+重摇）
-    CardPlay,       // 出牌阶段（召唤/打卡）
-    Positioning,    // 站位阶段
-    Battle,         // 自动战斗
-    Settlement,     // 结算阶段
-    GameOver        // 游戏结束
+    MainMenu,           // 主菜单
+    HeroSelect,         // 选择初始英雄（战/法/刺三选一）
+    DiceRoll,           // 骰子阶段（投掷+免费重摇1次）
+    Battle,             // 自动战斗
+    RoguelikeReward,    // 肉鸽三选一奖励
+    GameOver            // 游戏结束（阵亡）
 }
 
 /// <summary>
@@ -77,6 +76,7 @@ public class GameStateMachine : MonoBehaviour
 
     /// <summary>
     /// 按核心循环顺序推进到下一个状态
+    /// 新流程：MainMenu → HeroSelect → DiceRoll → Battle → RoguelikeReward → 循环/GameOver
     /// </summary>
     public void NextState()
     {
@@ -89,27 +89,27 @@ public class GameStateMachine : MonoBehaviour
                 ChangeState(GameState.DiceRoll);
                 break;
             case GameState.DiceRoll:
-                ChangeState(GameState.CardPlay);
-                break;
-            case GameState.CardPlay:
-                ChangeState(GameState.Positioning);
-                break;
-            case GameState.Positioning:
                 ChangeState(GameState.Battle);
                 break;
             case GameState.Battle:
-                ChangeState(GameState.Settlement);
-                break;
-            case GameState.Settlement:
-                if (IsGameWon)
+                // 战斗结束判断
+                if (IsGameLost)
+                {
                     ChangeState(GameState.GameOver);
-                else if (IsGameLost)
-                    ChangeState(GameState.GameOver);
+                }
                 else
                 {
-                    CurrentLevel++;
-                    ChangeState(GameState.DiceRoll); // 进入下一关
+                    // 通关，进入奖励选择
+                    IsGameWon = true;
+                    OnLevelEnded?.Invoke(CurrentLevel, true);
+                    ChangeState(GameState.RoguelikeReward);
                 }
+                break;
+            case GameState.RoguelikeReward:
+                // 奖励选完，进入下一关
+                CurrentLevel++;
+                IsGameWon = false;
+                ChangeState(GameState.DiceRoll);
                 break;
             case GameState.GameOver:
                 ChangeState(GameState.MainMenu);
@@ -118,18 +118,7 @@ public class GameStateMachine : MonoBehaviour
     }
 
     /// <summary>
-    /// 立即进入战斗（跳过出牌和站位，用于快速测试）
-    /// </summary>
-    public void SkipToBattle()
-    {
-        if (currentState == GameState.CardPlay || currentState == GameState.Positioning)
-        {
-            ChangeState(GameState.Battle);
-        }
-    }
-
-    /// <summary>
-    /// 宣告游戏胜利
+    /// 宣告游戏胜利（本关通关）
     /// </summary>
     public void SetGameWon()
     {
@@ -138,7 +127,7 @@ public class GameStateMachine : MonoBehaviour
     }
 
     /// <summary>
-    /// 宣告游戏失败
+    /// 宣告游戏失败（阵亡）
     /// </summary>
     public void SetGameLost()
     {
@@ -166,7 +155,7 @@ public class GameStateMachine : MonoBehaviour
                 break;
 
             case GameState.HeroSelect:
-                // TODO: 显示英雄选择界面
+                // TODO: 显示英雄选择界面（战/法/刺三选一）
                 break;
 
             case GameState.DiceRoll:
@@ -174,24 +163,17 @@ public class GameStateMachine : MonoBehaviour
                 // TODO: 初始化骰子投掷器，显示骰子UI
                 break;
 
-            case GameState.CardPlay:
-                // TODO: 显示卡牌手牌，允许打出/召唤
-                break;
-
-            case GameState.Positioning:
-                // TODO: 显示棋盘，允许拖拽站位
-                break;
-
             case GameState.Battle:
                 // TODO: 启动BattleManager开始自动战斗
                 break;
 
-            case GameState.Settlement:
-                // TODO: 显示战斗结果和奖励选择
+            case GameState.RoguelikeReward:
+                // TODO: 显示三选一奖励界面
                 break;
 
             case GameState.GameOver:
-                // TODO: 显示通关/失败界面
+                // TODO: 显示阵亡界面（走了多远）
+                Debug.Log($"[GameOver] 在第{CurrentLevel}关阵亡");
                 break;
         }
     }
