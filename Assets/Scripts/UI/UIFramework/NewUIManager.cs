@@ -66,8 +66,8 @@ namespace Game.UI
             };
         }
 
-        /// <summary>状态切换回调</summary>
-        private void OnGameStateChanged(GameState newState)
+        /// <summary>状态切换回调（签名匹配 GameStateMachine.OnStateChanged: Action&lt;GameState, GameState&gt;）</summary>
+        private void OnGameStateChanged(GameState oldState, GameState newState)
         {
             SwitchPanel(newState);
         }

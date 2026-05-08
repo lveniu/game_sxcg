@@ -128,6 +128,12 @@ namespace Game.UI
             selectedIndex = -1;
             selectedCard = null;
 
+            // 先清除旧监听器，防止重复Show叠加
+            warriorButton?.onClick.RemoveAllListeners();
+            mageButton?.onClick.RemoveAllListeners();
+            assassinButton?.onClick.RemoveAllListeners();
+            confirmButton?.onClick.RemoveAllListeners();
+
             // 绑定按钮事件
             warriorButton?.onClick.AddListener(() => SelectHero(0));
             mageButton?.onClick.AddListener(() => SelectHero(1));
