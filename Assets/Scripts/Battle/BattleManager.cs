@@ -4,15 +4,16 @@ using UnityEngine;
 
 /// <summary>
 /// 战斗管理器 — 管理自走棋自动战斗流程
+/// 改造：加入骰子技能释放、加速(2x/4x)、跳过战斗
 /// </summary>
 public class BattleManager : MonoBehaviour
 {
     public static BattleManager Instance { get; private set; }
 
     [Header("战斗配置")]
-    public float battleTickInterval = 0.5f; // 每次行动间隔（秒）
+    public float battleTickInterval = 0.5f;
     public float battleSpeed = 1f;
-    public float maxBattleTime = 30f; // 最大战斗时间
+    public float maxBattleTime = 60f; // 最大战斗时间（调整为60秒）
 
     [Header("单位")]
     public List<Hero> playerUnits = new List<Hero>();
@@ -21,6 +22,21 @@ public class BattleManager : MonoBehaviour
     public bool IsBattleActive { get; private set; }
     public float BattleTimer { get; private set; }
     public bool PlayerWon { get; private set; }
+
+    // 骰子组合（战斗开始时由外部设置）
+    public DiceCombination CurrentDiceCombo { get; private set; }
+    public bool DiceSkillUsed { get; private set; } // 骰子技能是否已释放
+
+    // 战斗速度档位
+    public const float SPEED_1X = 1f;
+    public const float SPEED_2X = 2f;
+    public const float SPEED_4X = 4f;
+
+    // 速度变化事件
+    public event System.Action<float> OnBattleSpeedChanged;
+    public event System.Action OnBattleStarted;
+    public event System.Action<bool> OnBattleEnded; // true=胜利
+    public event System.Action<string> OnDiceSkillTriggered;
 
     private Coroutine battleCoroutine;
 
@@ -35,22 +51,144 @@ public class BattleManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 开始战斗
+    /// 开始战斗（含骰子组合效果）
     /// </summary>
-    public void StartBattle(List<Hero> players, List<Hero> enemies)
+    public void StartBattle(List<Hero> players, List<Hero> enemies, DiceCombination diceCombo = null)
     {
         playerUnits = new List<Hero>(players);
         enemyUnits = new List<Hero>(enemies);
         IsBattleActive = true;
         BattleTimer = 0f;
         PlayerWon = false;
+        DiceSkillUsed = false;
+        CurrentDiceCombo = diceCombo;
 
         // 应用连携技Buff
         SynergySystem.ApplySynergies(playerUnits);
 
-        Debug.Log($"战斗开始！我方{playerUnits.Count}人 vs 敌方{enemyUnits.Count}人");
+        // 战斗开始时根据骰子组合触发一次性效果
+        if (diceCombo != null)
+        {
+            ApplyDiceComboEffects(diceCombo);
+        }
 
+        Debug.Log($"战斗开始！我方{playerUnits.Count}人 vs 敌方{enemyUnits.Count}人 | 骰子: {(diceCombo != null ? diceCombo.Description : "无")}");
+
+        OnBattleStarted?.Invoke();
         battleCoroutine = StartCoroutine(BattleLoop());
+    }
+
+    /// <summary>
+    /// 应用骰子组合效果到所有玩家单位
+    /// 三条=全屏AOE(初始伤害)，顺子=攻速加速，对子=召唤物强化
+    /// </summary>
+    void ApplyDiceComboEffects(DiceCombination combo)
+    {
+        if (combo == null || combo.Type == DiceCombinationType.None) return;
+
+        switch (combo.Type)
+        {
+            case DiceCombinationType.ThreeOfAKind:
+                // 三条：开场全屏AOE，对所有敌人造成攻击力30%的伤害
+                int aoeDamageBase = 0;
+                foreach (var hero in playerUnits)
+                {
+                    if (hero == null || hero.IsDead) continue;
+                    aoeDamageBase += hero.Attack;
+                    // 同时获得攻击+20%
+                    hero.BattleAttack = Mathf.RoundToInt(hero.BattleAttack * 1.2f);
+                }
+                int aoeDamage = Mathf.RoundToInt(aoeDamageBase * 0.3f);
+                foreach (var enemy in enemyUnits)
+                {
+                    if (enemy == null || enemy.IsDead) continue;
+                    enemy.TakeDamage(Mathf.Max(1, aoeDamage - enemy.BattleDefense));
+                }
+                Debug.Log($"[骰子技能] 三条AOE！全屏造成 {aoeDamage} 伤害");
+                OnDiceSkillTriggered?.Invoke($"三条全屏AOE！造成{aoeDamage}伤害");
+                break;
+
+            case DiceCombinationType.Straight:
+                // 顺子：全体攻速+20%，持续整场
+                foreach (var hero in playerUnits)
+                {
+                    if (hero == null || hero.IsDead) continue;
+                    hero.BattleAttackSpeed = 1.2f;
+                }
+                Debug.Log("[骰子技能] 顺子！全体攻速+20%");
+                OnDiceSkillTriggered?.Invoke("顺子！全体攻速+20%");
+                break;
+
+            case DiceCombinationType.Pair:
+                // 对子：所有友方获得护盾（最大生命15%）
+                foreach (var hero in playerUnits)
+                {
+                    if (hero == null || hero.IsDead) continue;
+                    int shield = Mathf.RoundToInt(hero.MaxHealth * 0.15f);
+                    hero.AddShield(shield);
+                    // 对子还提供一个额外buff：暴击率+10%
+                    hero.BattleCritRate += 0.1f;
+                }
+                Debug.Log("[骰子技能] 对子！全体获得护盾+暴击率+10%");
+                OnDiceSkillTriggered?.Invoke("对子！全体护盾+暴击+10%");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 玩家手动释放骰子技能（点触释放）
+    /// 战斗中可以点一次，释放骰子组合的大招
+    /// </summary>
+    public void TriggerDiceSkill()
+    {
+        if (!IsBattleActive || DiceSkillUsed || CurrentDiceCombo == null) return;
+        if (CurrentDiceCombo.Type == DiceCombinationType.None) return;
+
+        DiceSkillUsed = true;
+
+        switch (CurrentDiceCombo.Type)
+        {
+            case DiceCombinationType.ThreeOfAKind:
+                // 手动释放：全屏高额AOE（攻击力50%）
+                int dmg = 0;
+                foreach (var hero in playerUnits)
+                {
+                    if (hero == null || hero.IsDead) continue;
+                    dmg += hero.BattleAttack;
+                }
+                int totalDmg = Mathf.RoundToInt(dmg * 0.5f);
+                foreach (var enemy in enemyUnits)
+                {
+                    if (enemy == null || enemy.IsDead) continue;
+                    enemy.TakeDamage(Mathf.Max(1, totalDmg - enemy.BattleDefense / 2));
+                }
+                Debug.Log($"[手动骰子技能] 三条大招！全屏 {totalDmg} 伤害");
+                OnDiceSkillTriggered?.Invoke($"三条大招！{totalDmg}伤害");
+                break;
+
+            case DiceCombinationType.Straight:
+                // 手动释放：全体攻击+30%（持续到战斗结束）
+                foreach (var hero in playerUnits)
+                {
+                    if (hero == null || hero.IsDead) continue;
+                    hero.BattleAttack = Mathf.RoundToInt(hero.BattleAttack * 1.3f);
+                }
+                Debug.Log("[手动骰子技能] 顺子加速！全体攻击+30%");
+                OnDiceSkillTriggered?.Invoke("顺子！全体攻击+30%");
+                break;
+
+            case DiceCombinationType.Pair:
+                // 手动释放：全体治疗30%最大生命
+                foreach (var hero in playerUnits)
+                {
+                    if (hero == null || hero.IsDead) continue;
+                    int heal = Mathf.RoundToInt(hero.MaxHealth * 0.3f);
+                    hero.Heal(heal);
+                }
+                Debug.Log("[手动骰子技能] 对子治疗！全体恢复30%生命");
+                OnDiceSkillTriggered?.Invoke("对子治疗！全体恢复30%HP");
+                break;
+        }
     }
 
     IEnumerator BattleLoop()
@@ -97,7 +235,7 @@ public class BattleManager : MonoBehaviour
         if (allPlayerDead || allEnemyDead)
             return true;
 
-        // 超时判定：敌方胜利
+        // 超时判定
         if (BattleTimer >= maxBattleTime)
             return true;
 
@@ -124,7 +262,9 @@ public class BattleManager : MonoBehaviour
         else
             Debug.Log("战斗超时！");
 
-        // 通知状态机进入结算
+        OnBattleEnded?.Invoke(PlayerWon);
+
+        // 通知状态机
         if (PlayerWon)
             GameStateMachine.Instance?.SetGameWon();
         else
@@ -134,11 +274,93 @@ public class BattleManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 加速战斗
+    /// 设置战斗速度（1x/2x/4x）
     /// </summary>
     public void SetBattleSpeed(float speed)
     {
-        battleSpeed = Mathf.Clamp(speed, 0.5f, 4f);
+        battleSpeed = Mathf.Clamp(speed, SPEED_1X, SPEED_4X);
+        OnBattleSpeedChanged?.Invoke(battleSpeed);
+    }
+
+    /// <summary>
+    /// 切换到下一档速度 (1x→2x→4x→1x)
+    /// </summary>
+    public float CycleBattleSpeed()
+    {
+        if (battleSpeed < SPEED_2X)
+            SetBattleSpeed(SPEED_2X);
+        else if (battleSpeed < SPEED_4X)
+            SetBattleSpeed(SPEED_4X);
+        else
+            SetBattleSpeed(SPEED_1X);
+        return battleSpeed;
+    }
+
+    /// <summary>
+    /// 跳过战斗 — 直接模拟计算结果
+    /// </summary>
+    public void SkipBattle()
+    {
+        if (!IsBattleActive) return;
+
+        // 停止当前战斗协程
+        StopBattle();
+
+        // 模拟剩余战斗
+        var result = SimulateBattle();
+        PlayerWon = result;
+
+        if (PlayerWon)
+            Debug.Log("跳过战斗 — 胜利！");
+        else
+            Debug.Log("跳过战斗 — 失败...");
+
+        OnBattleEnded?.Invoke(PlayerWon);
+
+        if (PlayerWon)
+            GameStateMachine.Instance?.SetGameWon();
+        else
+            GameStateMachine.Instance?.SetGameLost();
+
+        GameStateMachine.Instance?.NextState();
+    }
+
+    /// <summary>
+    /// 快速模拟战斗（无动画，纯数值计算）
+    /// </summary>
+    public bool SimulateBattle()
+    {
+        // 使用当前双方单位的剩余生命值来模拟
+        int maxRounds = 100;
+        var simPlayers = new List<Hero>(playerUnits);
+        var simEnemies = new List<Hero>(enemyUnits);
+
+        for (int round = 0; round < maxRounds; round++)
+        {
+            // 我方行动
+            foreach (var unit in simPlayers)
+            {
+                if (unit == null || unit.IsDead) continue;
+                AutoChessAI.TakeAction(unit, simEnemies, simPlayers);
+            }
+
+            // 敌方行动
+            foreach (var unit in simEnemies)
+            {
+                if (unit == null || unit.IsDead) continue;
+                AutoChessAI.TakeAction(unit, simPlayers, simEnemies);
+            }
+
+            // 清理死亡
+            simPlayers.RemoveAll(u => u == null || u.IsDead);
+            simEnemies.RemoveAll(u => u == null || u.IsDead);
+
+            // 检查结束
+            if (simPlayers.Count == 0 || simEnemies.Count == 0)
+                break;
+        }
+
+        return simEnemies.Count == 0 && simPlayers.Count > 0;
     }
 
     public void StopBattle()
@@ -157,5 +379,7 @@ public class BattleManager : MonoBehaviour
         playerUnits.Clear();
         enemyUnits.Clear();
         BattleTimer = 0f;
+        CurrentDiceCombo = null;
+        DiceSkillUsed = false;
     }
 }
