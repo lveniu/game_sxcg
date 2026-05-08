@@ -35,6 +35,7 @@ namespace Game.UI
         [Header("子面板 - 结算子流程")]
         public EventPanel eventPanel;
         public ShopPanel shopPanel;
+        public EquipPanel equipPanel;
 
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
@@ -130,6 +131,7 @@ namespace Game.UI
                 "BattleGrid" => battleGridPanel,
                 "Event" => eventPanel,
                 "Shop" => shopPanel,
+                "Equip" => equipPanel,
                 _ => null
             };
             if (panel != null) panel.Show();
