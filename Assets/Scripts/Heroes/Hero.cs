@@ -1,4 +1,37 @@
 using UnityEngine;
+using System.Collections.Generic;
+
+
+/// <summary>
+/// 遗物Buff — 肉鸽奖励赋予的永久增益
+/// </summary>
+public enum RelicBuffType
+{
+    AttackBonus,      // 攻击加成
+    DefenseBonus,     // 防御加成
+    HealthBonus,      // 生命加成
+    SpeedBonus,       // 速度加成
+    CritRateBonus,    // 暴击率加成
+    CritDamageBonus,  // 暴击伤害加成
+    LifeSteal,        // 吸血
+    Thorns,           // 荆棘反伤
+    DodgeRate,        // 闪避率
+    ExtraReroll,      // 额外重摇次数
+}
+
+public class RelicBuff
+{
+    public RelicBuffType buffType;
+    public float value;        // 百分比或固定值
+    public string sourceName;  // 来源遗物名称（用于显示）
+
+    public RelicBuff(RelicBuffType type, float val, string source = "")
+    {
+        buffType = type;
+        value = val;
+        sourceName = source;
+    }
+}
 
 /// <summary>
 /// 运行时英雄单位 — 占场上的实体
@@ -7,11 +40,13 @@ public class Hero : MonoBehaviour
 {
     public HeroData Data { get; private set; }
     public int StarLevel { get; private set; } = 1;
-    public bool IsEvolved { get; private set; }
     public bool IsDead => CurrentHealth <= 0;
 
     // 装备
-    public System.Collections.Generic.Dictionary<EquipmentSlot, EquipmentData> EquippedItems { get; private set; } = new();
+    public Dictionary<EquipmentSlot, EquipmentData> EquippedItems { get; private set; } = new();
+
+    // 遗物Buff列表（肉鸽奖励获得，整局有效）
+    public List<RelicBuff> RelicBuffs { get; private set; } = new();
 
     // 基础属性（受星级影响）
     public int MaxHealth { get; private set; }
@@ -31,18 +66,6 @@ public class Hero : MonoBehaviour
     public int BattleSpeed { get; set; }
     public float BattleDodgeRate { get; set; }
     public float BattleCritDamage { get; set; } = 0.5f; // 暴击伤害加成 (50%)
-
-    // 卡牌特殊状态
-    public bool HasFlameAOE { get; set; }
-    public bool HasFrostSlow { get; set; }
-    public bool HasPoisonBlade { get; set; }
-    public int ChainStrikeCount { get; set; }
-    public float LifeStealRate { get; set; }
-    public int PoisonDamage { get; set; }
-    public float BattleThornsRate { get; set; }
-    public bool HasArmorBreak { get; set; }
-    public int LightningChainBounces { get; set; }
-    public bool HasBerserk { get; set; }
 
     // 棋盘位置
     public Vector2Int GridPosition { get; set; }
@@ -80,6 +103,49 @@ public class Hero : MonoBehaviour
         Defense = Mathf.RoundToInt(Data.baseDefense * multiplier) + equipDef;
         Speed = Mathf.RoundToInt(Data.baseSpeed * multiplier) + equipSpd;
         CritRate = Mathf.Clamp01(Data.baseCritRate * multiplier + equipCrit);
+
+        // 应用遗物Buff
+        ApplyRelicBuffs();
+    }
+
+    /// <summary>
+    /// 应用遗物Buff到基础属性
+    /// </summary>
+    private void ApplyRelicBuffs()
+    {
+        foreach (var buff in RelicBuffs)
+        {
+            switch (buff.buffType)
+            {
+                case RelicBuffType.AttackBonus:
+                    Attack += Mathf.RoundToInt(Attack * buff.value);
+                    break;
+                case RelicBuffType.DefenseBonus:
+                    Defense += Mathf.RoundToInt(Defense * buff.value);
+                    break;
+                case RelicBuffType.HealthBonus:
+                    MaxHealth += Mathf.RoundToInt(MaxHealth * buff.value);
+                    break;
+                case RelicBuffType.SpeedBonus:
+                    Speed += Mathf.RoundToInt(Speed * buff.value);
+                    break;
+                case RelicBuffType.CritRateBonus:
+                    CritRate = Mathf.Clamp01(CritRate + buff.value);
+                    break;
+                case RelicBuffType.CritDamageBonus:
+                    BattleCritDamage += buff.value;
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 添加遗物Buff
+    /// </summary>
+    public void AddRelicBuff(RelicBuff buff)
+    {
+        RelicBuffs.Add(buff);
+        RecalculateStats();
     }
 
     /// <summary>
@@ -113,14 +179,23 @@ public class Hero : MonoBehaviour
     /// </summary>
     public void TakeDamage(int damage, Hero attacker = null)
     {
+        // 闪避判定
+        if (BattleDodgeRate > 0f && Random.value < BattleDodgeRate)
+        {
+            Debug.Log($"{Data.heroName} 闪避了攻击！");
+            DamagePopup.Instance?.ShowDamage(transform.position, 0);
+            return;
+        }
+
         int actual = Mathf.Max(0, damage);
         CurrentHealth -= actual;
         if (CurrentHealth < 0) CurrentHealth = 0;
 
-        // 荊棘反伤
-        if (attacker != null && BattleThornsRate > 0f && !attacker.IsDead)
+        // 遗物荆棘反伤
+        float thornsRate = GetRelicBuffValue(RelicBuffType.Thorns);
+        if (attacker != null && thornsRate > 0f && !attacker.IsDead)
         {
-            int thornsDmg = Mathf.RoundToInt(actual * BattleThornsRate);
+            int thornsDmg = Mathf.RoundToInt(actual * thornsRate);
             if (thornsDmg > 0)
             {
                 attacker.CurrentHealth -= thornsDmg;
@@ -165,20 +240,73 @@ public class Hero : MonoBehaviour
         return true;
     }
 
+    // ========== 肉鸽属性强化方法 ==========
+
     /// <summary>
-    /// 进化
+    /// 强化最大生命（百分比加成）
     /// </summary>
-    public void Evolve()
+    public void BoostMaxHealth(float percentage)
     {
-        if (Data.evolutionForm == null || IsEvolved) return;
-        Data = Data.evolutionForm;
-        IsEvolved = true;
-        RecalculateStats();
-        CurrentHealth = MaxHealth;
+        int bonus = Mathf.RoundToInt(MaxHealth * percentage);
+        MaxHealth += bonus;
+        CurrentHealth = Mathf.Min(CurrentHealth + bonus, MaxHealth);
     }
 
     /// <summary>
-    /// 重置所有战斗状态（卡牌特殊效果 + 局内属性）
+    /// 强化攻击（百分比加成）
+    /// </summary>
+    public void BoostAttack(float percentage)
+    {
+        int bonus = Mathf.RoundToInt(Attack * percentage);
+        Attack += bonus;
+        BattleAttack += bonus;
+    }
+
+    /// <summary>
+    /// 强化防御（百分比加成）
+    /// </summary>
+    public void BoostDefense(float percentage)
+    {
+        int bonus = Mathf.RoundToInt(Defense * percentage);
+        Defense += bonus;
+        BattleDefense += bonus;
+    }
+
+    /// <summary>
+    /// 强化速度（百分比加成）
+    /// </summary>
+    public void BoostSpeed(float percentage)
+    {
+        int bonus = Mathf.RoundToInt(Speed * percentage);
+        Speed += bonus;
+        BattleSpeed += bonus;
+    }
+
+    /// <summary>
+    /// 强化暴击率（百分比加成）
+    /// </summary>
+    public void BoostCritRate(float percentage)
+    {
+        CritRate = Mathf.Clamp01(CritRate + percentage);
+        BattleCritRate = Mathf.Clamp01(BattleCritRate + percentage);
+    }
+
+    /// <summary>
+    /// 获取指定遗物Buff类型的总值
+    /// </summary>
+    public float GetRelicBuffValue(RelicBuffType type)
+    {
+        float total = 0f;
+        foreach (var buff in RelicBuffs)
+        {
+            if (buff.buffType == type)
+                total += buff.value;
+        }
+        return total;
+    }
+
+    /// <summary>
+    /// 重置所有战斗状态（局内属性）
     /// </summary>
     private void ClearBattleEffects()
     {
@@ -187,18 +315,8 @@ public class Hero : MonoBehaviour
         BattleCritRate = CritRate;
         BattleDefense = Defense;
         BattleSpeed = Speed;
-        BattleDodgeRate = 0f;
-        BattleCritDamage = 0.5f;
-        HasFlameAOE = false;
-        HasFrostSlow = false;
-        HasPoisonBlade = false;
-        ChainStrikeCount = 0;
-        LifeStealRate = 0f;
-        PoisonDamage = 0;
-        BattleThornsRate = 0f;
-        HasArmorBreak = false;
-        LightningChainBounces = 0;
-        HasBerserk = false;
+        BattleDodgeRate = GetRelicBuffValue(RelicBuffType.DodgeRate);
+        BattleCritDamage = 0.5f + GetRelicBuffValue(RelicBuffType.CritDamageBonus);
     }
 
     /// <summary>
@@ -243,11 +361,11 @@ public class Hero : MonoBehaviour
         switch (row)
         {
             case GridRow.Front:
-                if (Data.heroClass == HeroClass.Tank)
+                if (Data.heroClass == HeroClass.Warrior)
                     BattleDefense = Mathf.RoundToInt(Defense * 1.3f);
                 break;
             case GridRow.Back:
-                if (Data.heroClass == HeroClass.Archer)
+                if (Data.heroClass == HeroClass.Mage)
                     BattleAttack = Mathf.RoundToInt(Attack * 1.2f);
                 break;
         }

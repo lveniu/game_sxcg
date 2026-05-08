@@ -3,7 +3,9 @@ using UnityEngine;
 
 /// <summary>
 /// 游戏核心状态 — 肉鸽循环流程
-/// MainMenu → HeroSelect → DiceRoll → Battle → RoguelikeReward → 循环/GameOver
+/// MainMenu → HeroSelect → DiceRoll → Battle → Settlement →
+///   英雄存活 → RoguelikeReward → DiceRoll(下一关)
+///   英雄阵亡 → GameOver
 /// </summary>
 public enum GameState
 {
@@ -11,6 +13,7 @@ public enum GameState
     HeroSelect,         // 选择初始英雄（战/法/刺三选一）
     DiceRoll,           // 骰子阶段（投掷+免费重摇1次）
     Battle,             // 自动战斗
+    Settlement,         // 结算（判断胜负）
     RoguelikeReward,    // 肉鸽三选一奖励
     GameOver            // 游戏结束（阵亡）
 }
@@ -76,7 +79,9 @@ public class GameStateMachine : MonoBehaviour
 
     /// <summary>
     /// 按核心循环顺序推进到下一个状态
-    /// 新流程：MainMenu → HeroSelect → DiceRoll → Battle → RoguelikeReward → 循环/GameOver
+    /// MainMenu → HeroSelect → DiceRoll → Battle → Settlement →
+    ///   英雄存活 → RoguelikeReward → DiceRoll(下一关)
+    ///   英雄阵亡 → GameOver
     /// </summary>
     public void NextState()
     {
@@ -92,14 +97,15 @@ public class GameStateMachine : MonoBehaviour
                 ChangeState(GameState.Battle);
                 break;
             case GameState.Battle:
-                // 战斗结束判断
+                ChangeState(GameState.Settlement);
+                break;
+            case GameState.Settlement:
                 if (IsGameLost)
                 {
                     ChangeState(GameState.GameOver);
                 }
                 else
                 {
-                    // 通关，进入奖励选择
                     IsGameWon = true;
                     OnLevelEnded?.Invoke(CurrentLevel, true);
                     ChangeState(GameState.RoguelikeReward);

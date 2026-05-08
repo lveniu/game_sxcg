@@ -2,9 +2,9 @@ using UnityEngine;
 
 public enum HeroClass
 {
-    Tank,    // 坦克 — 高防高血，吸收伤害
-    Archer,  // 射手 — 远程输出，越远越痛
-    Assassin // 刺客 — 高速爆发，闪避背刺
+    Warrior,   // 战士 — 高防高血，近战输出
+    Mage,      // 法师 — 远程AOE法术输出
+    Assassin   // 刺客 — 高速爆发，闪避背刺
 }
 
 [CreateAssetMenu(fileName = "HeroData", menuName = "Game/Hero Data")]
@@ -21,10 +21,7 @@ public class HeroData : ScriptableObject
     public float baseCritRate = 0.05f;
 
     [Header("召唤消耗")]
-    public int summonCost = 2; // 坦克/射手2点，刺客1点
-
-    [Header("进化")]
-    public HeroData evolutionForm; // 进化后的形态
+    public int summonCost = 2; // 战士/法师2点，刺客1点
 
     [Header("技能")]
     public SkillData normalAttack;
