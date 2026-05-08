@@ -1,0 +1,109 @@
+using UnityEngine;
+using System.Collections.Generic;
+using Game.Core;
+
+namespace Game.UI
+{
+    /// <summary>
+    /// UI管理器 - 微信小游戏竖屏版
+    /// 
+    /// Canvas配置参考（在Unity Editor中设置）：
+    /// - Canvas Scaler: Scale With Screen Size
+    /// - Reference Resolution: 720 x 1280（竖屏）
+    /// - Match: 0.5（宽高各半）
+    /// - Screen Match Mode: MatchWidthOrHeight
+    /// - 安全区适配：使用 SafeArea 组件处理刘海屏
+    /// </summary>
+    public class NewUIManager : MonoBehaviour
+    {
+        public static NewUIManager Instance { get; private set; }
+
+        [Header("面板引用 - 在Inspector中拖拽绑定")]
+        public MainMenuPanel mainMenuPanel;
+        public HeroSelectPanel heroSelectPanel;
+        public DiceRollPanel diceRollPanel;
+        public BattlePanel battlePanel;
+        public SettlementPanel settlementPanel;
+        public RoguelikeRewardPanel roguelikeRewardPanel;
+        public GameOverPanel gameOverPanel;
+
+        private Dictionary<GameState, UIPanel> panelMap;
+        private UIPanel currentPanel;
+
+        private void Awake()
+        {
+            Instance = this;
+            InitPanelMap();
+        }
+
+        private void Start()
+        {
+            // 订阅状态机事件
+            GameStateMachine.Instance.OnStateChanged += OnGameStateChanged;
+            
+            // 初始隐藏所有面板
+            HideAllPanels();
+        }
+
+        private void OnDestroy()
+        {
+            if (GameStateMachine.Instance != null)
+                GameStateMachine.Instance.OnStateChanged -= OnGameStateChanged;
+        }
+
+        /// <summary>初始化面板映射</summary>
+        private void InitPanelMap()
+        {
+            panelMap = new Dictionary<GameState, UIPanel>
+            {
+                { GameState.MainMenu, mainMenuPanel },
+                { GameState.HeroSelect, heroSelectPanel },
+                { GameState.DiceRoll, diceRollPanel },
+                { GameState.Battle, battlePanel },
+                { GameState.Settlement, settlementPanel },
+                { GameState.RoguelikeReward, roguelikeRewardPanel },
+                { GameState.GameOver, gameOverPanel }
+            };
+        }
+
+        /// <summary>状态切换回调</summary>
+        private void OnGameStateChanged(GameState newState)
+        {
+            SwitchPanel(newState);
+        }
+
+        /// <summary>切换面板</summary>
+        public void SwitchPanel(GameState state)
+        {
+            if (!panelMap.TryGetValue(state, out var panel))
+            {
+                Debug.LogWarning($"[UIManager] 未找到状态 {state} 对应的面板");
+                return;
+            }
+
+            // 隐藏当前面板
+            if (currentPanel != null)
+                currentPanel.Hide();
+
+            // 显示新面板
+            currentPanel = panel;
+            currentPanel.Show();
+        }
+
+        /// <summary>隐藏所有面板</summary>
+        private void HideAllPanels()
+        {
+            foreach (var kvp in panelMap)
+            {
+                if (kvp.Value != null)
+                    kvp.Value.HideImmediate();
+            }
+        }
+
+        /// <summary>获取当前面板</summary>
+        public T GetCurrentPanel<T>() where T : UIPanel
+        {
+            return currentPanel as T;
+        }
+    }
+}
