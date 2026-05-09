@@ -90,7 +90,8 @@ namespace Game.UI
 
         private void OnShareClicked()
         {
-            // TODO: 调用微信分享API
+            // TODO(Phase2-WeChat): 调用微信分享API — 不阻塞Phase1
+            Debug.Log("[GameOverPanel] 分享功能待接入微信SDK");
         }
     }
 }

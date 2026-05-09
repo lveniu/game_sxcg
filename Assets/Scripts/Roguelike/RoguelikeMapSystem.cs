@@ -441,10 +441,21 @@ public class RoguelikeMapSystem
                 break;
 
             case MapNodeType.Event:
-                // 随机事件 → 触发事件系统，暂时走战斗流程
-                // TODO: 接入 RandomEventSystem
-                Debug.Log("[RoguelikeMapSystem] 随机事件节点（暂走骰子+战斗流程）");
-                gsm.ChangeState(GameState.DiceRoll);
+                // 随机事件 → 打开EventPanel（100%触发，不依赖30%概率）
+                {
+                    int level = RoguelikeGameManager.Instance?.CurrentLevel ?? 1;
+                    var uiMgr = Game.UI.NewUIManager.Instance;
+                    if (uiMgr != null && uiMgr.eventPanel != null)
+                    {
+                        Debug.Log("[RoguelikeMapSystem] 随机事件节点 → 打开EventPanel");
+                        uiMgr.eventPanel.ShowFromMapNode(level);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[RoguelikeMapSystem] EventPanel不可用，回退到骰子流程");
+                        gsm.ChangeState(GameState.DiceRoll);
+                    }
+                }
                 break;
 
             case MapNodeType.Shop:

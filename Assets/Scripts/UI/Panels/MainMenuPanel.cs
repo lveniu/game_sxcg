@@ -192,9 +192,8 @@ namespace Game.UI
         /// </summary>
         private void OnSettingsClicked()
         {
-            Debug.Log("[MainMenuPanel] 设置按钮被点击 — TODO: 打开设置面板");
-            // TODO: 打开设置面板
-            // UIManager.Instance?.ShowPanel("SettingsPanel");
+            // TODO(Phase2-SettingsPanel): 设置面板尚未实现，Phase2补充 — 不阻塞Phase1
+            Debug.Log("[MainMenuPanel] 设置面板尚未实现，Phase2补充");
         }
 
         /// <summary>

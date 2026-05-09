@@ -156,7 +156,7 @@ namespace Game.UI
             if (equipmentArea != null)
                 equipmentArea.gameObject.SetActive(false);
 
-            // TODO: 对接后端装备掉落系统
+            // TODO(Phase2-LootSystem): 对接后端装备掉落系统 — 不阻塞Phase1
             // if (won) { var drop = LootSystem.GetLevelDrop(level); ... }
         }
 

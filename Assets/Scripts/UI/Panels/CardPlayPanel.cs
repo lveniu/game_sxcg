@@ -472,7 +472,7 @@ namespace Game.UI
 
         /// <summary>
         /// 根据卡牌名称解析对应的HeroData
-        /// TODO: 后端应在CardData上增加heroData引用字段，MVP阶段用名称映射
+        /// TODO(Phase2-CardData): 后端在CardData上增加heroData引用字段后改用直接引用 — 不阻塞Phase1
         /// </summary>
         private HeroData ResolveHeroData(string cardName)
         {
@@ -501,8 +501,6 @@ namespace Game.UI
             else if (selectedCard.Type == CardType.Evolution)
             {
                 // 进化卡：选择场上第一个英雄进化
-                // TODO: Hero.IsEvolved/Evolve() 方法待后端补充（CTO审查提到的编译错误）
-                // MVP阶段先对场上第一个英雄使用
                 var heroes = deck.fieldHeroes;
                 if (heroes.Count > 0)
                 {

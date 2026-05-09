@@ -6,7 +6,7 @@ using DG.Tweening;
 
 namespace Game.UI
 {
-    // ── Mock数据（TODO: 后端 CardDeck 系统完成后替换为真实接口） ────────────
+    // ── Mock数据（TODO(Phase2-CardDeckEditor): 后端卡组编辑API完成后替换为真实接口 — 不阻塞Phase1） ──
     public class MockDeckCard
     {
         public string name, description, rarity, cardType;

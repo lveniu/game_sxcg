@@ -93,7 +93,7 @@ public static class ConfigLoader
     public static MechanicEnemiesFileConfig LoadMechanicEnemies() => Load<MechanicEnemiesFileConfig>("mechanic_enemies");
 
     /// <summary>加载骰子面效果配置</summary>
-    public static FaceEffectsConfig LoadFaceEffects() => Load<FaceEffectsConfig>("face_effects");
+    public static FaceEffectsFileConfig LoadFaceEffects() => Load<FaceEffectsFileConfig>("face_effects");
 }
 
 // =====================================================================
@@ -729,14 +729,30 @@ public class MechanicDifficultyScalingConfig
 
 // ---------- face_effects.json ----------
 
-/// <summary>骰子面效果配置</summary>
-public class FaceEffectsConfig
+/// <summary>骰子面效果配置文件（对应 face_effects.json 顶层结构）</summary>
+public class FaceEffectsFileConfig
 {
-    public List<FaceEffectDef> effects;
-    public FaceEffectUpgradeConfig upgrade_config;
+    public string _version;
+    public string _description;
+    public List<FaceEffectEntry> face_effects;
+    public Dictionary<string, object> face_upgrade_costs;
 }
 
-/// <summary>单个面效果定义</summary>
+/// <summary>单个面效果定义（匹配 face_effects.json 条目结构）</summary>
+public class FaceEffectEntry
+{
+    public string id;
+    public string name_cn;
+    public string trigger;           // "on_roll_value" | "on_face_effect"
+    public Dictionary<string, object> trigger_params;
+    public string effect_type;       // "Buff" | "Debuff" | "Shield" | "Heal" | "CC" | "ChainAttack" | "AOE" | "Cleanse" | "Economy"
+    public Dictionary<string, object> effect_params;
+    public string description_cn;
+    public int priority;
+}
+
+// --- 保留旧模型兼容性（其他代码可能引用） ---
+/// <summary>面效果定义（简化版，旧接口兼容）</summary>
 public class FaceEffectDef
 {
     public string effectId;

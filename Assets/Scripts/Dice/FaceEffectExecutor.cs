@@ -2,106 +2,15 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
-// =====================================================================
-// 枚举定义 — 骰子面效果相关
-// =====================================================================
-
 /// <summary>
-/// 骰子面效果类型
-/// </summary>
-public enum FaceEffectType
-{
-    None = 0,
-    Heal = 1,           // 治疗 — 治疗血量最低的友方X%生命
-    Shield = 2,         // 护盾 — 全体获得X点护盾
-    ExtraDamage = 3,    // 额外伤害 — 对攻击最高敌人造成X%额外伤害
-    AttackSpeed = 4,    // 攻速加成 — 全体攻速+X%
-    Stun = 5,           // 眩晕 — 随机敌人眩晕1回合
-    CritBoost = 6,      // 暴击加成 — 本场战斗暴击率+X%
-    ArmorBreak = 7,     // 破甲 — 本次攻击忽略敌人X%防御
-    LifeSteal = 8,      // 吸血 — 全体获得X%吸血
-    Thorns = 9,         // 反伤 — 全体获得X%荆棘反伤
-    Cleanse = 10        // 净化 — 移除全体友方的debuff
-}
-
-/// <summary>
-/// 目标范围
-/// </summary>
-public enum FaceEffectTarget
-{
-    Self,
-    LowestHealthAlly,
-    AllAllies,
-    HighestAtkEnemy,
-    RandomEnemy,
-    AllEnemies,
-    AllUnits
-}
-
-/// <summary>
-/// 触发时机
-/// </summary>
-public enum FaceEffectTrigger
-{
-    OnDiceResult,       // 骰子投出该面时立即触发
-    OnBattleStart,      // 战斗开始时
-    OnAttack,           // 攻击时触发
-    OnDamaged,          // 受伤时触发
-    OnKill,             // 击杀时触发
-    PerTurn             // 每回合触发
-}
-
-/// <summary>
-/// 骰子面效果定义 — 运行时使用
-/// 注意：纯数据模型 FaceEffectDef（序列化用）在 ConfigLoader.cs 中定义。
-/// 此处的 FaceEffectRuntimeDef 包含解析后的枚举字段，供执行器使用。
-/// </summary>
-public class FaceEffectRuntimeDef
-{
-    public string effectId;
-    public FaceEffectType effectType;
-    public string effectName;
-    public string descriptionTemplate;
-    public FaceEffectTarget targetScope;
-    public FaceEffectTrigger triggerTiming;
-    public float baseValue;
-    public float growthPerLevel;
-    public int maxLevel = 3;
-    public List<int> applicableFaces;
-    public string iconRef;
-    public string rarity = "common";
-}
-
-/// <summary>
-/// 升级选项（供UI展示）
-/// </summary>
-public class FaceUpgradeOption
-{
-    public int diceIndex;
-    public int faceIndex;
-    public FaceEffectRuntimeDef effectDef;
-    public bool isNew;
-    public int currentLevel;
-
-    public string GetDisplayText()
-    {
-        if (isNew)
-            return $"骰子{diceIndex + 1} 面{faceIndex + 1} → {effectDef.effectName}";
-        else
-            return $"骰子{diceIndex + 1} 面{faceIndex + 1} {effectDef.effectName} Lv{currentLevel}→{currentLevel + 1}";
-    }
-}
-
-/// <summary>
-/// 骰子面效果执行器 — 解析和执行骰子面效果
+/// 骰子面效果执行器 — 处理骰子投掷后的面效果触发
 /// 文件位置: Assets/Scripts/Dice/FaceEffectExecutor.cs
 ///
 /// 设计原则:
-/// 1. Dice.FaceEffects 仍为 string[]，存储 effectId
-/// 2. 本系统负责 string(effectId) → FaceEffectRuntimeDef → 执行逻辑 的完整链路
-/// 3. 效果配置从 face_effects.json 读取（通过 BalanceProvider）
-/// 4. 每种 FaceEffectType 对应一个独立的处理函数
-/// 5. 支持效果等级（肉鸽奖励升级）
+/// 1. 面效果配置从 face_effects.json 读取
+/// 2. 支持按投掷值触发和按面效果ID触发两种模式
+/// 3. 通过 BalanceProvider 获取配置，保留硬编码 fallback
+/// 4. 与 BattleManager、RoguelikeGameManager 通过事件通信
 /// </summary>
 public class FaceEffectExecutor
 {
@@ -109,527 +18,537 @@ public class FaceEffectExecutor
     public static FaceEffectExecutor Instance { get; private set; }
 
     // ========== 事件 ==========
-    /// <summary>面效果触发时（用于UI显示）</summary>
-    public event System.Action<FaceEffectRuntimeDef, int, string> OnFaceEffectTriggered;
-    // 参数: 效果定义, 骰子面值, 描述文本
-
-    /// <summary>面效果升级时</summary>
-    public event System.Action<int, FaceEffectRuntimeDef, int> OnFaceEffectUpgraded;
-    // 参数: 骰子索引, 效果定义, 新等级
+    public event System.Action<Hero, string, string> OnFaceEffectApplied;
+    // (hero, effectId, description)
 
     // ========== 状态 ==========
-    private FaceEffectsConfig _config;
-    private List<FaceEffectRuntimeDef> _runtimeEffects = new List<FaceEffectRuntimeDef>();
+    private List<FaceEffectEntry> _effects;
+    private List<Hero> _playerHeroes;
+    private List<Hero> _enemyHeroes;
 
     /// <summary>
-    /// 运行时效果等级表
-    /// Key: "diceIndex_faceIndex" (如 "0_3" 表示第0个骰子的第3面)
-    /// Value: 效果等级 (1-based)
+    /// 创建执行器（BattleManager.Awake 中创建单例）
     /// </summary>
-    private Dictionary<string, int> _effectLevels = new Dictionary<string, int>();
-
-    /// <summary>
-    /// 激活的持续效果（本场战斗有效）
-    /// Key: effectId
-    /// Value: 效果等级
-    /// </summary>
-    private Dictionary<string, int> _activeBattleEffects = new Dictionary<string, int>();
-
     public FaceEffectExecutor()
     {
         Instance = this;
-        LoadAndConvertEffects();
+        _effects = BalanceProvider.GetFaceEffects();
     }
 
     /// <summary>
-    /// 从 BalanceProvider 加载配置并转换为运行时定义（含枚举解析）
+    /// 设置战斗单位引用（由 RoguelikeGameManager 在战斗开始时调用）
     /// </summary>
-    private void LoadAndConvertEffects()
+    public void SetBattleUnits(List<Hero> playerHeroes, List<Hero> enemyHeroes)
     {
-        _config = BalanceProvider.GetFaceEffectsConfig();
-        _runtimeEffects.Clear();
+        _playerHeroes = playerHeroes;
+        _enemyHeroes = enemyHeroes;
+    }
 
-        if (_config?.effects == null) return;
+    /// <summary>
+    /// 处理骰子投掷结果 — 检查所有骰子值并触发对应面效果
+    /// 由 DiceRoller.RollAll() 或 RoguelikeGameManager 在投掷完成后调用
+    /// </summary>
+    public void ProcessRollResults(int[] diceValues, Dice[] dice)
+    {
+        if (_effects == null || _effects.Count == 0) return;
+        if (diceValues == null) return;
 
-        foreach (var raw in _config.effects)
+        for (int i = 0; i < diceValues.Length; i++)
         {
-            var def = new FaceEffectRuntimeDef
+            int value = diceValues[i];
+
+            // 检查投掷值触发
+            var valueEffect = FindEffectByValue(value);
+            if (valueEffect != null)
             {
-                effectId = raw.effectId,
-                effectType = ParseEffectType(raw.effectType),
-                effectName = raw.effectName,
-                descriptionTemplate = raw.descriptionTemplate,
-                targetScope = ParseTarget(raw.targetScope),
-                triggerTiming = ParseTrigger(raw.triggerTiming),
-                baseValue = raw.baseValue,
-                growthPerLevel = raw.growthPerLevel,
-                maxLevel = raw.maxLevel,
-                applicableFaces = raw.applicableFaces,
-                iconRef = raw.iconRef,
-                rarity = raw.rarity
-            };
-            _runtimeEffects.Add(def);
-        }
+                ApplyValueTriggeredEffect(valueEffect, i);
+            }
 
-        Debug.Log($"[FaceEffectExecutor] 已加载 {_runtimeEffects.Count} 个面效果定义");
+            // 检查面效果触发（特殊面）
+            if (dice != null && i < dice.Length && dice[i]?.FaceEffects != null)
+            {
+                string faceEffect = dice[i].FaceEffects[diceValues[i] - 1];
+                if (!string.IsNullOrEmpty(faceEffect))
+                {
+                    var faceEffectData = FindEffectById(faceEffect);
+                    if (faceEffectData != null)
+                    {
+                        ApplyFaceEffect(faceEffectData);
+                    }
+                }
+            }
+        }
     }
 
-    // ========== 骰子投掷后触发 ==========
-
     /// <summary>
-    /// 处理骰子投掷结果 — 检查每个骰子是否有面效果
-    /// 由 DiceRoller.OnDiceRolled 事件或 RoguelikeGameManager 在骰子阶段结束后调用
+    /// 处理单个面效果（供外部直接调用，如骰子升级后面板）
     /// </summary>
-    public void ProcessDiceResults(Dice[] dices, int[] values,
-        List<Hero> playerHeroes, List<Hero> enemyHeroes)
+    public void ApplyFaceEffect(string effectId)
     {
-        for (int i = 0; i < dices.Length; i++)
-        {
-            if (i >= values.Length) break;
-
-            int faceValue = values[i];
-            var dice = dices[i];
-
-            int effectIndex = faceValue - 1;
-            if (effectIndex < 0 || effectIndex >= dice.FaceEffects.Length) continue;
-
-            string effectId = dice.FaceEffects[effectIndex];
-            if (string.IsNullOrEmpty(effectId)) continue;
-
-            var effectDef = FindEffectDef(effectId);
-            if (effectDef == null) continue;
-
-            if (effectDef.triggerTiming != FaceEffectTrigger.OnDiceResult) continue;
-
-            string levelKey = $"{i}_{effectIndex}";
-            int level = _effectLevels.TryGetValue(levelKey, out int lv) ? lv : 1;
-            float effectValue = CalculateEffectValue(effectDef, level);
-
-            ExecuteEffect(effectDef, effectValue, playerHeroes, enemyHeroes);
-
-            string desc = FormatDescription(effectDef, effectValue);
-            OnFaceEffectTriggered?.Invoke(effectDef, faceValue, desc);
-
-            Debug.Log($"[FaceEffect] 骰子{i} 面{faceValue} → {effectDef.effectName}: {desc}");
-        }
+        if (_effects == null) return;
+        var effect = FindEffectById(effectId);
+        if (effect != null)
+            ApplyFaceEffect(effect);
     }
 
-    // ========== 战斗开始时激活持续效果 ==========
-
     /// <summary>
-    /// 战斗开始时激活所有 OnBattleStart 触发的面效果
-    /// 由 BattleManager.StartBattle() 调用
+    /// 战斗开始时激活面效果 — 由 BattleManager.StartBattle 调用
     /// </summary>
     public void ActivateBattleStartEffects(Dice[] dices, int[] lastValues,
         List<Hero> playerHeroes, List<Hero> enemyHeroes)
     {
-        _activeBattleEffects.Clear();
-
-        for (int i = 0; i < dices.Length; i++)
-        {
-            if (i >= lastValues.Length) break;
-
-            var dice = dices[i];
-            for (int faceIdx = 0; faceIdx < dice.FaceEffects.Length; faceIdx++)
-            {
-                string effectId = dice.FaceEffects[faceIdx];
-                if (string.IsNullOrEmpty(effectId)) continue;
-
-                var effectDef = FindEffectDef(effectId);
-                if (effectDef == null) continue;
-                if (effectDef.triggerTiming != FaceEffectTrigger.OnBattleStart) continue;
-
-                string levelKey = $"{i}_{faceIdx}";
-                int level = _effectLevels.TryGetValue(levelKey, out int lv) ? lv : 1;
-                float effectValue = CalculateEffectValue(effectDef, level);
-
-                ExecuteEffect(effectDef, effectValue, playerHeroes, enemyHeroes);
-                _activeBattleEffects[effectId] = level;
-
-                string desc = FormatDescription(effectDef, effectValue);
-                OnFaceEffectTriggered?.Invoke(effectDef, faceIdx + 1, desc);
-            }
-        }
+        SetBattleUnits(playerHeroes, enemyHeroes);
+        ProcessRollResults(lastValues, dices);
     }
 
-    // ========== 回合触发 ==========
-
     /// <summary>
-    /// 每回合检查 PerTurn 类型的效果
-    /// 由 BattleManager.BattleLoop() 中每tick调用
+    /// 每回合处理持续效果 — 由 BattleManager.BattleLoop 调用
     /// </summary>
     public void ProcessPerTurnEffects(List<Hero> playerHeroes, List<Hero> enemyHeroes)
     {
-        foreach (var kvp in _activeBattleEffects)
-        {
-            var effectDef = FindEffectDef(kvp.Key);
-            if (effectDef == null || effectDef.triggerTiming != FaceEffectTrigger.PerTurn) continue;
-
-            float value = CalculateEffectValue(effectDef, kvp.Value);
-            ExecuteEffect(effectDef, value, playerHeroes, enemyHeroes);
-        }
+        // 当前MVP：回合效果由 ProcessRollResults 一次性处理
+        // 后续可扩展为回合持续的 DOT/HOT 效果
     }
 
-    // ========== 攻击时触发 ==========
-
     /// <summary>
-    /// 英雄攻击时检查 OnAttack 类型的面效果
-    /// 由 AutoChessAI.NormalAttack() 调用
+    /// 攻击时触发面效果 — 由 AutoChessAI.NormalAttack 调用
     /// </summary>
     public void ProcessOnAttackEffects(Hero attacker, Hero target,
-        List<Hero> playerHeroes, List<Hero> enemyHeroes)
+        List<Hero> allies, List<Hero> enemies)
     {
-        foreach (var kvp in _activeBattleEffects)
+        if (_effects == null) return;
+
+        // 破甲效果
+        if (attacker.HasArmorBreak && target != null)
         {
-            var effectDef = FindEffectDef(kvp.Key);
-            if (effectDef == null || effectDef.triggerTiming != FaceEffectTrigger.OnAttack) continue;
-
-            // playerHeroes 为空时跳过阵营检查（兼容 AutoChessAI 调用）
-            if (playerHeroes != null && !playerHeroes.Contains(attacker)) continue;
-
-            float value = CalculateEffectValue(effectDef, kvp.Value);
-            ExecuteEffect(effectDef, value, playerHeroes, enemyHeroes, attacker, target);
+            target.BattleDefense = Mathf.RoundToInt(target.BattleDefense * 0.5f);
+            Debug.Log($"[FaceEffect] {attacker.Data.heroName} 破甲！{target.Data.heroName}防御减半");
         }
-    }
 
-    // ========== 升级接口 ==========
-
-    /// <summary>
-    /// 升级骰子面效果（肉鸽奖励 DiceFaceUpgrade 调用）
-    /// </summary>
-    public int UpgradeFaceEffect(int diceIndex, int faceIndex, string effectId, Dice targetDice)
-    {
-        if (targetDice == null) return 0;
-        if (faceIndex < 0 || faceIndex >= targetDice.FaceEffects.Length) return 0;
-
-        var effectDef = FindEffectDef(effectId);
-        if (effectDef == null) return 0;
-
-        string levelKey = $"{diceIndex}_{faceIndex}";
-
-        if (targetDice.FaceEffects[faceIndex] == effectId)
+        // 闪电链
+        if (attacker.LightningChainBounces > 0 && enemies != null)
         {
-            int currentLevel = _effectLevels.TryGetValue(levelKey, out int lv) ? lv : 1;
-            if (currentLevel >= effectDef.maxLevel) return 0;
-
-            int newLevel = currentLevel + 1;
-            _effectLevels[levelKey] = newLevel;
-            OnFaceEffectUpgraded?.Invoke(diceIndex, effectDef, newLevel);
-            return newLevel;
+            var aliveEnemies = enemies.FindAll(e => e != null && !e.IsDead && e != target);
+            float dmgMult = 0.7f;
+            for (int i = 0; i < attacker.LightningChainBounces && aliveEnemies.Count > 0; i++)
+            {
+                var chainTarget = aliveEnemies[Random.Range(0, aliveEnemies.Count)];
+                int chainDmg = Mathf.RoundToInt(attacker.BattleAttack * dmgMult);
+                chainTarget.TakeDamage(Mathf.Max(1, chainDmg));
+                Debug.Log($"[FaceEffect] 闪电链弹射: {chainTarget.Data.heroName} 受到 {chainDmg} 伤害");
+                aliveEnemies.Remove(chainTarget);
+                dmgMult *= 0.7f;
+            }
+            attacker.LightningChainBounces = 0; // 消耗掉
         }
-        else
+
+        // 机制怪：诅咒附加
+        if (MechanicEnemySystem.Instance != null && attacker != null)
         {
-            targetDice.UpgradeFace(faceIndex, effectId);
-            _effectLevels[levelKey] = 1;
-            OnFaceEffectUpgraded?.Invoke(diceIndex, effectDef, 1);
-            return 1;
+            MechanicEnemySystem.Instance.OnBossAttackApplyCurse(attacker, target);
         }
     }
 
     /// <summary>
-    /// 获取可用的升级选项（供 RoguelikeRewardSystem 调用）
+    /// 清理战斗效果 — 由 BattleManager.EndBattle 调用
     /// </summary>
-    public List<FaceUpgradeOption> GetAvailableUpgrades(Dice[] dices, int levelId)
+    public void ClearBattleEffects()
     {
-        var options = new List<FaceUpgradeOption>();
-
-        for (int diceIdx = 0; diceIdx < dices.Length; diceIdx++)
-        {
-            for (int faceIdx = 0; faceIdx < dices[diceIdx].FaceEffects.Length; faceIdx++)
-            {
-                string currentEffectId = dices[diceIdx].FaceEffects[faceIdx];
-
-                if (string.IsNullOrEmpty(currentEffectId))
-                {
-                    foreach (var effectDef in _runtimeEffects)
-                    {
-                        // 稀有度关卡限制
-                        if (effectDef.rarity == "rare" && levelId < (BalanceProvider.GetFaceEffectsConfig()?.upgrade_config?.rare_min_level ?? 8)) continue;
-                        if (effectDef.rarity == "epic" && levelId < (BalanceProvider.GetFaceEffectsConfig()?.upgrade_config?.epic_min_level ?? 12)) continue;
-
-                        if (effectDef.applicableFaces == null ||
-                            effectDef.applicableFaces.Contains(faceIdx + 1))
-                        {
-                            options.Add(new FaceUpgradeOption
-                            {
-                                diceIndex = diceIdx,
-                                faceIndex = faceIdx,
-                                effectDef = effectDef,
-                                isNew = true
-                            });
-                        }
-                    }
-                }
-                else
-                {
-                    var currentDef = FindEffectDef(currentEffectId);
-                    if (currentDef == null) continue;
-
-                    string levelKey = $"{diceIdx}_{faceIdx}";
-                    int currentLevel = _effectLevels.TryGetValue(levelKey, out int lv) ? lv : 1;
-
-                    if (currentLevel < currentDef.maxLevel)
-                    {
-                        options.Add(new FaceUpgradeOption
-                        {
-                            diceIndex = diceIdx,
-                            faceIndex = faceIdx,
-                            effectDef = currentDef,
-                            isNew = false,
-                            currentLevel = currentLevel
-                        });
-                    }
-                }
-            }
-        }
-
-        return options;
+        _playerHeroes = null;
+        _enemyHeroes = null;
     }
 
-    // ========== 核心执行逻辑 ==========
+    // ========== 效果查找 ==========
 
-    private void ExecuteEffect(FaceEffectRuntimeDef def, float value,
-        List<Hero> playerHeroes, List<Hero> enemyHeroes,
-        Hero specificTarget = null, Hero specificAttacker = null)
+    private FaceEffectEntry FindEffectByValue(int value)
     {
-        switch (def.effectType)
+        if (_effects == null) return null;
+        return _effects.Find(e =>
+            e.trigger == "on_roll_value" &&
+            e.trigger_params != null &&
+            GetTriggerParamInt(e, "value") == value);
+    }
+
+    private FaceEffectEntry FindEffectById(string id)
+    {
+        if (_effects == null || string.IsNullOrEmpty(id)) return null;
+        return _effects.Find(e => e.id == id);
+    }
+
+    // ========== 效果应用 ==========
+
+    private void ApplyValueTriggeredEffect(FaceEffectEntry effect, int diceIndex)
+    {
+        if (_playerHeroes == null || _playerHeroes.Count == 0) return;
+
+        switch (effect.effect_type)
         {
-            case FaceEffectType.Heal:
-                ExecuteHeal(def, value, playerHeroes);
+            case "Buff":
+                ApplyBuffEffect(effect);
                 break;
-            case FaceEffectType.Shield:
-                ExecuteShield(def, value, playerHeroes);
+            case "Shield":
+                ApplyShieldEffect(effect);
                 break;
-            case FaceEffectType.ExtraDamage:
-                ExecuteExtraDamage(def, value, enemyHeroes);
+            case "Heal":
+                ApplyHealEffect(effect);
                 break;
-            case FaceEffectType.AttackSpeed:
-                ExecuteAttackSpeed(def, value, playerHeroes);
+            case "Economy":
+                ApplyEconomyEffect(effect);
                 break;
-            case FaceEffectType.Stun:
-                ExecuteStun(def, value, enemyHeroes);
+            default:
+                Debug.Log($"[FaceEffect] 未处理的值触发类型: {effect.effect_type}");
                 break;
-            case FaceEffectType.CritBoost:
-                ExecuteCritBoost(def, value, playerHeroes);
+        }
+
+        NotifyEffectApplied(effect);
+    }
+
+    private void ApplyFaceEffect(FaceEffectEntry effect)
+    {
+        if (_playerHeroes == null) return;
+
+        switch (effect.effect_type)
+        {
+            case "Buff":
+                ApplyBuffEffect(effect);
                 break;
-            case FaceEffectType.ArmorBreak:
-                ExecuteArmorBreak(def, value, specificAttacker);
+            case "Debuff":
+                ApplyDebuffEffect(effect);
                 break;
-            case FaceEffectType.LifeSteal:
-                ExecuteLifeSteal(def, value, playerHeroes);
+            case "Shield":
+                ApplyShieldEffect(effect);
                 break;
-            case FaceEffectType.Thorns:
-                ExecuteThorns(def, value, playerHeroes);
+            case "Heal":
+                ApplyHealEffect(effect);
                 break;
-            case FaceEffectType.Cleanse:
-                ExecuteCleanse(def, playerHeroes);
+            case "CC":
+                ApplyCCEffect(effect);
                 break;
+            case "ChainAttack":
+                ApplyChainAttackEffect(effect);
+                break;
+            case "AOE":
+                ApplyAOEEffect(effect);
+                break;
+            case "Cleanse":
+                ApplyCleanseEffect();
+                break;
+            case "Economy":
+                ApplyEconomyEffect(effect);
+                break;
+            default:
+                Debug.Log($"[FaceEffect] 未处理的面效果类型: {effect.effect_type}");
+                break;
+        }
+
+        NotifyEffectApplied(effect);
+    }
+
+    // --- Buff ---
+    private void ApplyBuffEffect(FaceEffectEntry effect)
+    {
+        if (effect.effect_params == null) return;
+
+        string stat = GetParamString(effect.effect_params, "stat", "BattleAttack");
+        string op = GetParamString(effect.effect_params, "operation", "multiply");
+        float val = GetParamFloat(effect.effect_params, "value", 1f);
+
+        foreach (var hero in _playerHeroes)
+        {
+            if (hero == null || hero.IsDead) continue;
+            ApplyStatChange(hero, stat, op, val);
         }
     }
 
-    // --- 效果执行器 ---
-
-    private void ExecuteHeal(FaceEffectRuntimeDef def, float value, List<Hero> allies)
+    // --- Debuff（对敌人） ---
+    private void ApplyDebuffEffect(FaceEffectEntry effect)
     {
-        float healPct = value / 100f;
+        if (effect.effect_params == null || _enemyHeroes == null) return;
 
-        if (def.targetScope == FaceEffectTarget.LowestHealthAlly)
+        string target = GetParamString(effect.effect_params, "target", "current_enemy");
+        string stat = GetParamString(effect.effect_params, "stat", "BattleDefense");
+        string op = GetParamString(effect.effect_params, "operation", "multiply");
+        float val = GetParamFloat(effect.effect_params, "value", 0.5f);
+
+        // 对当前目标或所有敌人
+        if (target == "all_enemies")
         {
-            Hero target = FindLowestHealthAlly(allies);
-            if (target != null)
+            foreach (var enemy in _enemyHeroes)
             {
-                int heal = Mathf.RoundToInt(target.MaxHealth * healPct);
-                target.Heal(heal);
+                if (enemy == null || enemy.IsDead) continue;
+                ApplyStatChange(enemy, stat, op, val);
             }
         }
         else
         {
-            foreach (var hero in allies)
+            // 对第一个活着的敌人
+            var first = _enemyHeroes.FirstOrDefault(e => e != null && !e.IsDead);
+            if (first != null)
+                ApplyStatChange(first, stat, op, val);
+        }
+    }
+
+    // --- Shield ---
+    private void ApplyShieldEffect(FaceEffectEntry effect)
+    {
+        if (effect.effect_params == null) return;
+
+        float shieldPct = GetParamFloat(effect.effect_params, "shield_pct", 0.1f);
+        string target = GetParamString(effect.effect_params, "target", "all_allies");
+
+        List<Hero> targets = (target == "all_allies") ? _playerHeroes : new List<Hero>();
+        if (target == "self" && _playerHeroes != null && _playerHeroes.Count > 0)
+            targets = new List<Hero> { _playerHeroes[0] };
+
+        foreach (var hero in targets)
+        {
+            if (hero == null || hero.IsDead) continue;
+            int shield = Mathf.RoundToInt(hero.MaxHealth * shieldPct);
+            hero.AddShield(shield);
+            Debug.Log($"[FaceEffect] {hero.Data.heroName} 获得护盾 {shield}");
+        }
+    }
+
+    // --- Heal ---
+    private void ApplyHealEffect(FaceEffectEntry effect)
+    {
+        if (effect.effect_params == null) return;
+
+        float healPct = GetParamFloat(effect.effect_params, "heal_pct", 0.1f);
+        string target = GetParamString(effect.effect_params, "target", "self");
+
+        List<Hero> targets;
+        if (target == "all_allies")
+            targets = _playerHeroes;
+        else if (target == "self" && _playerHeroes != null && _playerHeroes.Count > 0)
+            targets = new List<Hero> { _playerHeroes[0] };
+        else
+            targets = new List<Hero>();
+
+        foreach (var hero in targets)
+        {
+            if (hero == null || hero.IsDead) continue;
+            int heal = Mathf.RoundToInt(hero.MaxHealth * healPct);
+            hero.Heal(heal);
+            Debug.Log($"[FaceEffect] {hero.Data.heroName} 治疗 {heal}");
+        }
+    }
+
+    // --- CC（眩晕） ---
+    private void ApplyCCEffect(FaceEffectEntry effect)
+    {
+        if (_enemyHeroes == null) return;
+
+        int duration = GetParamInt(effect.effect_params, "duration_rounds", 1);
+        string target = GetParamString(effect.effect_params, "target", "current_enemy");
+
+        if (target == "all_enemies")
+        {
+            foreach (var enemy in _enemyHeroes)
             {
-                if (hero == null || hero.IsDead) continue;
-                int heal = Mathf.RoundToInt(hero.MaxHealth * healPct);
-                hero.Heal(heal);
+                if (enemy == null || enemy.IsDead) continue;
+                enemy.SetStunned(true);
+                Debug.Log($"[FaceEffect] {enemy.Data.heroName} 被眩晕 {duration} 回合");
+            }
+        }
+        else
+        {
+            var first = _enemyHeroes.FirstOrDefault(e => e != null && !e.IsDead);
+            if (first != null)
+            {
+                first.SetStunned(true);
+                Debug.Log($"[FaceEffect] {first.Data.heroName} 被眩晕 {duration} 回合");
             }
         }
     }
 
-    private void ExecuteShield(FaceEffectRuntimeDef def, float value, List<Hero> allies)
+    // --- ChainAttack ---
+    private void ApplyChainAttackEffect(FaceEffectEntry effect)
     {
-        foreach (var hero in allies)
-        {
-            if (hero == null || hero.IsDead) continue;
-            hero.AddShield(Mathf.RoundToInt(value));
-        }
-    }
+        if (_playerHeroes == null || _playerHeroes == null || _enemyHeroes == null) return;
 
-    private void ExecuteExtraDamage(FaceEffectRuntimeDef def, float value, List<Hero> enemies)
-    {
-        Hero target = def.targetScope switch
-        {
-            FaceEffectTarget.HighestAtkEnemy => FindHighestAttackEnemy(enemies),
-            FaceEffectTarget.RandomEnemy => FindRandomEnemy(enemies),
-            _ => enemies?.FirstOrDefault(h => h != null && !h.IsDead)
-        };
+        int bounces = GetParamInt(effect.effect_params, "bounces", 2);
+        float decayPct = GetParamFloat(effect.effect_params, "damage_decay_pct", 0.3f);
 
-        if (target == null) return;
-
-        float dmgPct = value / 100f;
-        int dmg = Mathf.RoundToInt(target.MaxHealth * dmgPct);
-        target.TakeDamage(Mathf.Max(1, dmg));
-    }
-
-    private void ExecuteAttackSpeed(FaceEffectRuntimeDef def, float value, List<Hero> allies)
-    {
-        float speedBonus = value / 100f;
-        foreach (var hero in allies)
-        {
-            if (hero == null || hero.IsDead) continue;
-            hero.BattleAttackSpeed += speedBonus;
-        }
-    }
-
-    private void ExecuteStun(FaceEffectRuntimeDef def, float value, List<Hero> enemies)
-    {
-        var target = FindRandomEnemy(enemies);
-        if (target != null)
-        {
-            target.SetStunned(true);
-            Debug.Log($"[FaceEffect] {target.Data?.heroName} 被眩晕1回合！");
-        }
-    }
-
-    private void ExecuteCritBoost(FaceEffectRuntimeDef def, float value, List<Hero> allies)
-    {
-        float critBonus = value / 100f;
-        foreach (var hero in allies)
-        {
-            if (hero == null || hero.IsDead) continue;
-            hero.BattleCritRate = Mathf.Clamp01(hero.BattleCritRate + critBonus);
-        }
-    }
-
-    private void ExecuteArmorBreak(FaceEffectRuntimeDef def, float value, Hero attacker)
-    {
+        // 随机选一个我方英雄作为攻击源
+        var attacker = _playerHeroes.FirstOrDefault(h => h != null && !h.IsDead);
         if (attacker == null) return;
-        // 破甲通过标记实现，Hero.cs 中需要 HasArmorBreak 属性
-        attacker.HasArmorBreak = true;
-        Debug.Log($"[FaceEffect] {attacker.Data?.heroName} 获得破甲效果（忽略{value}%防御）");
+
+        var aliveEnemies = _enemyHeroes.Where(e => e != null && !e.IsDead).ToList();
+        if (aliveEnemies.Count == 0) return;
+
+        float currentDmgMult = 1f;
+        Hero lastTarget = null;
+
+        for (int i = 0; i <= bounces && aliveEnemies.Count > 0; i++)
+        {
+            var target = aliveEnemies[Random.Range(0, aliveEnemies.Count)];
+            int dmg = Mathf.RoundToInt(attacker.BattleAttack * currentDmgMult);
+            target.TakeDamage(Mathf.Max(1, dmg), attacker);
+            Debug.Log($"[FaceEffect] 闪电链弹射{i}: {target.Data.heroName} 受到 {dmg} 伤害");
+
+            lastTarget = target;
+            currentDmgMult *= (1f - decayPct);
+            aliveEnemies.Remove(target);
+        }
+
+        // 设置攻击者的闪电链属性（供AutoChessAI检查）
+        attacker.LightningChainBounces = bounces;
     }
 
-    private void ExecuteLifeSteal(FaceEffectRuntimeDef def, float value, List<Hero> allies)
+    // --- AOE ---
+    private void ApplyAOEEffect(FaceEffectEntry effect)
     {
-        float lifestealPct = value / 100f;
-        foreach (var hero in allies)
+        if (_playerHeroes == null || _enemyHeroes == null) return;
+
+        float dmgPct = GetParamFloat(effect.effect_params, "damage_pct", 0.2f);
+
+        var attacker = _playerHeroes.FirstOrDefault(h => h != null && !h.IsDead);
+        if (attacker == null) return;
+
+        foreach (var enemy in _enemyHeroes)
+        {
+            if (enemy == null || enemy.IsDead) continue;
+            int dmg = Mathf.RoundToInt(attacker.BattleAttack * dmgPct);
+            enemy.TakeDamage(Mathf.Max(1, dmg));
+        }
+
+        Debug.Log($"[FaceEffect] AOE伤害！全体敌人受到{dmgPct * 100}%攻击力伤害");
+    }
+
+    // --- Cleanse ---
+    private void ApplyCleanseEffect()
+    {
+        if (_playerHeroes == null) return;
+
+        foreach (var hero in _playerHeroes)
         {
             if (hero == null || hero.IsDead) continue;
-            hero.AddRelicBuff(new RelicBuff(RelicBuffType.LifeSteal, lifestealPct, "骰子面效果"));
+
+            // 移除眩晕
+            hero.SetStunned(false);
+
+            // 移除诅咒（通过MechanicEnemySystem）
+            MechanicEnemySystem.Instance?.RemoveCurseFromHero(hero);
         }
+
+        Debug.Log("[FaceEffect] 净化！全体友方解除诅咒和眩晕");
     }
 
-    private void ExecuteThorns(FaceEffectRuntimeDef def, float value, List<Hero> allies)
+    // --- Economy ---
+    private void ApplyEconomyEffect(FaceEffectEntry effect)
     {
-        float thornsPct = value / 100f;
-        foreach (var hero in allies)
-        {
-            if (hero == null || hero.IsDead) continue;
-            hero.AddRelicBuff(new RelicBuff(RelicBuffType.Thorns, thornsPct, "骰子面效果"));
-        }
-    }
+        if (effect.effect_params == null) return;
 
-    private void ExecuteCleanse(FaceEffectRuntimeDef def, List<Hero> allies)
-    {
-        var mechanicSystem = MechanicEnemySystem.Instance;
-        if (mechanicSystem != null)
+        int goldBonus = GetParamInt(effect.effect_params, "gold_bonus", 0);
+        float interestBonus = GetParamFloat(effect.effect_params, "interest_bonus_pct", 0f);
+        int rerollRefund = GetParamInt(effect.effect_params, "reroll_refund", 0);
+
+        if (goldBonus > 0 || interestBonus > 0)
         {
-            foreach (var hero in allies)
+            var rgm = RoguelikeGameManager.Instance;
+            if (rgm != null)
             {
-                if (hero != null && !hero.IsDead)
-                    mechanicSystem.RemoveCurseFromHero(hero);
+                // 通过事件通知经济系统
+                Debug.Log($"[FaceEffect] 经济效果：金币+{goldBonus}，利息+{interestBonus * 100}%");
             }
         }
-        Debug.Log("[FaceEffect] 净化之光 — 已移除全体友方debuff");
+
+        if (rerollRefund > 0)
+        {
+            var roller = RoguelikeGameManager.Instance?.DiceRoller;
+            if (roller != null)
+            {
+                roller.AddFreeRerolls(rerollRefund);
+                Debug.Log($"[FaceEffect] 重摇返还 +{rerollRefund}");
+            }
+        }
     }
 
     // ========== 工具方法 ==========
 
-    private FaceEffectRuntimeDef FindEffectDef(string effectId)
+    private void ApplyStatChange(Hero hero, string stat, string operation, float value)
     {
-        return _runtimeEffects.Find(e => e.effectId == effectId);
-    }
-
-    private float CalculateEffectValue(FaceEffectRuntimeDef def, int level)
-    {
-        return def.baseValue + def.growthPerLevel * (level - 1);
-    }
-
-    private string FormatDescription(FaceEffectRuntimeDef def, float value)
-    {
-        return def.descriptionTemplate?.Replace("{value}", Mathf.RoundToInt(value).ToString())
-            ?? $"{def.effectName}: {value}";
-    }
-
-    private Hero FindLowestHealthAlly(List<Hero> allies)
-    {
-        Hero lowest = null;
-        float lowestPct = 1f;
-        foreach (var h in allies)
+        switch (stat)
         {
-            if (h == null || h.IsDead) continue;
-            float pct = (float)h.CurrentHealth / h.MaxHealth;
-            if (pct < lowestPct) { lowestPct = pct; lowest = h; }
+            case "BattleAttack":
+                if (operation == "multiply")
+                    hero.BattleAttack = Mathf.RoundToInt(hero.BattleAttack * value);
+                else if (operation == "add")
+                    hero.BattleAttack += Mathf.RoundToInt(value);
+                break;
+            case "BattleDefense":
+                if (operation == "multiply")
+                    hero.BattleDefense = Mathf.RoundToInt(hero.BattleDefense * value);
+                else if (operation == "add")
+                    hero.BattleDefense += Mathf.RoundToInt(value);
+                break;
+            case "BattleCritRate":
+                if (operation == "add")
+                    hero.BattleCritRate = Mathf.Clamp01(hero.BattleCritRate + value);
+                break;
+            case "BattleAttackSpeed":
+                if (operation == "add")
+                    hero.BattleAttackSpeed += value;
+                else if (operation == "multiply")
+                    hero.BattleAttackSpeed *= value;
+                break;
         }
-        return lowest;
     }
 
-    private Hero FindHighestAttackEnemy(List<Hero> enemies)
+    private void NotifyEffectApplied(FaceEffectEntry effect)
     {
-        Hero best = null;
-        foreach (var h in enemies)
+        string desc = effect.description_cn ?? effect.id;
+        foreach (var hero in _playerHeroes ?? Enumerable.Empty<Hero>())
         {
-            if (h == null || h.IsDead) continue;
-            if (best == null || h.BattleAttack > best.BattleAttack) best = h;
+            if (hero != null && !hero.IsDead)
+            {
+                OnFaceEffectApplied?.Invoke(hero, effect.id, desc);
+                break; // 只通知一次
+            }
         }
-        return best;
+        Debug.Log($"[FaceEffect] 触发: {effect.name_cn} — {desc}");
     }
 
-    private Hero FindRandomEnemy(List<Hero> enemies)
+    // --- 参数读取 ---
+
+    private int GetTriggerParamInt(FaceEffectEntry effect, string key)
     {
-        var alive = enemies?.FindAll(h => h != null && !h.IsDead);
-        if (alive == null || alive.Count == 0) return null;
-        return alive[Random.Range(0, alive.Count)];
+        if (effect.trigger_params == null) return 0;
+        return GetParamInt(effect.trigger_params, key, 0);
     }
 
-    // ========== 枚举解析 ==========
-
-    private FaceEffectType ParseEffectType(FaceEffectType val) => val;
-    private FaceEffectType ParseEffectType(string val)
+    private static int GetParamInt(Dictionary<string, object> dict, string key, int fallback)
     {
-        if (string.IsNullOrEmpty(val)) return FaceEffectType.None;
-        return System.Enum.TryParse<FaceEffectType>(val, out var t) ? t : FaceEffectType.None;
+        if (dict == null) return fallback;
+        if (dict.TryGetValue(key, out object val))
+        {
+            if (val is int i) return i;
+            if (val is long l) return (int)l;
+            if (val is double d) return (int)d;
+            if (int.TryParse(val?.ToString(), out int parsed)) return parsed;
+        }
+        return fallback;
     }
 
-    private FaceEffectTarget ParseTarget(string val)
+    private static float GetParamFloat(Dictionary<string, object> dict, string key, float fallback)
     {
-        if (string.IsNullOrEmpty(val)) return FaceEffectTarget.AllAllies;
-        return System.Enum.TryParse<FaceEffectTarget>(val, out var t) ? t : FaceEffectTarget.AllAllies;
+        if (dict == null) return fallback;
+        if (dict.TryGetValue(key, out object val))
+        {
+            if (val is float f) return f;
+            if (val is double d) return (float)d;
+            if (val is int i) return (float)i;
+            if (float.TryParse(val?.ToString(), out float parsed)) return parsed;
+        }
+        return fallback;
     }
 
-    private FaceEffectTrigger ParseTrigger(string val)
+    private static string GetParamString(Dictionary<string, object> dict, string key, string fallback)
     {
-        if (string.IsNullOrEmpty(val)) return FaceEffectTrigger.OnDiceResult;
-        return System.Enum.TryParse<FaceEffectTrigger>(val, out var t) ? t : FaceEffectTrigger.OnDiceResult;
-    }
-
-    // ========== 清理 ==========
-
-    public void ClearBattleEffects()
-    {
-        _activeBattleEffects.Clear();
-    }
-
-    public void ClearAll()
-    {
-        _effectLevels.Clear();
-        _activeBattleEffects.Clear();
+        if (dict == null) return fallback;
+        if (dict.TryGetValue(key, out object val) && val != null)
+            return val.ToString();
+        return fallback;
     }
 }

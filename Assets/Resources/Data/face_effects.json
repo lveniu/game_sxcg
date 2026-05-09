@@ -1,151 +1,162 @@
 {
-    "effects": [
+    "_version": "1.0",
+    "_description": "骰子面效果配置 — 每种面效果定义触发条件和效果参数",
+    "face_effects": [
         {
-            "effectId": "heal_lowest_ally",
-            "effectType": "Heal",
-            "effectName": "治愈之光",
-            "descriptionTemplate": "治疗血量最低友方{value}%生命",
-            "targetScope": "LowestHealthAlly",
-            "triggerTiming": "OnDiceResult",
-            "baseValue": 15,
-            "growthPerLevel": 5,
-            "maxLevel": 3,
-            "applicableFaces": [1],
-            "iconRef": "icon_heal",
-            "rarity": "common"
+            "id": "double_attack",
+            "name_cn": "连击",
+            "trigger": "on_roll_value",
+            "trigger_params": { "value": 6 },
+            "effect_type": "Buff",
+            "effect_params": {
+                "stat": "BattleAttack",
+                "operation": "multiply",
+                "value": 1.5,
+                "duration_type": "next_attack"
+            },
+            "description_cn": "投出6时，下次攻击伤害+50%",
+            "priority": 1
         },
         {
-            "effectId": "shield_all",
-            "effectType": "Shield",
-            "effectName": "守护之盾",
-            "descriptionTemplate": "全体获得{value}点护盾",
-            "targetScope": "AllAllies",
-            "triggerTiming": "OnDiceResult",
-            "baseValue": 20,
-            "growthPerLevel": 10,
-            "maxLevel": 3,
-            "applicableFaces": [2],
-            "iconRef": "icon_shield",
-            "rarity": "common"
+            "id": "crit_boost",
+            "name_cn": "暴击强化",
+            "trigger": "on_roll_value",
+            "trigger_params": { "value": 5 },
+            "effect_type": "Buff",
+            "effect_params": {
+                "stat": "BattleCritRate",
+                "operation": "add",
+                "value": 0.3,
+                "duration_type": "this_battle"
+            },
+            "description_cn": "投出5时，暴击率+30%（本场战斗）",
+            "priority": 2
         },
         {
-            "effectId": "extra_damage_highest",
-            "effectType": "ExtraDamage",
-            "effectName": "精准打击",
-            "descriptionTemplate": "对攻击最高敌人造成{value}%额外伤害",
-            "targetScope": "HighestAtkEnemy",
-            "triggerTiming": "OnDiceResult",
-            "baseValue": 10,
-            "growthPerLevel": 5,
-            "maxLevel": 3,
-            "applicableFaces": [3],
-            "iconRef": "icon_damage",
-            "rarity": "common"
+            "id": "shield",
+            "name_cn": "护盾",
+            "trigger": "on_roll_value",
+            "trigger_params": { "value": 4 },
+            "effect_type": "Shield",
+            "effect_params": {
+                "shield_pct": 0.15,
+                "target": "all_allies"
+            },
+            "description_cn": "投出4时，全体友方获得15%最大生命护盾",
+            "priority": 3
         },
         {
-            "effectId": "attack_speed_all",
-            "effectType": "AttackSpeed",
-            "effectName": "疾风之力",
-            "descriptionTemplate": "全体攻速+{value}%",
-            "targetScope": "AllAllies",
-            "triggerTiming": "OnDiceResult",
-            "baseValue": 15,
-            "growthPerLevel": 5,
-            "maxLevel": 3,
-            "applicableFaces": [4],
-            "iconRef": "icon_speed",
-            "rarity": "common"
+            "id": "heal",
+            "name_cn": "治疗",
+            "trigger": "on_roll_value",
+            "trigger_params": { "value": 3 },
+            "effect_type": "Heal",
+            "effect_params": {
+                "heal_pct": 0.1,
+                "target": "self"
+            },
+            "description_cn": "投出3时，恢复自身10%最大生命",
+            "priority": 4
         },
         {
-            "effectId": "stun_random",
-            "effectType": "Stun",
-            "effectName": "雷击",
-            "descriptionTemplate": "随机敌人眩晕1回合",
-            "targetScope": "RandomEnemy",
-            "triggerTiming": "OnDiceResult",
-            "baseValue": 1,
-            "growthPerLevel": 0,
-            "maxLevel": 1,
-            "applicableFaces": [5],
-            "iconRef": "icon_stun",
-            "rarity": "rare"
+            "id": "coin_bonus",
+            "name_cn": "金币",
+            "trigger": "on_roll_value",
+            "trigger_params": { "value": 2 },
+            "effect_type": "Economy",
+            "effect_params": {
+                "gold_bonus": 2,
+                "interest_bonus_pct": 0.05
+            },
+            "description_cn": "投出2时，获得2金币+5%利息加成",
+            "priority": 5
         },
         {
-            "effectId": "crit_boost_all",
-            "effectType": "CritBoost",
-            "effectName": "锐利之眼",
-            "descriptionTemplate": "本场战斗暴击率+{value}%",
-            "targetScope": "AllAllies",
-            "triggerTiming": "OnBattleStart",
-            "baseValue": 10,
-            "growthPerLevel": 5,
-            "maxLevel": 3,
-            "applicableFaces": [6],
-            "iconRef": "icon_crit",
-            "rarity": "common"
+            "id": "reroll_refund",
+            "name_cn": "重摇返还",
+            "trigger": "on_roll_value",
+            "trigger_params": { "value": 1 },
+            "effect_type": "Economy",
+            "effect_params": {
+                "reroll_refund": 1
+            },
+            "description_cn": "投出1时，返还1次重摇费用",
+            "priority": 6
         },
         {
-            "effectId": "armor_break_self",
-            "effectType": "ArmorBreak",
-            "effectName": "破甲之击",
-            "descriptionTemplate": "攻击忽略{value}%防御",
-            "targetScope": "Self",
-            "triggerTiming": "OnBattleStart",
-            "baseValue": 50,
-            "growthPerLevel": 10,
-            "maxLevel": 3,
-            "applicableFaces": null,
-            "iconRef": "icon_armor_break",
-            "rarity": "rare"
+            "id": "lightning_chain",
+            "name_cn": "闪电链",
+            "trigger": "on_face_effect",
+            "trigger_params": { "face_effect_id": "lightning_chain" },
+            "effect_type": "ChainAttack",
+            "effect_params": {
+                "bounces": 2,
+                "damage_decay_pct": 0.3,
+                "range": "all_enemies"
+            },
+            "description_cn": "攻击弹射2个额外目标，每次衰减30%",
+            "priority": 7
         },
         {
-            "effectId": "lifesteal_all",
-            "effectType": "LifeSteal",
-            "effectName": "吸血光环",
-            "descriptionTemplate": "全体获得{value}%吸血",
-            "targetScope": "AllAllies",
-            "triggerTiming": "OnBattleStart",
-            "baseValue": 10,
-            "growthPerLevel": 5,
-            "maxLevel": 3,
-            "applicableFaces": null,
-            "iconRef": "icon_lifesteal",
-            "rarity": "rare"
+            "id": "armor_break",
+            "name_cn": "破甲",
+            "trigger": "on_face_effect",
+            "trigger_params": { "face_effect_id": "armor_break" },
+            "effect_type": "Debuff",
+            "effect_params": {
+                "target": "current_enemy",
+                "stat": "BattleDefense",
+                "operation": "multiply",
+                "value": 0.5,
+                "duration_type": "next_attack"
+            },
+            "description_cn": "下次攻击忽略目标50%防御",
+            "priority": 8
         },
         {
-            "effectId": "thorns_all",
-            "effectType": "Thorns",
-            "effectName": "荆棘护甲",
-            "descriptionTemplate": "全体获得{value}%反伤",
-            "targetScope": "AllAllies",
-            "triggerTiming": "OnBattleStart",
-            "baseValue": 10,
-            "growthPerLevel": 5,
-            "maxLevel": 3,
-            "applicableFaces": null,
-            "iconRef": "icon_thorns",
-            "rarity": "rare"
+            "id": "stun",
+            "name_cn": "眩晕",
+            "trigger": "on_face_effect",
+            "trigger_params": { "face_effect_id": "stun" },
+            "effect_type": "CC",
+            "effect_params": {
+                "target": "current_enemy",
+                "duration_rounds": 1
+            },
+            "description_cn": "眩晕目标1回合",
+            "priority": 9
         },
         {
-            "effectId": "cleanse_all",
-            "effectType": "Cleanse",
-            "effectName": "净化之光",
-            "descriptionTemplate": "移除全体友方的debuff",
-            "targetScope": "AllAllies",
-            "triggerTiming": "OnDiceResult",
-            "baseValue": 1,
-            "growthPerLevel": 0,
-            "maxLevel": 1,
-            "applicableFaces": null,
-            "iconRef": "icon_cleanse",
-            "rarity": "epic"
+            "id": "cleanse",
+            "name_cn": "净化",
+            "trigger": "on_face_effect",
+            "trigger_params": { "face_effect_id": "cleanse" },
+            "effect_type": "Cleanse",
+            "effect_params": {
+                "target": "all_allies",
+                "remove_curse": true,
+                "remove_stun": true
+            },
+            "description_cn": "清除全体友方的诅咒和眩晕",
+            "priority": 10
+        },
+        {
+            "id": "aoe_damage",
+            "name_cn": "范围伤害",
+            "trigger": "on_face_effect",
+            "trigger_params": { "face_effect_id": "aoe_damage" },
+            "effect_type": "AOE",
+            "effect_params": {
+                "damage_pct": 0.2,
+                "target": "all_enemies"
+            },
+            "description_cn": "对全体敌人造成20%攻击力的AOE伤害",
+            "priority": 11
         }
     ],
-
-    "upgrade_config": {
-        "max_upgrades_per_run": 6,
-        "cost_free_levels": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-        "rare_min_level": 8,
-        "epic_min_level": 12
+    "face_upgrade_costs": {
+        "common_to_rare": 3,
+        "rare_to_epic": 5,
+        "epic_to_legendary": 8
     }
 }

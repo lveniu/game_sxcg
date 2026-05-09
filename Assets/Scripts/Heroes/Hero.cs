@@ -71,6 +71,7 @@ public class Hero : MonoBehaviour
     // 机制怪系统 & 面效果状态
     public bool IsStunned { get; private set; }
     public bool HasArmorBreak { get; set; }
+    public int LightningChainBounces { get; set; } = 0;
 
     // 棋盘位置
     public Vector2Int GridPosition { get; set; }
@@ -153,9 +154,33 @@ public class Hero : MonoBehaviour
         RecalculateStats();
     }
 
+    /// <summary>是否已进化（星级≥3视为进化状态）</summary>
+    public bool IsEvolved => StarLevel >= 3;
+
     /// <summary>
-    /// 装备物品
+    /// 进化：星级+1（上限3），重算属性
     /// </summary>
+    public void Evolve()
+    {
+        if (StarLevel >= 3)
+        {
+            Debug.Log($"{Data.heroName} 已是满星，无法继续进化");
+            return;
+        }
+        StarLevel++;
+        RecalculateStats();
+        Debug.Log($"{Data.heroName} 进化成功 → 星级{StarLevel}");
+    }
+
+    /// <summary>
+    /// 获取指定槽位的已装备物品
+    /// </summary>
+    public EquipmentData GetEquippedItem(EquipmentSlot slot)
+    {
+        EquippedItems.TryGetValue(slot, out var item);
+        return item;
+    }
+
     public void Equip(EquipmentData equipment)
     {
         if (equipment == null) return;
@@ -324,6 +349,7 @@ public class Hero : MonoBehaviour
         BattleCritDamage = 0.5f + GetRelicBuffValue(RelicBuffType.CritDamageBonus);
         IsStunned = false;
         HasArmorBreak = false;
+        LightningChainBounces = 0;
     }
 
     /// <summary>

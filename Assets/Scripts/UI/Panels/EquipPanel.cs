@@ -780,9 +780,8 @@ namespace Game.UI
 
         private EquipmentData GetEquippedItem(EquipmentSlot slot)
         {
-            // TODO: 等后端实现 Hero.GetEquippedItem(slot) 后对接
-            // 目前返回null（MVP无装备状态持久化）
-            return null;
+            if (selectedHero == null) return null;
+            return selectedHero.GetEquippedItem(slot);
         }
 
         #region 套装件数统计

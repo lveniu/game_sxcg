@@ -25,7 +25,7 @@ public static class BalanceProvider
     private static RelicsConfig _relics;
     private static DiceSystemConfig _diceSystem;
     private static MechanicEnemiesConfig _mechanicEnemies;
-    private static FaceEffectsConfig _faceEffects;
+    private static FaceEffectsFileConfig _faceEffects;
 
     // 懒加载属性
     public static HeroClassesConfig HeroClasses => _heroClasses ?? (_heroClasses = ConfigLoader.LoadHeroClasses());
@@ -38,7 +38,7 @@ public static class BalanceProvider
     public static RelicsConfig Relics => _relics ?? (_relics = ConfigLoader.LoadRelics());
     public static DiceSystemConfig DiceSystem => _diceSystem ?? (_diceSystem = ConfigLoader.LoadDiceSystem());
     public static MechanicEnemiesConfig MechanicEnemies => _mechanicEnemies ?? (_mechanicEnemies = ConfigLoader.LoadMechanicEnemies());
-    public static FaceEffectsConfig FaceEffects => _faceEffects ?? (_faceEffects = ConfigLoader.LoadFaceEffects());
+    public static FaceEffectsFileConfig FaceEffects => _faceEffects ?? (_faceEffects = ConfigLoader.LoadFaceEffects());
 
     /// <summary>
     /// 热重载所有配置（策划调数值后调用）
@@ -469,27 +469,35 @@ public static class BalanceProvider
     /// <summary>
     /// 获取骰子面效果配置
     /// </summary>
-    public static FaceEffectsConfig GetFaceEffectsConfig()
+    public static FaceEffectsFileConfig GetFaceEffectsConfig()
     {
         return FaceEffects;
     }
 
     /// <summary>
+    /// 获取面效果列表（供 FaceEffectExecutor 使用）
+    /// </summary>
+    public static List<FaceEffectEntry> GetFaceEffects()
+    {
+        return FaceEffects?.face_effects ?? new List<FaceEffectEntry>();
+    }
+
+    /// <summary>
     /// 按效果ID查找面效果定义
     /// </summary>
-    public static FaceEffectDef GetFaceEffectDef(string effectId)
+    public static FaceEffectEntry GetFaceEffectDef(string effectId)
     {
-        var effects = FaceEffects?.effects;
+        var effects = FaceEffects?.face_effects;
         if (effects == null) return null;
-        return effects.Find(e => e.effectId == effectId);
+        return effects.Find(e => e.id == effectId);
     }
 
     /// <summary>
     /// 获取所有面效果定义
     /// </summary>
-    public static List<FaceEffectDef> GetAllFaceEffects()
+    public static List<FaceEffectEntry> GetAllFaceEffects()
     {
-        return FaceEffects?.effects ?? new List<FaceEffectDef>();
+        return FaceEffects?.face_effects ?? new List<FaceEffectEntry>();
     }
 
     // ========== 星级相关 ==========
