@@ -331,7 +331,7 @@ namespace Game.UI
             // 按钮灰化
             if (diceSkillButtonBg != null)
             {
-                diceSkillButtonBg.DOColor(DICE_SKILL_USED, 0.3f);
+                TrackTween(diceSkillButtonBg.DOColor(DICE_SKILL_USED, 0.3f));
             }
 
             // 获取当前骰子组合类型来决定特效颜色
@@ -528,7 +528,7 @@ namespace Game.UI
             if (relicBarContainer != null)
             {
                 relicBarContainer.localScale = Vector3.one * 0.5f;
-                relicBarContainer.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutBack);
+                TrackTween(relicBarContainer.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutBack));
             }
         }
 
@@ -767,7 +767,7 @@ namespace Game.UI
                 {
                     // FE-04.4: 失败红闪特效
                     resultIcon.anchoredPosition = new Vector2(0, 0f);
-                    resultIcon.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutQuad);
+                    TrackTween(resultIcon.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutQuad));
                     // 红闪：背景快速闪烁3次
                     PlayRedFlashEffect(3, 0.15f);
                 }
@@ -794,7 +794,7 @@ namespace Game.UI
                     }
                     // 奖励区入场
                     rewardPreview.localScale = Vector3.zero;
-                    rewardPreview.DOScale(Vector3.one, 0.5f).SetDelay(0.5f).SetEase(Ease.OutBack);
+                    TrackTween(rewardPreview.DOScale(Vector3.one, 0.5f).SetDelay(0.5f).SetEase(Ease.OutBack));
                 }
                 else
                 {
@@ -808,7 +808,7 @@ namespace Game.UI
                 // 胜利：从底部滑入
                 resultPopup.anchoredPosition = new Vector2(0, -600f);
                 resultPopup.localScale = Vector3.one;
-                resultPopup.DOAnchorPosY(0f, 0.6f).SetEase(Ease.OutBack);
+                TrackTween(resultPopup.DOAnchorPosY(0f, 0.6f).SetEase(Ease.OutBack));
             }
             else
             {
@@ -913,7 +913,7 @@ namespace Game.UI
             if (vsDivider != null)
             {
                 vsDivider.localScale = Vector3.zero;
-                vsDivider.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutBack);
+                TrackTween(vsDivider.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutBack));
             }
 
             RefreshDiceSkillButton();
@@ -1179,7 +1179,7 @@ namespace Game.UI
             if (bar.rect != null)
             {
                 bar.rect.localScale = Vector3.one * 0.5f;
-                bar.rect.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack);
+                TrackTween(bar.rect.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack));
             }
 
             return bar;
