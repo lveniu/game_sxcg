@@ -173,6 +173,7 @@ namespace Game.UI
                 1 => "普通",
                 2 => "稀有",
                 3 => "史诗",
+                4 => "传说",
                 _ => "未知"
             };
         }
@@ -184,7 +185,20 @@ namespace Game.UI
                 1 => new Color(0.85f, 0.85f, 0.85f), // 灰白
                 2 => new Color(0.26f, 0.53f, 0.96f),  // 蓝
                 3 => new Color(0.64f, 0.21f, 0.93f),  // 紫
+                4 => new Color(1f, 0.75f, 0f),        // 金（传说）
                 _ => Color.white
+            };
+        }
+
+        public static string GetRarityStars(int rarity)
+        {
+            return rarity switch
+            {
+                1 => "★",
+                2 => "★★",
+                3 => "★★★",
+                4 => "★★★★",
+                _ => ""
             };
         }
 
@@ -243,6 +257,95 @@ namespace Game.UI
                 StatType.Speed => "速度",
                 StatType.CritRate => "暴击率",
                 _ => "属性"
+            };
+        }
+
+        // ========== 遗物显示桥接 ==========
+
+        /// <summary>
+        /// 从RelicData转为前端显示数据
+        /// </summary>
+        public static RelicDisplayData GetRelicDisplayData(RelicData data)
+        {
+            if (data == null) return null;
+            return new RelicDisplayData
+            {
+                relicId = data.relicId,
+                relicName = data.relicName,
+                description = data.description,
+                iconEmoji = GetRelicEmoji(data.effectType),
+                rarity = data.rarity,
+                rarityName = GetRarityNameCN(data.rarity),
+                rarityColor = GetRarityColor(data.rarity),
+                effectDescription = GetEffectDescription(data.effectType, data.effectValue)
+            };
+        }
+
+        /// <summary>
+        /// 遗物效果类型 → Emoji图标
+        /// </summary>
+        public static string GetRelicEmoji(RelicEffectType type)
+        {
+            return type switch
+            {
+                RelicEffectType.AttackBoost => "⚔",
+                RelicEffectType.DefenseBoost => "🛡",
+                RelicEffectType.HealthBoost => "❤",
+                RelicEffectType.SpeedBoost => "💨",
+                RelicEffectType.CritBoost => "💥",
+                RelicEffectType.BattleStartShield => "🔰",
+                RelicEffectType.LifeSteal => "🧛",
+                RelicEffectType.Thorns => "🌵",
+                RelicEffectType.PoisonAttack => "☠",
+                RelicEffectType.GiantSlayer => "🗡",
+                RelicEffectType.ExtraReroll => "🎲",
+                RelicEffectType.ComboBoost => "✨",
+                RelicEffectType.DoubleReward => "💰",
+                RelicEffectType.Revive => "🕊",
+                _ => "🏺"
+            };
+        }
+
+        /// <summary>
+        /// 遗物效果类型 + 数值 → 可读描述
+        /// </summary>
+        public static string GetEffectDescription(RelicEffectType type, float value)
+        {
+            return type switch
+            {
+                RelicEffectType.AttackBoost => $"攻击力+{Mathf.RoundToInt(value * 100)}%",
+                RelicEffectType.DefenseBoost => $"防御力+{Mathf.RoundToInt(value * 100)}%",
+                RelicEffectType.HealthBoost => $"生命值+{Mathf.RoundToInt(value * 100)}%",
+                RelicEffectType.SpeedBoost => $"速度+{Mathf.RoundToInt(value * 100)}%",
+                RelicEffectType.CritBoost => $"暴击率+{Mathf.RoundToInt(value * 100)}%",
+                RelicEffectType.BattleStartShield => $"开局护盾+{Mathf.RoundToInt(value * 100)}%生命",
+                RelicEffectType.LifeSteal => $"吸血{Mathf.RoundToInt(value * 100)}%",
+                RelicEffectType.Thorns => $"反伤{Mathf.RoundToInt(value * 100)}%",
+                RelicEffectType.PoisonAttack => $"攻击附带中毒{Mathf.RoundToInt(value)}%/回合",
+                RelicEffectType.GiantSlayer => $"对高血量敌人额外伤害+{Mathf.RoundToInt(value * 100)}%",
+                RelicEffectType.ExtraReroll => $"重摇次数+{Mathf.RoundToInt(value)}",
+                RelicEffectType.ComboBoost => $"散牌升级为对子",
+                RelicEffectType.DoubleReward => $"{Mathf.RoundToInt(value * 100)}%概率双倍奖励",
+                RelicEffectType.Revive => $"每关复活{Mathf.RoundToInt(value)}次",
+                _ => $"效果值: {value}"
+            };
+        }
+
+        // ========== 奖励选项描述 ==========
+
+        /// <summary>
+        /// 生成奖励选项的富文本描述（用于卡片和弹窗）
+        /// </summary>
+        public static string GetRewardRichDescription(RewardOption reward)
+        {
+            if (reward == null) return "";
+            return reward.Type switch
+            {
+                RewardType.NewUnit => $"招募新英雄加入队伍\n星级: {reward.Rarity}★",
+                RewardType.DiceFaceUpgrade => $"骰子{reward.DiceIndex + 1} #{reward.FaceIndex + 1}面 → {reward.NewFaceValue}",
+                RewardType.StatBoost => $"{GetStatNameCN(reward.BoostStat)}+{Mathf.RoundToInt(reward.BoostAmount * 100)}%\n({(reward.BoostTarget == StatBoostTarget.AllHeroes ? "全体" : "随机单体")})",
+                RewardType.Relic => $"获得遗物\n{reward.Description}",
+                _ => reward.Description ?? ""
             };
         }
 
@@ -306,5 +409,65 @@ namespace Game.UI
         public string nameCN;
         public Color color;
         public string description;
+    }
+
+    // ========== 奖励类型图标 ==========
+    // (放在这里让 BattlePanel 和 RoguelikeRewardPanel 都能用)
+
+    /// <summary>
+    /// 获取奖励类型的图标emoji和主题色
+    /// </summary>
+    public static class RewardTypeIcons
+    {
+        public static string GetIcon(RewardType type)
+        {
+            return type switch
+            {
+                RewardType.NewUnit => "👤",
+                RewardType.DiceFaceUpgrade => "🎲",
+                RewardType.StatBoost => "📈",
+                RewardType.Relic => "🏺",
+                _ => "❓"
+            };
+        }
+
+        public static Color GetColor(RewardType type)
+        {
+            return type switch
+            {
+                RewardType.NewUnit => new Color(0.3f, 0.8f, 0.4f),       // 绿
+                RewardType.DiceFaceUpgrade => new Color(0.2f, 0.6f, 1f), // 蓝
+                RewardType.StatBoost => new Color(1f, 0.6f, 0.2f),      // 橙
+                RewardType.Relic => new Color(0.8f, 0.4f, 1f),          // 紫
+                _ => Color.white
+            };
+        }
+
+        public static string GetTypeLabel(RewardType type)
+        {
+            return type switch
+            {
+                RewardType.NewUnit => "新单位",
+                RewardType.DiceFaceUpgrade => "骰子强化",
+                RewardType.StatBoost => "属性强化",
+                RewardType.Relic => "遗物",
+                _ => "未知"
+            };
+        }
+    }
+
+    /// <summary>
+    /// 遗物图标显示数据（BattlePanel遗物栏 / RewardPanel详情弹窗使用）
+    /// </summary>
+    public class RelicDisplayData
+    {
+        public string relicId;
+        public string relicName;
+        public string description;
+        public string iconEmoji;
+        public int rarity;
+        public string rarityName;
+        public Color rarityColor;
+        public string effectDescription;
     }
 }
