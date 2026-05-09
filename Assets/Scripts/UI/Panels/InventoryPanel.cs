@@ -6,87 +6,18 @@ using System.Collections.Generic;
 namespace Game.UI
 {
     // ═══════════════════════════════════════════════════════════
-    // FE-09: 背包系统UI重构 — 分类Tab + 网格展示 + 详情面板 + 快捷穿戴
+    // FE-09: 背包系统UI — 对接后端 PlayerInventory
     // ═══════════════════════════════════════════════════════════
     //
-    // 布局（竖屏 720×1280）：
-    // ┌──────────────────────────────────────┐
-    // │  [关闭] 背包    💰 1234金币          │  顶部栏
-    // ├──────────────────────────────────────┤
-    // │ [全部] [装备] [材料] [消耗品]        │  Tab栏
-    // ├──────────────┬───────────────────────┤
-    // │  ┌──┐ ┌──┐  │  📋 物品详情          │
-    // │  │🗡│ │🛡│  │  名称/稀有度/属性      │
-    // │  └──┘ └──┘  │  [装备到英雄▼]        │
-    // │  ┌──┐ ┌──┐  │  [丢弃]              │
-    // │  │💍│ │🗡│  │                       │
-    // │  └──┘ └──┘  │                       │
-    // └──────────────┴───────────────────────┘
+    // 数据源：PlayerInventory.Instance（后端单例）
+    // 类型复用：EquipmentData / EquipmentSlot / CardRarity / Hero
     //
-    // 交互：
-    // 1. Tab切换分类（全部/装备/材料/消耗品）
-    // 2. 网格物品点击 → 右侧详情更新
-    // 3. "装备到英雄" → 英雄选择下拉 → EquipToHero
-    // 4. "丢弃" → 二次确认弹窗
-    //
-    // 三层动画安全（同FE-08规范）
+    // 三层动画安全：所有 tween 加 .SetLink(gameObject)
     // ═══════════════════════════════════════════════════════════
-
-    /// <summary>物品分类枚举（与后端 ItemCategory 对齐）</summary>
-    public enum ItemCategory
-    {
-        All,         // 全部
-        Equipment,   // 装备
-        Material,    // 材料（预留）
-        Consumable   // 消耗品（预留）
-    }
-
-    /// <summary>装备稀有度（复用后端 CardRarity）</summary>
-    public enum ItemRarity
-    {
-        White,  // 普通
-        Blue,   // 稀有
-        Purple, // 史诗
-        Gold    // 传说
-    }
-
-    /// <summary>装备槽位（复用后端 EquipmentSlot）</summary>
-    public enum EquipSlot
-    {
-        Weapon,    // 武器
-        Armor,     // 防具
-        Accessory  // 饰品
-    }
-
-    /// <summary>装备数据（Mock版，后端用 EquipmentData）</summary>
-    public class InventoryItem
-    {
-        public string itemId;
-        public string itemName;
-        public string description;
-        public ItemCategory category;
-        public EquipSlot slot;
-        public ItemRarity rarity;
-        public int attackBonus;
-        public int defenseBonus;
-        public int healthBonus;
-        public int speedBonus;
-        public float critRateBonus;
-        public string specialEffect;
-    }
-
-    /// <summary>英雄数据（Mock版，用于装备穿戴下拉）</summary>
-    public class HeroInfo
-    {
-        public string heroId;
-        public string heroName;
-        public string className;
-        public Dictionary<EquipSlot, InventoryItem> equippedItems = new Dictionary<EquipSlot, InventoryItem>();
-    }
 
     /// <summary>
-    /// FE-09 背包系统UI面板
-    /// 子面板模式：从多个入口打开（主菜单/战斗结算/商店购买后）
+    /// 背包面板 — 子面板模式，从多个入口打开
+    /// 监听 PlayerInventory.OnInventoryChanged 自动刷新
     /// </summary>
     public class InventoryPanel : UIPanel
     {
@@ -120,7 +51,7 @@ namespace Game.UI
 
         [Header("物品网格区")]
         public ScrollRect itemScrollRect;
-        public RectTransform gridContent;        // 网格容器
+        public RectTransform gridContent;
 
         [Header("详情面板")]
         public RectTransform detailPanel;
@@ -134,6 +65,7 @@ namespace Game.UI
         public Text detailCritText;
         public Text detailEffectText;
         public Text detailDescText;
+        public Text detailPowerText;
         public Button equipButton;
         public Button discardButton;
 
@@ -148,12 +80,10 @@ namespace Game.UI
         public Button confirmDiscardNoButton;
 
         // ──────── 运行时状态 ────────
-        private List<InventoryItem> allItems = new List<InventoryItem>();
-        private List<HeroInfo> heroes = new List<HeroInfo>();
+        private List<EquipmentData> displayItems = new List<EquipmentData>();
         private ItemCategory currentTab = ItemCategory.All;
-        private InventoryItem selectedItem;
+        private EquipmentData selectedEquip;
         private readonly Dictionary<string, RectTransform> itemCells = new Dictionary<string, RectTransform>();
-        private int playerGold;
 
         // ══════════════════════════════════════
         // 生命周期
@@ -164,18 +94,15 @@ namespace Game.UI
             base.Awake();
             slideInAnimation = false;
 
-            // Tab按钮
             tabAllButton?.onClick.AddListener(() => SwitchTab(ItemCategory.All));
             tabEquipButton?.onClick.AddListener(() => SwitchTab(ItemCategory.Equipment));
             tabMaterialButton?.onClick.AddListener(() => SwitchTab(ItemCategory.Material));
             tabConsumableButton?.onClick.AddListener(() => SwitchTab(ItemCategory.Consumable));
 
-            // 操作按钮
             closeButton?.onClick.AddListener(OnCloseClicked);
             equipButton?.onClick.AddListener(OnEquipClicked);
             discardButton?.onClick.AddListener(OnDiscardClicked);
 
-            // 确认丢弃弹窗
             confirmDiscardYesButton?.onClick.AddListener(OnConfirmDiscard);
             confirmDiscardNoButton?.onClick.AddListener(OnCancelDiscard);
         }
@@ -183,6 +110,11 @@ namespace Game.UI
         public override void Show()
         {
             base.Show();
+            // 监听后端背包变更事件
+            var inv = PlayerInventory.Instance;
+            if (inv != null)
+                inv.OnInventoryChanged += OnInventoryChanged;
+
             LoadInventoryAndRender();
         }
 
@@ -195,95 +127,38 @@ namespace Game.UI
 
         public override void OnHide()
         {
+            // 取消监听
+            var inv = PlayerInventory.Instance;
+            if (inv != null)
+                inv.OnInventoryChanged -= OnInventoryChanged;
+
             ClearGrid();
         }
 
+        /// <summary>后端背包变更回调 — 自动刷新</summary>
+        private void OnInventoryChanged()
+        {
+            LoadInventoryAndRender();
+        }
+
         // ══════════════════════════════════════
-        // 数据加载（Mock先行）
+        // 数据加载 — 对接后端 PlayerInventory
         // ══════════════════════════════════════
 
         private void LoadInventoryAndRender()
         {
-            // TODO: 后端就绪后替换为 PlayerInventory.Instance 读取
-            allItems = GenerateMockItems();
-            heroes = GenerateMockHeroes();
-            playerGold = 1234;
-
-            UpdateGoldDisplay();
-            SwitchTab(ItemCategory.All);
-        }
-
-        private List<InventoryItem> GenerateMockItems()
-        {
-            return new List<InventoryItem>
+            var inv = PlayerInventory.Instance;
+            if (inv == null)
             {
-                new InventoryItem
-                {
-                    itemId = "equip_001", itemName = "铁剑", category = ItemCategory.Equipment,
-                    slot = EquipSlot.Weapon, rarity = ItemRarity.White,
-                    attackBonus = 5, defenseBonus = 0, healthBonus = 0, speedBonus = 2,
-                    critRateBonus = 0.03f, specialEffect = "", description = "一把普通的铁剑"
-                },
-                new InventoryItem
-                {
-                    itemId = "equip_002", itemName = "铁盾", category = ItemCategory.Equipment,
-                    slot = EquipSlot.Armor, rarity = ItemRarity.White,
-                    attackBonus = 0, defenseBonus = 8, healthBonus = 20, speedBonus = -1,
-                    critRateBonus = 0, specialEffect = "", description = "厚重的铁盾"
-                },
-                new InventoryItem
-                {
-                    itemId = "equip_003", itemName = "力量戒指", category = ItemCategory.Equipment,
-                    slot = EquipSlot.Accessory, rarity = ItemRarity.Blue,
-                    attackBonus = 3, defenseBonus = 0, healthBonus = 10, speedBonus = 0,
-                    critRateBonus = 0.05f, specialEffect = "暴击时回复5%生命", description = "蕴含力量的蓝色戒指"
-                },
-                new InventoryItem
-                {
-                    itemId = "equip_004", itemName = "暗影匕首", category = ItemCategory.Equipment,
-                    slot = EquipSlot.Weapon, rarity = ItemRarity.Purple,
-                    attackBonus = 12, defenseBonus = 0, healthBonus = 0, speedBonus = 5,
-                    critRateBonus = 0.15f, specialEffect = "攻击附带流血效果", description = "刺客专用的暗影武器"
-                },
-                new InventoryItem
-                {
-                    itemId = "equip_005", itemName = "圣光铠甲", category = ItemCategory.Equipment,
-                    slot = EquipSlot.Armor, rarity = ItemRarity.Gold,
-                    attackBonus = 2, defenseBonus = 15, healthBonus = 50, speedBonus = -3,
-                    critRateBonus = 0, specialEffect = "受击时10%概率回复20%生命", description = "传说级圣光铠甲"
-                },
-                new InventoryItem
-                {
-                    itemId = "equip_006", itemName = "法师长袍", category = ItemCategory.Equipment,
-                    slot = EquipSlot.Armor, rarity = ItemRarity.Blue,
-                    attackBonus = 6, defenseBonus = 3, healthBonus = 15, speedBonus = 1,
-                    critRateBonus = 0.08f, specialEffect = "法术伤害+15%", description = "为法师定制的蓝色长袍"
-                },
-                new InventoryItem
-                {
-                    itemId = "equip_007", itemName = "疾风之靴", category = ItemCategory.Equipment,
-                    slot = EquipSlot.Accessory, rarity = ItemRarity.Purple,
-                    attackBonus = 0, defenseBonus = 2, healthBonus = 0, speedBonus = 8,
-                    critRateBonus = 0.1f, specialEffect = "闪避率+10%", description = "轻盈的紫色靴子"
-                },
-                new InventoryItem
-                {
-                    itemId = "equip_008", itemName = "短弓", category = ItemCategory.Equipment,
-                    slot = EquipSlot.Weapon, rarity = ItemRarity.White,
-                    attackBonus = 4, defenseBonus = 0, healthBonus = 0, speedBonus = 3,
-                    critRateBonus = 0.05f, specialEffect = "", description = "普通的短弓"
-                }
-            };
-        }
+                Debug.LogWarning("[InventoryPanel] PlayerInventory 未就绪");
+                displayItems = new List<EquipmentData>();
+                return;
+            }
 
-        private List<HeroInfo> GenerateMockHeroes()
-        {
-            return new List<HeroInfo>
-            {
-                new HeroInfo { heroId = "warrior", heroName = "战士", className = "Warrior" },
-                new HeroInfo { heroId = "mage", heroName = "法师", className = "Mage" },
-                new HeroInfo { heroId = "assassin", heroName = "刺客", className = "Assassin" }
-            };
+            // 从后端读取装备列表（按战力排序）
+            displayItems = inv.GetEquipmentsSortedByPower(true);
+            UpdateGoldDisplay(inv.Gold);
+            SwitchTab(currentTab);
         }
 
         // ══════════════════════════════════════
@@ -294,31 +169,25 @@ namespace Game.UI
         {
             currentTab = tab;
 
-            // 更新Tab高亮
             SetTabHighlight(tabAllHighlight, tab == ItemCategory.All);
             SetTabHighlight(tabEquipHighlight, tab == ItemCategory.Equipment);
             SetTabHighlight(tabMaterialHighlight, tab == ItemCategory.Material);
             SetTabHighlight(tabConsumableHighlight, tab == ItemCategory.Consumable);
 
-            // 过滤物品
             var filtered = GetFilteredItems();
 
-            // 重新渲染网格
             ClearGrid();
             RenderGrid(filtered);
-
-            // 重置详情
             ResetDetailPanel();
-            selectedItem = null;
+            selectedEquip = null;
 
-            // Tab切换淡入动画
+            // Tab 切换淡入
             if (gridContent != null)
             {
                 var cg = gridContent.GetComponent<CanvasGroup>();
                 if (cg == null) cg = gridContent.gameObject.AddComponent<CanvasGroup>();
                 cg.alpha = 0f;
-                cg.DOFade(1f, TAB_ANIM_DURATION).SetEase(Ease.OutQuad)
-                    .SetLink(gameObject);
+                cg.DOFade(1f, TAB_ANIM_DURATION).SetEase(Ease.OutQuad).SetLink(gameObject);
             }
         }
 
@@ -326,35 +195,28 @@ namespace Game.UI
         {
             if (highlight == null) return;
             highlight.gameObject.SetActive(active);
-            if (active)
-            {
-                highlight.color = COLOR_RARITY_GOLD;
-            }
+            if (active) highlight.color = COLOR_RARITY_GOLD;
         }
 
-        private List<InventoryItem> GetFilteredItems()
+        private List<EquipmentData> GetFilteredItems()
         {
-            if (currentTab == ItemCategory.All) return allItems;
+            // MVP: 只有装备类，其他Tab返回空
+            if (currentTab == ItemCategory.Material || currentTab == ItemCategory.Consumable)
+                return new List<EquipmentData>();
 
-            var filtered = new List<InventoryItem>();
-            foreach (var item in allItems)
-            {
-                if (item.category == currentTab) filtered.Add(item);
-            }
-
-            // 材料/消耗品 Tab 暂无数据时返回空列表
-            return filtered;
+            return currentTab == ItemCategory.Equipment
+                ? displayItems
+                : displayItems; // All 也显示全部装备
         }
 
         // ══════════════════════════════════════
         // 网格渲染
         // ══════════════════════════════════════
 
-        private void RenderGrid(List<InventoryItem> items)
+        private void RenderGrid(List<EquipmentData> items)
         {
             if (gridContent == null) return;
 
-            // 空状态
             if (items.Count == 0)
             {
                 var emptyGo = new GameObject("EmptyState");
@@ -374,7 +236,6 @@ namespace Game.UI
                 return;
             }
 
-            // 计算网格尺寸
             int rows = Mathf.CeilToInt(items.Count / GRID_COLUMNS);
             float contentHeight = rows * (GRID_CELL_SIZE + GRID_SPACING) + GRID_SPACING;
             gridContent.sizeDelta = new Vector2(gridContent.sizeDelta.x, contentHeight);
@@ -385,17 +246,17 @@ namespace Game.UI
             }
         }
 
-        private void RenderItemCell(InventoryItem item, int index)
+        private void RenderItemCell(EquipmentData equip, int index)
         {
             int col = index % (int)GRID_COLUMNS;
             int row = index / (int)GRID_COLUMNS;
 
-            // 计算位置
             float x = GRID_SPACING + col * (GRID_CELL_SIZE + GRID_SPACING) + GRID_CELL_SIZE / 2f;
-            float y = contentHeight_grid - GRID_SPACING - row * (GRID_CELL_SIZE + GRID_SPACING) - GRID_CELL_SIZE / 2f;
+            float y = gridContent.sizeDelta.y - GRID_SPACING - row * (GRID_CELL_SIZE + GRID_SPACING) - GRID_CELL_SIZE / 2f;
 
-            // 创建格子
-            var go = new GameObject($"Item_{item.itemId}");
+            string cellId = equip.name + "_" + index; // 唯一标识
+
+            var go = new GameObject($"Item_{equip.equipmentName}");
             go.transform.SetParent(gridContent, false);
 
             var rect = go.AddComponent<RectTransform>();
@@ -405,9 +266,9 @@ namespace Game.UI
 
             // 背景（稀有度边框色）
             var bg = go.AddComponent<Image>();
-            bg.color = GetRarityColor(item.rarity);
+            bg.color = GetRarityColor(equip.rarity);
 
-            // 内部区域（暗色背景）
+            // 内部区域
             var innerGo = new GameObject("Inner");
             innerGo.transform.SetParent(go.transform, false);
             var innerRect = innerGo.AddComponent<RectTransform>();
@@ -418,54 +279,32 @@ namespace Game.UI
             var innerBg = innerGo.AddComponent<Image>();
             innerBg.color = new Color(0.15f, 0.15f, 0.2f, 0.95f);
 
-            // 物品图标（用文字模拟）
-            var iconGo = new GameObject("Icon");
-            iconGo.transform.SetParent(innerGo.transform, false);
-            var iconRect = iconGo.AddComponent<RectTransform>();
-            iconRect.anchorMin = Vector2.zero;
-            iconRect.anchorMax = Vector2.one;
-            iconRect.offsetMin = new Vector2(5f, 20f);
-            iconRect.offsetMax = new Vector2(-5f, -10f);
-            var iconText = iconGo.AddComponent<Text>();
-            iconText.text = GetSlotIcon(item.slot);
-            iconText.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
-            iconText.fontSize = 32;
-            iconText.alignment = TextAnchor.MiddleCenter;
-            iconText.color = Color.white;
-            iconText.raycastTarget = false;
+            // 物品图标
+            CreateChildText(innerGo, "Icon",
+                new Vector2(0, 0), Vector2.one,
+                new Vector2(5f, 20f), new Vector2(-5f, -10f),
+                GetSlotIcon(equip.slot), 32, Color.white, TextAnchor.MiddleCenter);
 
-            // 物品名称（底部小字）
-            var nameGo = new GameObject("Name");
-            nameGo.transform.SetParent(innerGo.transform, false);
-            var nameRect = nameGo.AddComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0, 0);
-            nameRect.anchorMax = new Vector2(1, 0.3f);
-            nameRect.offsetMin = new Vector2(2f, 0f);
-            nameRect.offsetMax = new Vector2(-2f, 0f);
-            var nameText = nameGo.AddComponent<Text>();
-            nameText.text = item.itemName;
-            nameText.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
-            nameText.fontSize = 11;
-            nameText.alignment = TextAnchor.MiddleCenter;
-            nameText.color = Color.white;
-            nameText.raycastTarget = false;
+            // 物品名称
+            CreateChildText(innerGo, "Name",
+                new Vector2(0, 0), new Vector2(1, 0.3f),
+                new Vector2(2f, 0f), new Vector2(-2f, 0f),
+                equip.equipmentName, 11, Color.white, TextAnchor.MiddleCenter);
 
             // 点击按钮
             var button = go.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
-            button.onClick.AddListener(() => OnItemClicked(item.itemId));
+            var capturedEquip = equip;
+            var capturedCellId = cellId;
+            button.onClick.AddListener(() => OnItemClicked(capturedEquip, capturedCellId));
 
-            itemCells[item.itemId] = rect;
+            itemCells[cellId] = rect;
         }
-
-        private float contentHeight_grid => gridContent != null ? gridContent.sizeDelta.y : 1000f;
 
         private void ClearGrid()
         {
             foreach (var kvp in itemCells)
-            {
                 if (kvp.Value != null) Destroy(kvp.Value.gameObject);
-            }
             itemCells.Clear();
         }
 
@@ -473,21 +312,22 @@ namespace Game.UI
         // 物品详情
         // ══════════════════════════════════════
 
-        private void OnItemClicked(string itemId)
-        {
-            var item = allItems.Find(i => i.itemId == itemId);
-            if (item == null) return;
+        private string lastClickedCellId;
 
+        private void OnItemClicked(EquipmentData equip, string cellId)
+        {
             // 取消之前的选中
-            if (selectedItem != null && itemCells.TryGetValue(selectedItem.itemId, out var prevRect))
+            if (selectedEquip != null && !string.IsNullOrEmpty(lastClickedCellId)
+                && itemCells.TryGetValue(lastClickedCellId, out var prevRect))
             {
                 prevRect.DOKill();
                 prevRect.localScale = Vector3.one;
             }
 
-            // 选中新物品
-            selectedItem = item;
-            if (itemCells.TryGetValue(itemId, out var rect))
+            selectedEquip = equip;
+            lastClickedCellId = cellId;
+
+            if (itemCells.TryGetValue(cellId, out var rect))
             {
                 rect.DOScale(new Vector3(1.1f, 1.1f, 1f), 0.1f)
                     .SetEase(Ease.OutBack)
@@ -501,38 +341,36 @@ namespace Game.UI
                     });
             }
 
-            // 更新详情面板
-            UpdateDetailPanel(item);
+            UpdateDetailPanel(equip);
         }
 
-        private void UpdateDetailPanel(InventoryItem item)
+        private void UpdateDetailPanel(EquipmentData equip)
         {
             if (detailPanel == null) return;
             detailPanel.gameObject.SetActive(true);
 
-            // 基本信息
             if (detailNameText != null)
-                detailNameText.text = item.itemName;
-            if (detailNameText != null)
-                detailNameText.color = GetRarityColor(item.rarity);
+            {
+                detailNameText.text = equip.equipmentName;
+                detailNameText.color = GetRarityColor(equip.rarity);
+            }
 
             if (detailRarityText != null)
-                detailRarityText.text = $"稀有度: {GetRarityName(item.rarity)}";
+                detailRarityText.text = $"稀有度: {GetRarityName(equip.rarity)}";
 
             if (detailSlotText != null)
-                detailSlotText.text = $"槽位: {GetSlotName(item.slot)}";
+                detailSlotText.text = $"槽位: {GetSlotName(equip.slot)}";
 
-            // 属性加成（绿色正数，红色负数）
-            SetStatText(detailAttackText, "ATK", item.attackBonus);
-            SetStatText(detailDefenseText, "DEF", item.defenseBonus);
-            SetStatText(detailHealthText, "HP", item.healthBonus);
-            SetStatText(detailSpeedText, "SPD", item.speedBonus);
+            SetStatText(detailAttackText, "ATK", equip.attackBonus);
+            SetStatText(detailDefenseText, "DEF", equip.defenseBonus);
+            SetStatText(detailHealthText, "HP", equip.healthBonus);
+            SetStatText(detailSpeedText, "SPD", equip.speedBonus);
 
             if (detailCritText != null)
             {
-                if (item.critRateBonus > 0)
+                if (equip.critRateBonus > 0)
                 {
-                    detailCritText.text = $"CRIT +{item.critRateBonus:P0}";
+                    detailCritText.text = $"CRIT +{equip.critRateBonus:P0}";
                     detailCritText.color = Color.green;
                 }
                 else
@@ -542,35 +380,34 @@ namespace Game.UI
                 }
             }
 
-            // 特效
             if (detailEffectText != null)
             {
-                if (!string.IsNullOrEmpty(item.specialEffect))
-                {
-                    detailEffectText.text = $"⚡ 特效: {item.specialEffect}";
-                    detailEffectText.color = COLOR_RARITY_GOLD;
-                }
-                else
-                {
-                    detailEffectText.text = "";
-                }
+                detailEffectText.text = !string.IsNullOrEmpty(equip.specialEffect)
+                    ? $"⚡ 特效: {equip.specialEffect}"
+                    : "";
+                detailEffectText.color = COLOR_RARITY_GOLD;
             }
 
-            // 描述
             if (detailDescText != null)
-                detailDescText.text = item.description;
+                detailDescText.text = equip.description;
 
-            // 按钮可见性：只有装备才能穿戴
+            // 战力评分
+            if (detailPowerText != null)
+            {
+                int power = PlayerInventory.GetEquipmentPower(equip);
+                detailPowerText.text = $"💪 战力: {power}";
+            }
+
+            // 售价
             if (equipButton != null)
-                equipButton.gameObject.SetActive(item.category == ItemCategory.Equipment);
+                equipButton.gameObject.SetActive(true);
             if (discardButton != null)
                 discardButton.gameObject.SetActive(true);
         }
 
         private void ResetDetailPanel()
         {
-            if (detailPanel == null) return;
-            detailPanel.gameObject.SetActive(false);
+            if (detailPanel != null) detailPanel.gameObject.SetActive(false);
         }
 
         // ══════════════════════════════════════
@@ -579,27 +416,39 @@ namespace Game.UI
 
         private void OnEquipClicked()
         {
-            if (selectedItem == null) return;
-            ShowHeroSelectPopup(selectedItem);
+            if (selectedEquip == null) return;
+            ShowHeroSelectPopup(selectedEquip);
         }
 
-        private void ShowHeroSelectPopup(InventoryItem item)
+        private void ShowHeroSelectPopup(EquipmentData equip)
         {
             if (heroSelectPopup == null || heroListContainer == null) return;
 
             heroSelectPopup.gameObject.SetActive(true);
 
-            // 清除旧英雄按钮
+            // 清除旧按钮
             foreach (Transform child in heroListContainer)
-            {
                 Destroy(child.gameObject);
+
+            // 查找场上英雄（通过 GameStateMachine 或 HeroManager）
+            var heroes = FindActiveHeroes();
+            if (heroes.Count == 0)
+            {
+                var noHeroGo = new GameObject("NoHero");
+                noHeroGo.transform.SetParent(heroListContainer, false);
+                var t = noHeroGo.AddComponent<Text>();
+                t.text = "当前没有英雄";
+                t.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
+                t.fontSize = 18;
+                t.alignment = TextAnchor.MiddleCenter;
+                t.color = Color.gray;
+                return;
             }
 
-            // 生成英雄列表
             for (int i = 0; i < heroes.Count; i++)
             {
                 var hero = heroes[i];
-                var btnGo = new GameObject($"Hero_{hero.heroId}");
+                var btnGo = new GameObject($"Hero_{hero.Data.heroName}");
                 btnGo.transform.SetParent(heroListContainer, false);
 
                 var btnRect = btnGo.AddComponent<RectTransform>();
@@ -611,23 +460,22 @@ namespace Game.UI
                 bg.color = new Color(0.2f, 0.2f, 0.3f, 0.9f);
 
                 var btn = btnGo.AddComponent<Button>();
-                var capturedItem = item;
+                var capturedEquip = equip;
                 var capturedHero = hero;
-                btn.onClick.AddListener(() => OnHeroSelected(capturedItem, capturedHero));
+                btn.onClick.AddListener(() => OnHeroSelected(capturedEquip, capturedHero));
 
-                // 英雄名+当前装备信息
+                // 英雄名 + 当前装备
                 var label = btnGo.AddComponent<Text>();
                 string currentEquip = "";
-                if (hero.equippedItems.TryGetValue(item.slot, out var equipped))
-                    currentEquip = $" (当前: {equipped.itemName})";
-                label.text = $"{GetClassIcon(hero.className)} {hero.heroName}{currentEquip}";
+                if (hero.EquippedItems.TryGetValue(equip.slot, out var equipped))
+                    currentEquip = $" (当前: {equipped.equipmentName})";
+                label.text = $"{GetClassIcon(hero.Data.heroClass)} {hero.Data.heroName}{currentEquip}";
                 label.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
                 label.fontSize = 18;
                 label.alignment = TextAnchor.MiddleCenter;
                 label.color = Color.white;
             }
 
-            // 弹窗缩放入场
             heroSelectPopup.localScale = Vector3.zero;
             heroSelectPopup.DOScale(Vector3.one, 0.25f)
                 .SetEase(Ease.OutBack)
@@ -636,46 +484,21 @@ namespace Game.UI
 
         private void HideHeroSelectPopup()
         {
-            if (heroSelectPopup != null)
-                heroSelectPopup.gameObject.SetActive(false);
+            if (heroSelectPopup != null) heroSelectPopup.gameObject.SetActive(false);
         }
 
-        private void OnHeroSelected(InventoryItem item, HeroInfo hero)
+        private void OnHeroSelected(EquipmentData equip, Hero hero)
         {
-            // TODO: 后端替换为 PlayerInventory.Instance.EquipToHero(item, hero)
+            var inv = PlayerInventory.Instance;
+            if (inv == null) return;
 
-            // 如果该槽位已有装备，自动卸下回背包
-            if (hero.equippedItems.ContainsKey(item.slot))
-            {
-                var oldEquip = hero.equippedItems[item.slot];
-                allItems.Add(oldEquip);
-                hero.equippedItems.Remove(item.slot);
-            }
+            // 后端处理：卸旧装新 + 背包移除 + 触发 OnInventoryChanged
+            inv.EquipToHero(equip, hero);
 
-            // 从背包移除并装备到英雄
-            allItems.Remove(item);
-            hero.equippedItems[item.slot] = item;
+            Debug.Log($"[Inventory] {equip.equipmentName} 装备到 {hero.Data.heroName}");
 
-            Debug.Log($"[Inventory] {item.itemName} 装备到 {hero.heroName}");
-
-            // 装备成功动画：格子飞出
-            if (itemCells.TryGetValue(item.itemId, out var rect))
-            {
-                rect.DOScale(Vector3.zero, 0.3f)
-                    .SetEase(Ease.InBack)
-                    .SetLink(gameObject)
-                    .OnComplete(() =>
-                    {
-                        HideHeroSelectPopup();
-                        // 刷新网格
-                        SwitchTab(currentTab);
-                    });
-            }
-            else
-            {
-                HideHeroSelectPopup();
-                SwitchTab(currentTab);
-            }
+            HideHeroSelectPopup();
+            // OnInventoryChanged 会自动刷新
         }
 
         // ══════════════════════════════════════
@@ -684,17 +507,17 @@ namespace Game.UI
 
         private void OnDiscardClicked()
         {
-            if (selectedItem == null) return;
-            ShowConfirmDiscardPopup(selectedItem);
+            if (selectedEquip == null) return;
+            ShowConfirmDiscardPopup(selectedEquip);
         }
 
-        private void ShowConfirmDiscardPopup(InventoryItem item)
+        private void ShowConfirmDiscardPopup(EquipmentData equip)
         {
             if (confirmDiscardPopup == null) return;
 
             confirmDiscardPopup.gameObject.SetActive(true);
             if (confirmDiscardText != null)
-                confirmDiscardText.text = $"确定丢弃「{item.itemName}」吗？";
+                confirmDiscardText.text = $"确定丢弃「{equip.equipmentName}」吗？";
 
             confirmDiscardPopup.localScale = Vector3.zero;
             confirmDiscardPopup.DOScale(Vector3.one, 0.2f)
@@ -704,38 +527,23 @@ namespace Game.UI
 
         private void HideConfirmDiscardPopup()
         {
-            if (confirmDiscardPopup != null)
-                confirmDiscardPopup.gameObject.SetActive(false);
+            if (confirmDiscardPopup != null) confirmDiscardPopup.gameObject.SetActive(false);
         }
 
         private void OnConfirmDiscard()
         {
-            if (selectedItem == null) return;
+            if (selectedEquip == null) return;
 
-            // TODO: 后端替换为 PlayerInventory.Instance.RemoveEquipment(item)
-            allItems.Remove(selectedItem);
+            var inv = PlayerInventory.Instance;
+            if (inv != null)
+                inv.RemoveEquipment(selectedEquip);
 
-            // 丢弃动画
-            if (itemCells.TryGetValue(selectedItem.itemId, out var rect))
-            {
-                var captured = rect;
-                rect.DOScale(Vector3.zero, 0.3f)
-                    .SetEase(Ease.InBack)
-                    .SetLink(gameObject)
-                    .OnComplete(() =>
-                    {
-                        if (captured != null) Destroy(captured.gameObject);
-                    });
-            }
-
-            Debug.Log($"[Inventory] 丢弃: {selectedItem.itemName}");
+            Debug.Log($"[Inventory] 丢弃: {selectedEquip.equipmentName}");
 
             HideConfirmDiscardPopup();
-            selectedItem = null;
+            selectedEquip = null;
             ResetDetailPanel();
-
-            // 延迟刷新
-            DOVirtual.DelayedCall(0.35f, () => SwitchTab(currentTab));
+            // OnInventoryChanged 自动刷新
         }
 
         private void OnCancelDiscard()
@@ -756,72 +564,75 @@ namespace Game.UI
         // 金币显示
         // ══════════════════════════════════════
 
-        private void UpdateGoldDisplay()
+        private void UpdateGoldDisplay(int gold)
         {
             if (goldText != null)
-                goldText.text = $"💰 {playerGold}";
+                goldText.text = $"💰 {gold}";
+        }
+
+        // ══════════════════════════════════════
+        // 英雄查找
+        // ══════════════════════════════════════
+
+        /// <summary>查找场上活跃英雄（通过场景中的 Hero 组件）</summary>
+        private static List<Hero> FindActiveHeroes()
+        {
+            var heroes = new List<Hero>();
+            // 方案1: 场景中直接查找
+            var allHeroes = Object.FindObjectsByType<Hero>(FindObjectsSortMode.None);
+            foreach (var h in allHeroes)
+            {
+                if (!h.IsDead && h.Data != null)
+                    heroes.Add(h);
+            }
+            return heroes;
         }
 
         // ══════════════════════════════════════
         // 辅助方法
         // ══════════════════════════════════════
 
-        private static Color GetRarityColor(ItemRarity rarity)
+        private static Color GetRarityColor(CardRarity rarity) => rarity switch
         {
-            return rarity switch
-            {
-                ItemRarity.White  => COLOR_RARITY_WHITE,
-                ItemRarity.Blue   => COLOR_RARITY_BLUE,
-                ItemRarity.Purple => COLOR_RARITY_PURPLE,
-                ItemRarity.Gold   => COLOR_RARITY_GOLD,
-                _ => Color.gray
-            };
-        }
+            CardRarity.White  => COLOR_RARITY_WHITE,
+            CardRarity.Blue   => COLOR_RARITY_BLUE,
+            CardRarity.Purple => COLOR_RARITY_PURPLE,
+            CardRarity.Gold   => COLOR_RARITY_GOLD,
+            _ => Color.gray
+        };
 
-        private static string GetRarityName(ItemRarity rarity)
+        private static string GetRarityName(CardRarity rarity) => rarity switch
         {
-            return rarity switch
-            {
-                ItemRarity.White  => "⭐ 普通",
-                ItemRarity.Blue   => "⭐⭐ 稀有",
-                ItemRarity.Purple => "⭐⭐⭐ 史诗",
-                ItemRarity.Gold   => "⭐⭐⭐⭐ 传说",
-                _ => "???"
-            };
-        }
+            CardRarity.White  => "⭐ 普通",
+            CardRarity.Blue   => "⭐⭐ 稀有",
+            CardRarity.Purple => "⭐⭐⭐ 史诗",
+            CardRarity.Gold   => "⭐⭐⭐⭐ 传说",
+            _ => "???"
+        };
 
-        private static string GetSlotName(EquipSlot slot)
+        private static string GetSlotName(EquipmentSlot slot) => slot switch
         {
-            return slot switch
-            {
-                EquipSlot.Weapon    => "🗡 武器",
-                EquipSlot.Armor     => "🛡 防具",
-                EquipSlot.Accessory => "💍 饰品",
-                _ => "???"
-            };
-        }
+            EquipmentSlot.Weapon    => "🗡 武器",
+            EquipmentSlot.Armor     => "🛡 防具",
+            EquipmentSlot.Accessory => "💍 饰品",
+            _ => "???"
+        };
 
-        private static string GetSlotIcon(EquipSlot slot)
+        private static string GetSlotIcon(EquipmentSlot slot) => slot switch
         {
-            return slot switch
-            {
-                EquipSlot.Weapon    => "🗡",
-                EquipSlot.Armor     => "🛡",
-                EquipSlot.Accessory => "💍",
-                _ => "?"
-            };
-        }
+            EquipmentSlot.Weapon    => "🗡",
+            EquipmentSlot.Armor     => "🛡",
+            EquipmentSlot.Accessory => "💍",
+            _ => "?"
+        };
 
-        private static string GetClassIcon(string className)
+        private static string GetClassIcon(string className) => className switch
         {
-            return className switch
-            {
-                "Warrior"  => "⚔",
-                "Mage"     => "🔮",
-                "Assassin" => "🗡",
-                _ => "?"
-            };
-        }
+            "Warrior"  => "⚔",
+            "Mage"     => "🔮",
+            "Assassin" => "🗡",
+            _ => "?"
+        };
 
         private static void SetStatText(Text text, string label, int value)
         {
@@ -841,6 +652,28 @@ namespace Game.UI
                 text.text = $"{label} +0";
                 text.color = Color.gray;
             }
+        }
+
+        /// <summary>创建子物体 Text</summary>
+        private static void CreateChildText(GameObject parent, string name,
+            Vector2 anchorMin, Vector2 anchorMax,
+            Vector2 offsetMin, Vector2 offsetMax,
+            string text, int fontSize, Color color, TextAnchor alignment)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent.transform, false);
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = offsetMin;
+            rect.offsetMax = offsetMax;
+            var t = go.AddComponent<Text>();
+            t.text = text;
+            t.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
+            t.fontSize = fontSize;
+            t.alignment = alignment;
+            t.color = color;
+            t.raycastTarget = false;
         }
 
         private static Color HexColor(string hex)

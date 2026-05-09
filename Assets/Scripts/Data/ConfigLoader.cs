@@ -307,23 +307,11 @@ public class BossEntry
     public int summon_interval_rounds;
 }
 
-public class MechanicEnemiesConfig
-{
-    public string _description;
-    public List<MechanicEnemyEntry> enemies;
-}
-
-public class MechanicEnemyEntry
-{
-    public string id;
-    public string name_cn;
-    public string mechanic;
-    public string mechanic_desc_cn;
-    public EnemyStatsEntry base_stats;
-    public Dictionary<string, object> mechanic_params;
-    public string counter_strategy;
-    public int min_level;
-}
+// NOTE: The old MechanicEnemiesConfig/MechanicEnemyEntry that was nested in EnemiesConfig
+// has been replaced by the standalone mechanic_enemies.json config classes below.
+// The EnemiesConfig.mechanic_enemies field now references the new MechanicEnemiesConfig type.
+// If the old enemies.json still has a mechanic_enemies section, it will deserialize into
+// MechanicEnemiesConfig with mechanic_enemies=null (different field name).
 
 public class EnemyCountFormulaConfig
 {
