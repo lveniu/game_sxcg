@@ -58,6 +58,7 @@ public class RewardOption
 
     // Relic
     public string RelicId { get; set; }
+    public RelicData RelicData { get; set; }  // 直接携带完整遗物数据，前端无需反查
 
     public string GetDisplayText()
     {
@@ -279,7 +280,8 @@ public class RoguelikeRewardSystem
             Name = chosen.relicName,
             Description = chosen.description,
             Rarity = chosen.rarity,
-            RelicId = chosen.relicId
+            RelicId = chosen.relicId,
+            RelicData = chosen  // 直接携带完整遗物数据
         };
     }
 

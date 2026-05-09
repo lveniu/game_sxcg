@@ -661,17 +661,27 @@ namespace Game.UI
 
         /// <summary>
         /// 从RoguelikeRewardSystem获取遗物数据
+        /// 优先从RewardOption携带的RelicData直接取，避免反射
         /// </summary>
         private RelicData GetRelicDataById(string relicId)
         {
-            var rgm = RoguelikeGameManager.Instance;
-            if (rgm?.RewardSystem == null) return null;
+            // 方案1: 从当前奖励列表中直接取（RewardOption已携带RelicData）
+            foreach (var reward in currentRewards)
+            {
+                if (reward.Type == RewardType.Relic && reward.RelicId == relicId && reward.RelicData != null)
+                    return reward.RelicData;
+            }
 
-            // RoguelikeRewardSystem 有 relicDatabase 字段
-            // 用反射获取（因为它是private），或者提供一个公共方法
-            // 这里暂时通过RoguelikeGameManager获取
-            // TODO: 让后端在RewardOption中直接携带RelicData
-            return null; // 暂时返回null，后续后端补充接口后对接
+            // 方案2: 兜底从后端公共方法获取
+            var rgm = RoguelikeGameManager.Instance;
+            if (rgm?.RewardSystem != null)
+            {
+                var data = rgm.RewardSystem.GetRelicData(relicId);
+                if (data != null) return data;
+            }
+
+            Debug.LogWarning($"[RoguelikeRewardPanel] 未找到遗物数据: {relicId}");
+            return null;
         }
 
         // ========== 清理 ==========
