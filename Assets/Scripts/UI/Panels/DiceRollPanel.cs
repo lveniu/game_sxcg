@@ -110,9 +110,10 @@ namespace Game.UI
             rerollButton?.onClick.RemoveAllListeners();
             confirmButton?.onClick.RemoveAllListeners();
 
-            // 只取消临时创建的DiceRoller的事件订阅
-            // 共享的DiceRoller（来自RoguelikeGameManager）不取消，后续关卡继续使用
-            if (diceRoller != null && RoguelikeGameManager.Instance?.DiceRoller != diceRoller)
+            // Bug#1 fix: 始终取消订阅，避免重进时叠加监听器
+            // 共享DiceRoller的OnDiceRolled/OnRerollsExhausted是multicast delegate，
+            // 不取消会导致每次进入DiceRoll面板都叠加回调
+            if (diceRoller != null)
             {
                 diceRoller.OnDiceRolled -= OnDiceRolled;
                 diceRoller.OnRerollsExhausted -= OnRerollsExhausted;
@@ -258,7 +259,9 @@ namespace Game.UI
             // 将骰子组合传给肉鸽管理器，供战斗系统使用
             RoguelikeGameManager.Instance?.SetDiceCombo(currentCombo);
 
-            GameStateMachine.Instance.ChangeState(GameState.Battle);
+            // Bug#4 fix: 使用NextState而非ChangeState，保持状态机流程一致
+            // ChangeState(Battle)跳过了Settlement等中间状态判断
+            GameStateMachine.Instance.NextState(); // DiceRoll → Battle
         }
 
         #endregion

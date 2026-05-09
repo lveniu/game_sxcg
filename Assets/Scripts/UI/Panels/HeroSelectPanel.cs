@@ -139,13 +139,21 @@ namespace Game.UI
             Hero hero = heroObj.AddComponent<Hero>();
             hero.Initialize(heroData, starLevel: 1);
 
-            // 3. 注册到RoguelikeGameManager
-            RoguelikeGameManager.Instance.SelectHero(hero);
+            // Bug#3 fix: 确保RoguelikeGameManager已初始化再调用SelectHero
+            var rgm = RoguelikeGameManager.Instance;
+            if (rgm == null)
+            {
+                // 场景中可能没有RoguelikeGameManager，创建一个
+                var go = new GameObject("RoguelikeGameManager");
+                rgm = go.AddComponent<RoguelikeGameManager>();
+                Debug.Log("[HeroSelect] 自动创建RoguelikeGameManager");
+            }
+            rgm.SelectHero(hero);
 
             Debug.Log($"[HeroSelect] 创建英雄: {heroData.heroName} ({heroData.heroClass}) " +
                       $"HP={hero.MaxHealth} ATK={hero.Attack} DEF={hero.Defense} SPD={hero.Speed}");
 
-            // 4. 切换到骰子阶段
+            // 3. 切换到骰子阶段（通过NextState保持流程一致）
             GameStateMachine.Instance.ChangeState(GameState.DiceRoll);
         }
     }

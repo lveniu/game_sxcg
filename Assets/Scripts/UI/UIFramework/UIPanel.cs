@@ -16,6 +16,9 @@ namespace Game.UI
         [Tooltip("是否缓存面板（不销毁）")]
         public bool cachePanel = true;
 
+        [Tooltip("Bug#7 fix: 是否启用滑入动画（子面板/弹窗等需关闭，避免破坏内部布局）")]
+        public bool slideInAnimation = true;
+
         protected CanvasGroup canvasGroup;
         protected RectTransform rectTransform;
 
@@ -45,9 +48,12 @@ namespace Game.UI
             canvasGroup.DOKill();
             canvasGroup.DOFade(1f, 0.25f).SetEase(Ease.OutQuad);
 
-            // 竖屏从底部滑入
-            rectTransform.anchoredPosition = new Vector2(0, -50f);
-            rectTransform.DOAnchorPosY(0f, 0.25f).SetEase(Ease.OutQuad);
+            // Bug#7 fix: 滑入动画可选，子面板可在Inspector中关闭
+            if (slideInAnimation)
+            {
+                rectTransform.anchoredPosition = new Vector2(0, -50f);
+                rectTransform.DOAnchorPosY(0f, 0.25f).SetEase(Ease.OutQuad);
+            }
 
             OnShow();
         }

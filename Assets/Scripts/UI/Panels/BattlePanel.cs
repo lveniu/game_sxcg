@@ -852,7 +852,7 @@ namespace Game.UI
 
         private void OnResultConfirmClicked()
         {
-            // 点击确认后 → 状态机跳转
+            // Bug#2 fix: 确认后推进状态到Settlement，而非只关弹窗卡死
             resultConfirmButton?.interactable = false;
 
             if (resultPopup != null)
@@ -862,8 +862,14 @@ namespace Game.UI
                     {
                         if (resultPopup != null)
                             resultPopup.gameObject.SetActive(false);
-                        // 由状态机自动处理下一阶段跳转
+                        // 推进状态机到Settlement
+                        GameStateMachine.Instance.ChangeState(GameState.Settlement);
                     });
+            }
+            else
+            {
+                // 无弹窗时直接推进
+                GameStateMachine.Instance.ChangeState(GameState.Settlement);
             }
         }
 
@@ -1299,6 +1305,28 @@ namespace Game.UI
             {
                 if (bar?.rect != null) bar.rect.DOKill();
             }
+        }
+
+        /// <summary>
+        /// Bug#4 fix: 追踪DOTween动画，切场景时统一Kill防止泄漏
+        /// </summary>
+        private void TrackTween(Tween tween)
+        {
+            if (tween != null)
+            {
+                activeTweens.Add(tween);
+                tween.OnKill(() => activeTweens.Remove(tween));
+            }
+        }
+
+        private void KillAllActiveTweens()
+        {
+            foreach (var tween in activeTweens)
+            {
+                if (tween != null && tween.IsActive())
+                    tween.Kill();
+            }
+            activeTweens.Clear();
         }
     }
 }
