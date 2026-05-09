@@ -137,39 +137,33 @@ public class RoguelikeGameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 创建新单位
+    /// 创建新单位并加入队伍
     /// </summary>
     void CreateNewUnit(RewardOption reward)
     {
-        var template = GameBalance.GetHeroTemplate(reward.HeroTemplateName);
-        if (template == null)
+        if (PlayerHeroes.Count >= 5)
         {
-            Debug.LogError($"[肉鸽] 找不到英雄模板: {reward.HeroTemplateName}");
+            Debug.LogWarning($"[肉鸽] 队伍已满({PlayerHeroes.Count}/5)，无法招募新单位");
             return;
         }
 
-        // 创建HeroData
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = reward.HeroTemplateName;
-        data.heroClass = template.HeroClass;
-        data.baseHealth = template.Health;
-        data.baseAttack = template.Attack;
-        data.baseDefense = template.Defense;
-        data.baseSpeed = template.Speed;
-        data.baseCritRate = template.CritRate;
-        data.summonCost = template.SummonCost;
+        // 通过GameData工厂方法创建HeroData
+        HeroData heroData = GameData.CreateHeroDataByTemplateName(reward.HeroTemplateName);
+        if (heroData == null)
+        {
+            Debug.LogError($"[肉鸽] 无法创建英雄模板: {reward.HeroTemplateName}");
+            return;
+        }
 
-        // 发出事件通知外部（如BattleManager）创建实际的Hero GameObject
-        // 此处先记录待创建数据，由OnNewUnitRequested事件驱动外部工厂
-        OnNewUnitRequested?.Invoke(data, reward.Rarity);
-        Debug.Log($"[肉鸽] 新单位请求: {reward.HeroTemplateName} (星{reward.Rarity}) HP={template.Health} ATK={template.Attack}");
+        // 创建GameObject + Hero组件（与CardDeck.SummonHero相同模式）
+        var go = new GameObject($"Hero_{heroData.heroName}");
+        var hero = go.AddComponent<Hero>();
+        hero.Initialize(heroData, reward.Rarity);
+
+        // 加入队伍
+        AddHeroToTeam(hero);
+        Debug.Log($"[肉鸽] 成功招募 {heroData.heroName}（星{reward.Rarity}）加入队伍！当前队伍: {PlayerHeroes.Count}人");
     }
-
-    /// <summary>
-    /// 新单位创建请求事件 — 外部(如BattleManager)订阅此事件来创建Hero GameObject
-    /// 参数: HeroData模板, 推荐星级
-    /// </summary>
-    public event System.Action<HeroData, int> OnNewUnitRequested;
 
     /// <summary>
     /// 添加已创建的Hero到队伍

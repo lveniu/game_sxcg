@@ -24,7 +24,7 @@ public static class BalanceProvider
     private static EconomyConfig _economy;
     private static RelicsConfig _relics;
     private static DiceSystemConfig _diceSystem;
-    private static MechanicEnemiesConfig _mechanicEnemies;
+    private static MechanicEnemiesFileConfig _mechanicEnemies;
     private static FaceEffectsFileConfig _faceEffects;
 
     // 懒加载属性
@@ -37,7 +37,7 @@ public static class BalanceProvider
     public static EconomyConfig Economy => _economy ?? (_economy = ConfigLoader.LoadEconomy());
     public static RelicsConfig Relics => _relics ?? (_relics = ConfigLoader.LoadRelics());
     public static DiceSystemConfig DiceSystem => _diceSystem ?? (_diceSystem = ConfigLoader.LoadDiceSystem());
-    public static MechanicEnemiesConfig MechanicEnemies => _mechanicEnemies ?? (_mechanicEnemies = ConfigLoader.LoadMechanicEnemies());
+    public static MechanicEnemiesFileConfig MechanicEnemies => _mechanicEnemies ?? (_mechanicEnemies = ConfigLoader.LoadMechanicEnemies());
     public static FaceEffectsFileConfig FaceEffects => _faceEffects ?? (_faceEffects = ConfigLoader.LoadFaceEffects());
 
     /// <summary>
@@ -459,7 +459,7 @@ public static class BalanceProvider
     /// <summary>
     /// 获取难度缩放配置
     /// </summary>
-    public static MechanicDifficultyScaling GetMechanicDifficultyScaling()
+    public static MechanicDifficultyScalingConfig GetMechanicDifficultyScaling()
     {
         return MechanicEnemies?.difficulty_scaling;
     }

@@ -199,8 +199,7 @@ namespace Game.UI
             var fee = FaceEffectExecutor.Instance;
             if (fee != null)
             {
-                fee.OnFaceEffectTriggered += OnFaceEffectTriggered;
-                fee.OnFaceEffectUpgraded += OnFaceEffectUpgraded;
+                fee.OnFaceEffectApplied += OnFaceEffectApplied;
             }
 
             // 初始化日志
@@ -250,8 +249,7 @@ namespace Game.UI
             var fee = FaceEffectExecutor.Instance;
             if (fee != null)
             {
-                fee.OnFaceEffectTriggered -= OnFaceEffectTriggered;
-                fee.OnFaceEffectUpgraded -= OnFaceEffectUpgraded;
+                fee.OnFaceEffectApplied -= OnFaceEffectApplied;
             }
 
             speedButton?.onClick.RemoveAllListeners();
@@ -1331,8 +1329,7 @@ namespace Game.UI
             var fee = FaceEffectExecutor.Instance;
             if (fee != null)
             {
-                fee.OnFaceEffectTriggered -= OnFaceEffectTriggered;
-                fee.OnFaceEffectUpgraded -= OnFaceEffectUpgraded;
+                fee.OnFaceEffectApplied -= OnFaceEffectApplied;
             }
 
             base.OnDestroy();
@@ -1385,28 +1382,26 @@ namespace Game.UI
 
         /// <summary>
         /// 面效果触发时的UI反馈 — Toast通知 + 战斗日志
+        /// 后端事件签名: OnFaceEffectApplied(Hero hero, string effectId, string description)
         /// </summary>
-        private void OnFaceEffectTriggered(FaceEffectRuntimeDef effectDef, int diceValue, string description)
+        private void OnFaceEffectApplied(Hero hero, string effectId, string description)
         {
-            if (effectDef == null) return;
+            if (string.IsNullOrEmpty(effectId)) return;
+
+            // 从 BalanceProvider 获取效果配置以读取 effect_type 图标
+            string effectIcon = "🎲";
+            var effectEntry = BalanceProvider.GetFaceEffects()?.Find(e => e.id == effectId);
+            if (effectEntry != null)
+            {
+                effectIcon = GetFaceEffectIcon(effectEntry.effect_type);
+            }
 
             // 战斗日志记录
-            string effectIcon = GetFaceEffectIcon(effectDef.effectType);
-            AddLog($"🎲 {effectIcon} 面效果触发: {description}");
+            string heroName = hero != null ? hero.name : "未知";
+            AddLog($"🎲 {effectIcon} {heroName} 面效果触发: {description}");
 
             // 面效果Toast通知（在战斗面板顶部短暂显示）
-            ShowFaceEffectToast($"{effectIcon} {effectDef.effectName} — {description}");
-        }
-
-        /// <summary>
-        /// 面效果升级时的UI反馈
-        /// </summary>
-        private void OnFaceEffectUpgraded(int diceIndex, FaceEffectRuntimeDef effectDef, int newLevel)
-        {
-            if (effectDef == null) return;
-
-            AddLog($"⬆ 骰子{diceIndex + 1} {effectDef.effectName} 升级至 Lv{newLevel}");
-            ShowFaceEffectToast($"⬆ {effectDef.effectName} → Lv{newLevel}");
+            ShowFaceEffectToast($"{effectIcon} {description}");
         }
 
         /// <summary>
@@ -1422,22 +1417,22 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// 根据面效果类型获取图标
+        /// 根据面效果类型字符串获取图标（匹配后端 FaceEffectEntry.effect_type）
         /// </summary>
-        private static string GetFaceEffectIcon(FaceEffectType type)
+        private static string GetFaceEffectIcon(string effectType)
         {
-            return type switch
+            if (string.IsNullOrEmpty(effectType)) return "🎲";
+            return effectType.ToLower() switch
             {
-                FaceEffectType.Heal => "💚",
-                FaceEffectType.Shield => "🛡",
-                FaceEffectType.ExtraDamage => "⚔",
-                FaceEffectType.AttackSpeed => "⚡",
-                FaceEffectType.Stun => "💫",
-                FaceEffectType.CritBoost => "🎯",
-                FaceEffectType.ArmorBreak => "💔",
-                FaceEffectType.LifeSteal => "🧛",
-                FaceEffectType.Thorns => "🌵",
-                FaceEffectType.Cleanse => "✨",
+                "heal" => "💚",
+                "shield" => "🛡",
+                "buff" => "⚔",
+                "debuff" => "💔",
+                "cc" => "💫",
+                "chainattack" => "⚡",
+                "aoe" => "💥",
+                "cleanse" => "✨",
+                "economy" => "💰",
                 _ => "🎲"
             };
         }

@@ -67,6 +67,8 @@ public class Hero : MonoBehaviour
     public int BattleSpeed { get; set; }
     public float BattleDodgeRate { get; set; }
     public float BattleCritDamage { get; set; } = 0.5f; // 暴击伤害加成 (50%)
+    public float LifeStealRate { get; set; }            // 吸血率（百分比）
+    public float BattleThornsRate { get; set; }          // 战斗荆棘反伤率（百分比）
 
     // 机制怪系统 & 面效果状态
     public bool IsStunned { get; private set; }
@@ -359,6 +361,8 @@ public class Hero : MonoBehaviour
         BattleSpeed = Speed;
         BattleDodgeRate = GetRelicBuffValue(RelicBuffType.DodgeRate);
         BattleCritDamage = 0.5f + GetRelicBuffValue(RelicBuffType.CritDamageBonus);
+        LifeStealRate = GetRelicBuffValue(RelicBuffType.LifeSteal);
+        BattleThornsRate = GetRelicBuffValue(RelicBuffType.Thorns);
         IsStunned = false;
         HasArmorBreak = false;
         LightningChainBounces = 0;

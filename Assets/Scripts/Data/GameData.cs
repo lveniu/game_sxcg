@@ -447,6 +447,36 @@ public static class GameData
         return CreateHeroFromTemplate("狂战士", "狂战士", CreateNormalAttack(), CreateBerserkSkill(), desc: "鲜血与屠杀的化身，越战越勇");
     }
 
+    public static HeroData CreateChainKnightHero()
+    {
+        return CreateHeroFromTemplate("链甲使者", "链甲使者", CreateNormalAttack(), CreateShieldReflectSkill(), desc: "铁壁防御，反弹伤害");
+    }
+
+    public static HeroData CreateWanderingMageHero()
+    {
+        return CreateHeroFromTemplate("巡游法师", "巡游法师", CreateNormalAttack(), CreateFrostNovaSkill(), desc: "冰霜新星控场法师");
+    }
+
+    /// <summary>
+    /// 根据模板名称创建英雄HeroData（工厂方法路由）
+    /// 支持：战士/法师/刺客/链甲使者/狂战士/大法师/巡游法师/影舞者
+    /// </summary>
+    public static HeroData CreateHeroDataByTemplateName(string templateName)
+    {
+        return templateName switch
+        {
+            "战士" => CreateWarriorHero(),
+            "法师" => CreateMageHero(),
+            "刺客" => CreateAssassinHero(),
+            "链甲使者" => CreateChainKnightHero(),
+            "狂战士" => CreateWarriorEvolved(),
+            "大法师" => CreateMageEvolved(),
+            "巡游法师" => CreateWanderingMageHero(),
+            "影舞者" => CreateAssassinEvolved(),
+            _ => CreateWarriorHero() // 默认fallback
+        };
+    }
+
     static SkillData CreateFireballSkill()
     {
         var skill = ScriptableObject.CreateInstance<SkillData>();
@@ -493,6 +523,18 @@ public static class GameData
         skill.effectType = SkillEffectType.Damage;
         skill.effectValue = 20; // 吸血20%伤害
         skill.description = "猛烈攻击并吸收伤害的20%为生命";
+        return skill;
+    }
+
+    static SkillData CreateFrostNovaSkill()
+    {
+        var skill = ScriptableObject.CreateInstance<SkillData>();
+        skill.skillName = "冰霜新星";
+        skill.damageMultiplier = 1.5f;
+        skill.cooldown = 5f;
+        skill.targetType = SkillTargetType.AOE;
+        skill.effectType = SkillEffectType.Damage;
+        skill.description = "释放冰霜新星，对所有敌人造成伤害并减速";
         return skill;
     }
 
