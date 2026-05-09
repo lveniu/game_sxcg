@@ -1,0 +1,130 @@
+{
+  "_version": "1.0.0",
+  "_description": "难度参考锚点: 关卡难度曲线、属性缩放倍率、验证基准",
+  "difficulty_curve": {
+    "_description": "关卡难度分段与缩放倍率",
+    "phases": [
+      {
+        "id": "tutorial",
+        "name_cn": "教学期",
+        "levels": [1, 2],
+        "enemy_stat_multiplier": 0.7,
+        "description_cn": "极简敌人，玩家熟悉操作",
+        "enemy_count": 1,
+        "no_mechanics": true
+      },
+      {
+        "id": "early",
+        "name_cn": "成长期",
+        "levels": [3, 4, 5],
+        "enemy_stat_multiplier": 1.0,
+        "description_cn": "基础难度，引入精英怪",
+        "enemy_count": 2,
+        "boss_at_level": 5,
+        "boss_multiplier": 1.5
+      },
+      {
+        "id": "mid",
+        "name_cn": "中期",
+        "levels": [6, 7, 8, 9],
+        "enemy_stat_multiplier": 1.3,
+        "description_cn": "引入护盾怪/治疗兵，需要策略",
+        "enemy_count": 3,
+        "new_enemy_types": ["shielder", "healer", "venom_spider"]
+      },
+      {
+        "id": "mid_boss",
+        "name_cn": "中后期Boss",
+        "levels": [10],
+        "enemy_stat_multiplier": 1.6,
+        "description_cn": "巨型Boss + 召唤小怪",
+        "enemy_count": 3,
+        "boss_at_level": 10,
+        "boss_multiplier": 2.0
+      },
+      {
+        "id": "late",
+        "name_cn": "后期",
+        "levels": [11, 12, 13, 14],
+        "enemy_stat_multiplier": 1.8,
+        "description_cn": "机制怪登场，每关1个机制怪",
+        "enemy_count": 3,
+        "mechanic_enemy_guaranteed": true
+      },
+      {
+        "id": "final",
+        "name_cn": "终局",
+        "levels": [15],
+        "enemy_stat_multiplier": 2.2,
+        "description_cn": "Boss + 机制怪组合，终极挑战",
+        "enemy_count": 4,
+        "boss_at_level": 15,
+        "boss_multiplier": 2.5
+      },
+      {
+        "id": "endless",
+        "name_cn": "无尽模式",
+        "levels": "16+",
+        "enemy_stat_multiplier_formula": "2.2 + (level - 15) * 0.15",
+        "description_cn": "无限递增，16关起随机组合2种机制",
+        "enemy_count": 4,
+        "mechanic_combo": 2
+      }
+    ]
+  },
+  "reference_anchors": {
+    "_description": "难度验证锚点: 英雄属性 vs 敌人属性，确保玩家有赢面",
+    "level_1": {
+      "hero": {"level": 1, "warrior": {"hp": 150, "atk": 8, "def": 10}, "mage": {"hp": 70, "atk": 12, "def": 3}},
+      "enemy": {"minion": {"hp": 35, "atk": 3, "def": 1}},
+      "ratio_hero_atk_vs_enemy_def": "8 vs 1 → 7 dmg/turn",
+      "ratio_enemy_atk_vs_hero_def": "3 vs 10 → MIN 1 dmg/turn",
+      "turns_to_kill_enemy": "~5",
+      "turns_for_enemy_to_kill_hero": ">100",
+      "verdict": "SAFE - 教学期"
+    },
+    "level_5_boss": {
+      "hero": {"level": 3, "warrior": {"hp": 174, "atk": 10, "def": 13}, "mage": {"hp": 80, "atk": 15, "def": 4}},
+      "enemy_boss": {"hp": 450, "atk": 18, "def": 12},
+      "ratio_hero_atk_vs_boss_def": "avg 12 vs 12 → MIN 1, need combo/reroll",
+      "ratio_boss_atk_vs_hero_def": "18 vs 13 → 5 dmg/turn to warrior",
+      "team_dps_est": "~15/turn (2 heroes + combo)",
+      "turns_to_kill_boss": "~30 turns (within 100 round limit)",
+      "verdict": "CHALLENGING - 需要骰子组合和站位策略"
+    },
+    "level_10_boss": {
+      "hero": {"level": 5, "warrior": {"hp": 198, "atk": 13, "def": 16}, "mage": {"hp": 90, "atk": 19, "def": 4}, "assassin": {"hp": 82, "atk": 22, "def": 4}},
+      "enemy_boss": {"hp": 1000, "atk": 29, "def": 19},
+      "enemy_adds": 2,
+      "team_dps_est": "~35/turn (3 heroes + combo + synergy)",
+      "turns_to_kill_boss": "~29 turns",
+      "verdict": "HARD - 需要遗物+装备+连携"
+    },
+    "level_15_boss": {
+      "hero": {"level": 6, "warrior": {"hp": 222, "atk": 15, "def": 18}, "mage": {"hp": 100, "atk": 22, "def": 5}, "assassin": {"hp": 94, "atk": 28, "def": 5}},
+      "enemy_boss": {"hp": 750, "atk": 30, "def": 18},
+      "enemy_mechanics": 2,
+      "team_dps_est": "~50/turn (3 heroes + combo + synergy + relics + equip)",
+      "turns_to_kill_boss": "~15 turns",
+      "verdict": "VERY HARD - 需要完美配合，骰神眷顾"
+    }
+  },
+  "scaling_formulas": {
+    "enemy_hp": "base_hp * difficulty_multiplier",
+    "enemy_atk": "base_atk * difficulty_multiplier",
+    "enemy_def": "base_def * difficulty_multiplier",
+    "enemy_speed": "base_speed * MIN(difficulty_multiplier, 1.3)",
+    "enemy_crit_rate": "base_crit_rate (不随难度缩放)",
+    "enemy_dodge_rate": "base_dodge_rate (不随难度缩放)",
+    "boss_extra": "boss_multiplier applied on top of difficulty_multiplier"
+  },
+  "balance_principles": {
+    "principle_1": "前期碾压，建立信心",
+    "principle_2": "中期开始需要策略（站位+骰子组合）",
+    "principle_3": "后期需要完整体系（遗物+装备+连携+骰子升级）",
+    "principle_4": "Boss战是检验点，打不过说明build不够强",
+    "principle_5": "散牌保底确保最低体验底线",
+    "principle_6": "无敌机制怪提供解谜感而非纯数值碾压"
+  },
+  "_reserved": {}
+}
