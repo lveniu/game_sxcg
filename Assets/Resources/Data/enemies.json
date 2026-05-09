@@ -1,11 +1,10 @@
 {
-  "_version": "1.0.0",
-  "_description": "敌人/怪物基础数据、机制怪定义、难度缩放规则",
+  "_version": "1.1.0",
+  "_description": "敌人/怪物数据 — 按难度参考体系校准",
   "scaling": {
-    "_description": "所有敌人属性按难度系数等比缩放",
     "formula": "base_stat * difficulty_multiplier",
-    "difficulty_multiplier": "见 levels.json",
-    "note": "暴击率不随难度缩放"
+    "difficulty_multiplier": "见 difficulty_reference.json",
+    "note": "crit_rate不随难度缩放; dodge_rate不随难度缩放"
   },
   "enemy_types": [
     {
@@ -13,86 +12,87 @@
       "name_cn": "小怪",
       "role": "fodder",
       "base_stats": {
-        "max_health": 60,
-        "attack": 6,
-        "defense": 3,
+        "max_health": 50,
+        "attack": 4,
+        "defense": 2,
         "speed": 5,
-        "crit_rate": 0.0
+        "crit_rate": 0.0,
+        "dodge_rate": 0.0
       },
       "skills": [
         "normal_attack"
       ],
       "spawn_weight": 40,
-      "min_level": 1,
-      "_reserved": {}
+      "min_level": 1
     },
     {
       "id": "ranger",
       "name_cn": "弓手",
       "role": "ranged",
       "base_stats": {
-        "max_health": 50,
-        "attack": 10,
+        "max_health": 45,
+        "attack": 9,
         "defense": 2,
         "speed": 8,
-        "crit_rate": 0.05
+        "crit_rate": 0.05,
+        "dodge_rate": 0.03
       },
       "skills": [
         "normal_attack",
         "precision_shot"
       ],
       "spawn_weight": 25,
-      "min_level": 2,
-      "_reserved": {}
+      "min_level": 2
     },
     {
       "id": "brute",
       "name_cn": "重装兵",
       "role": "tank",
       "base_stats": {
-        "max_health": 180,
-        "attack": 10,
-        "defense": 12,
+        "max_health": 120,
+        "attack": 8,
+        "defense": 10,
         "speed": 4,
-        "crit_rate": 0.03
+        "crit_rate": 0.03,
+        "dodge_rate": 0.0
       },
       "skills": [
         "normal_attack",
         "shield_bash"
       ],
       "spawn_weight": 15,
-      "min_level": 3,
-      "_reserved": {}
+      "min_level": 3
     },
     {
       "id": "elite",
       "name_cn": "精英",
       "role": "elite",
       "base_stats": {
-        "max_health": 120,
-        "attack": 12,
-        "defense": 6,
-        "speed": 8,
-        "crit_rate": 0.05
+        "max_health": 80,
+        "attack": 10,
+        "defense": 5,
+        "speed": 7,
+        "crit_rate": 0.05,
+        "dodge_rate": 0.02
       },
       "skills": [
         "normal_attack",
         "aoe_slash"
       ],
       "spawn_weight": 10,
-      "min_level": 3,
-      "_reserved": {}
+      "min_level": 3
     },
     {
       "id": "bomber",
       "name_cn": "自爆怪",
       "role": "suicide",
       "base_stats": {
-        "max_health": 40,
-        "attack": 4,
+        "max_health": 35,
+        "attack": 3,
         "defense": 1,
-        "speed": 8,
-        "crit_rate": 0.0
+        "speed": 10,
+        "crit_rate": 0.0,
+        "dodge_rate": 0.0
       },
       "skills": [
         "normal_attack",
@@ -100,19 +100,19 @@
       ],
       "death_explosion_damage_pct": 0.2,
       "spawn_weight": 10,
-      "min_level": 2,
-      "_reserved": {}
+      "min_level": 2
     },
     {
       "id": "healer",
       "name_cn": "治疗兵",
       "role": "support",
       "base_stats": {
-        "max_health": 80,
-        "attack": 4,
-        "defense": 4,
+        "max_health": 60,
+        "attack": 3,
+        "defense": 3,
         "speed": 6,
-        "crit_rate": 0.0
+        "crit_rate": 0.0,
+        "dodge_rate": 0.0
       },
       "skills": [
         "normal_attack",
@@ -121,38 +121,39 @@
       "heal_amount_pct": 0.15,
       "heal_target": "lowest_hp_ally",
       "spawn_weight": 8,
-      "min_level": 4,
-      "_reserved": {}
+      "min_level": 4
     },
     {
       "id": "shielder",
       "name_cn": "护盾怪",
       "role": "tank",
       "base_stats": {
-        "max_health": 80,
-        "attack": 5,
-        "defense": 8,
+        "max_health": 70,
+        "attack": 4,
+        "defense": 7,
         "speed": 4,
-        "crit_rate": 0.0
+        "crit_rate": 0.0,
+        "dodge_rate": 0.0,
+        "shield_base": 15
       },
       "skills": [
         "normal_attack",
         "shield_bash"
       ],
       "spawn_weight": 10,
-      "min_level": 4,
-      "_reserved": {}
+      "min_level": 4
     },
     {
       "id": "splitter",
       "name_cn": "分裂怪",
       "role": "fodder",
       "base_stats": {
-        "max_health": 100,
-        "attack": 6,
+        "max_health": 80,
+        "attack": 5,
         "defense": 2,
         "speed": 5,
-        "crit_rate": 0.0
+        "crit_rate": 0.0,
+        "dodge_rate": 0.0
       },
       "skills": [
         "normal_attack"
@@ -161,19 +162,19 @@
       "split_count": 2,
       "split_stat_pct": 0.5,
       "spawn_weight": 8,
-      "min_level": 5,
-      "_reserved": {}
+      "min_level": 5
     },
     {
       "id": "stealth",
       "name_cn": "隐身怪",
       "role": "assassin",
       "base_stats": {
-        "max_health": 60,
-        "attack": 10,
+        "max_health": 50,
+        "attack": 9,
         "defense": 2,
         "speed": 12,
-        "crit_rate": 0.1
+        "crit_rate": 0.1,
+        "dodge_rate": 0.08
       },
       "skills": [
         "normal_attack",
@@ -181,19 +182,20 @@
       ],
       "stealth_interval_rounds": 2,
       "spawn_weight": 8,
-      "min_level": 6,
-      "_reserved": {}
+      "min_level": 6
     },
     {
       "id": "curse_mage",
       "name_cn": "诅咒巫师",
       "role": "mage",
       "base_stats": {
-        "max_health": 70,
-        "attack": 8,
-        "defense": 4,
+        "max_health": 55,
+        "attack": 7,
+        "defense": 3,
         "speed": 6,
-        "crit_rate": 0.05
+        "crit_rate": 0.05,
+        "dodge_rate": 0.0,
+        "effect_resist": 0.1
       },
       "skills": [
         "normal_attack",
@@ -202,19 +204,20 @@
       "curse_damage_pct": 0.05,
       "curse_duration": 3,
       "spawn_weight": 8,
-      "min_level": 7,
-      "_reserved": {}
+      "min_level": 7
     },
     {
       "id": "heavy_knight",
       "name_cn": "重装骑士",
       "role": "tank",
       "base_stats": {
-        "max_health": 180,
-        "attack": 10,
-        "defense": 12,
+        "max_health": 140,
+        "attack": 9,
+        "defense": 10,
         "speed": 4,
-        "crit_rate": 0.03
+        "crit_rate": 0.03,
+        "dodge_rate": 0.0,
+        "shield_base": 20
       },
       "skills": [
         "normal_attack",
@@ -222,19 +225,19 @@
         "war_cry"
       ],
       "spawn_weight": 6,
-      "min_level": 6,
-      "_reserved": {}
+      "min_level": 6
     },
     {
       "id": "venom_spider",
       "name_cn": "毒液蜘蛛",
       "role": "ranged",
       "base_stats": {
-        "max_health": 90,
-        "attack": 7,
-        "defense": 5,
+        "max_health": 65,
+        "attack": 6,
+        "defense": 4,
         "speed": 7,
-        "crit_rate": 0.08
+        "crit_rate": 0.08,
+        "dodge_rate": 0.05
       },
       "skills": [
         "normal_attack",
@@ -243,8 +246,7 @@
       "poison_damage_pct": 0.04,
       "poison_duration": 3,
       "spawn_weight": 8,
-      "min_level": 5,
-      "_reserved": {}
+      "min_level": 5
     }
   ],
   "boss_types": [
@@ -254,10 +256,12 @@
       "role": "boss",
       "base_stats": {
         "max_health": 300,
-        "attack": 15,
-        "defense": 10,
+        "attack": 12,
+        "defense": 8,
         "speed": 5,
-        "crit_rate": 0.1
+        "crit_rate": 0.1,
+        "dodge_rate": 0.0,
+        "shield_base": 0
       },
       "skills": [
         "normal_attack",
@@ -266,8 +270,7 @@
       ],
       "enrage_trigger": "hp_below_30pct",
       "enrage_attack_bonus_pct": 0.5,
-      "spawn_level": 5,
-      "_reserved": {}
+      "spawn_level": 5
     },
     {
       "id": "boss_mega",
@@ -275,10 +278,12 @@
       "role": "boss",
       "base_stats": {
         "max_health": 500,
-        "attack": 20,
-        "defense": 15,
+        "attack": 18,
+        "defense": 12,
         "speed": 3,
-        "crit_rate": 0.08
+        "crit_rate": 0.08,
+        "dodge_rate": 0.0,
+        "shield_base": 0
       },
       "skills": [
         "normal_attack",
@@ -287,24 +292,25 @@
       ],
       "summon_count": 2,
       "summon_interval_rounds": 3,
-      "spawn_level": 10,
-      "_reserved": {}
+      "spawn_level": 10
     }
   ],
   "mechanic_enemies": {
-    "_description": "10关后出现的机制怪，打破纯数值碾压",
+    "_description": "10关后机制怪",
     "enemies": [
       {
         "id": "shield_guard",
         "name_cn": "护盾守卫",
         "mechanic": "swap_shield",
-        "mechanic_desc_cn": "每3回合互换护盾（无敌/正常交替）",
+        "mechanic_desc_cn": "每3回合无敌/正常交替",
         "base_stats": {
-          "max_health": 200,
-          "attack": 8,
+          "max_health": 180,
+          "attack": 7,
           "defense": 8,
           "speed": 5,
-          "crit_rate": 0.0
+          "crit_rate": 0.0,
+          "dodge_rate": 0.0,
+          "shield_base": 30
         },
         "mechanic_params": {
           "shield_duration_rounds": 3,
@@ -319,11 +325,13 @@
         "mechanic": "damage_reflect",
         "mechanic_desc_cn": "反弹30%受到的伤害",
         "base_stats": {
-          "max_health": 160,
-          "attack": 10,
+          "max_health": 140,
+          "attack": 9,
           "defense": 5,
           "speed": 7,
-          "crit_rate": 0.05
+          "crit_rate": 0.05,
+          "dodge_rate": 0.0,
+          "thorns_rate": 0.3
         },
         "mechanic_params": {
           "reflect_pct": 0.3
@@ -335,13 +343,14 @@
         "id": "split_mother",
         "name_cn": "分裂母体",
         "mechanic": "split_on_death",
-        "mechanic_desc_cn": "死亡时分裂为2个50%属性的副本",
+        "mechanic_desc_cn": "死亡分裂为2个50%属性副本",
         "base_stats": {
-          "max_health": 240,
-          "attack": 12,
-          "defense": 6,
+          "max_health": 200,
+          "attack": 10,
+          "defense": 5,
           "speed": 4,
-          "crit_rate": 0.0
+          "crit_rate": 0.0,
+          "dodge_rate": 0.0
         },
         "mechanic_params": {
           "split_count": 2,
@@ -357,11 +366,12 @@
         "mechanic": "enrage_on_hp_threshold",
         "mechanic_desc_cn": "血量每降25%攻击+50%",
         "base_stats": {
-          "max_health": 350,
-          "attack": 14,
-          "defense": 8,
+          "max_health": 300,
+          "attack": 12,
+          "defense": 7,
           "speed": 6,
-          "crit_rate": 0.08
+          "crit_rate": 0.08,
+          "dodge_rate": 0.0
         },
         "mechanic_params": {
           "trigger_thresholds_pct": [
@@ -380,11 +390,12 @@
         "mechanic": "periodic_summon",
         "mechanic_desc_cn": "每2回合召唤1个小怪",
         "base_stats": {
-          "max_health": 280,
-          "attack": 12,
-          "defense": 10,
+          "max_health": 240,
+          "attack": 10,
+          "defense": 9,
           "speed": 5,
-          "crit_rate": 0.05
+          "crit_rate": 0.05,
+          "dodge_rate": 0.0
         },
         "mechanic_params": {
           "summon_interval_rounds": 2,
@@ -395,16 +406,16 @@
         "min_level": 15
       }
     ],
-    "_note_16_plus": "16关+随机组合2种机制，需要遗物+阵容配合",
-    "_reserved": {}
+    "_note_16_plus": "16关+随机组合2种机制"
   },
   "enemy_count_formula": {
-    "_description": "每关敌人数量",
     "formula": "MIN(1 + floor(level / 3), 4)",
-    "level_1_to_2": 1,
-    "level_3_to_5": 2,
-    "level_6_to_8": 3,
-    "level_9_plus": 4,
+    "examples": {
+      "level_1_to_2": 1,
+      "level_3_to_5": 2,
+      "level_6_to_8": 3,
+      "level_9_plus": 4
+    },
     "boss_levels": [
       5,
       10,

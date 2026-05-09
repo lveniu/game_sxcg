@@ -41,6 +41,9 @@ namespace Game.UI
         public RoguelikeMapPanel roguelikeMapPanel;
         public InventoryPanel inventoryPanel;
 
+        [Header("子面板 - 卡组编辑")]
+        public CardDeckEditorPanel cardDeckEditorPanel;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -157,6 +160,7 @@ namespace Game.UI
                 "Equip" => equipPanel,
                 "RoguelikeMap" => roguelikeMapPanel,
                 "Inventory" => inventoryPanel,
+                "CardDeckEditor" => cardDeckEditorPanel,
                 _ => null
             };
             if (panel != null) panel.Show();

@@ -1,8 +1,7 @@
 {
-  "_version": "1.0.0",
-  "_description": "肉鸽遗物系统: 遗物定义、效果数值、稀有度",
+  "_version": "1.1.0",
+  "_description": "肉鸽遗物系统: 覆盖12属性 + 特殊效果遗物",
   "rarity_weights": {
-    "_description": "遗物出现权重（随关卡动态调整）",
     "common": {
       "base_weight": 50,
       "min_level": 1
@@ -91,10 +90,23 @@
       "stackable": false
     },
     {
+      "id": "shield_rune",
+      "name_cn": "护盾符文",
+      "rarity": "common",
+      "description_cn": "战斗开始时全体获得护盾(10%最大血量)",
+      "effect_type": "battle_start",
+      "effect": {
+        "shield_pct": 0.1,
+        "target": "all_allies"
+      },
+      "trigger": "on_battle_start",
+      "stackable": false
+    },
+    {
       "id": "vampire_fang",
       "name_cn": "吸血鬼之牙",
       "rarity": "rare",
-      "description_cn": "全体吸血10%（造成的伤害10%回血）",
+      "description_cn": "全体吸血10%",
       "effect_type": "on_hit",
       "effect": {
         "lifesteal_pct": 0.1,
@@ -134,7 +146,7 @@
       "id": "thorns_armor",
       "name_cn": "荆棘铠甲",
       "rarity": "rare",
-      "description_cn": "受击时反弹15%伤害给攻击者",
+      "description_cn": "受击反弹15%伤害",
       "effect_type": "on_hit",
       "effect": {
         "thorns_pct": 0.15
@@ -146,13 +158,55 @@
       "id": "dragon_heart",
       "name_cn": "龙心",
       "rarity": "rare",
-      "description_cn": "每回合结束时回复5%最大血量",
+      "description_cn": "每回合结束回复5%最大血量",
       "effect_type": "on_turn_end",
       "effect": {
         "heal_pct": 0.05,
         "target": "all_allies"
       },
       "trigger": "on_turn_end",
+      "stackable": false
+    },
+    {
+      "id": "shadow_cloak",
+      "name_cn": "暗影斗篷",
+      "rarity": "rare",
+      "description_cn": "全体闪避率+8%",
+      "effect_type": "passive_stat",
+      "effect": {
+        "stat": "dodge_rate",
+        "modifier_flat": 0.08,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
+      "stackable": false
+    },
+    {
+      "id": "holy_pendant",
+      "name_cn": "神圣吊坠",
+      "rarity": "rare",
+      "description_cn": "全体效果抵抗+20%",
+      "effect_type": "passive_stat",
+      "effect": {
+        "stat": "effect_resist",
+        "modifier_flat": 0.2,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
+      "stackable": false
+    },
+    {
+      "id": "true_eye",
+      "name_cn": "真实之眼",
+      "rarity": "rare",
+      "description_cn": "全体命中率+8%（克制闪避敌人）",
+      "effect_type": "passive_stat",
+      "effect": {
+        "stat": "accuracy",
+        "modifier_flat": 0.08,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
       "stackable": false
     },
     {
@@ -181,6 +235,47 @@
       "stackable": false
     },
     {
+      "id": "armor_breaker",
+      "name_cn": "破甲锤",
+      "rarity": "epic",
+      "description_cn": "全体攻击附带30%破甲",
+      "effect_type": "passive_stat",
+      "effect": {
+        "armor_break_pct": 0.3,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
+      "stackable": false
+    },
+    {
+      "id": "berserker_axe",
+      "name_cn": "狂战斧",
+      "rarity": "epic",
+      "description_cn": "全体攻击+25%",
+      "effect_type": "passive_stat",
+      "effect": {
+        "stat": "attack",
+        "modifier_pct": 0.25,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
+      "stackable": false
+    },
+    {
+      "id": "fortress_shield",
+      "name_cn": "堡垒之盾",
+      "rarity": "epic",
+      "description_cn": "战斗开始全体护盾(20%最大血量)+防御+20%",
+      "effect_type": "battle_start",
+      "effect": {
+        "shield_pct": 0.2,
+        "defense_bonus_pct": 0.2,
+        "target": "all_allies"
+      },
+      "trigger": "on_battle_start",
+      "stackable": false
+    },
+    {
       "id": "mechanic_breaker",
       "name_cn": "机制破解器",
       "rarity": "legendary",
@@ -190,6 +285,31 @@
         "mechanic_enemy_damage_bonus_pct": 0.3
       },
       "trigger": "on_attack_mechanic_enemy",
+      "stackable": false
+    },
+    {
+      "id": "hero_heart",
+      "name_cn": "英雄之心",
+      "rarity": "legendary",
+      "description_cn": "全体全属性+10%",
+      "effect_type": "passive_stat",
+      "effect": {
+        "all_stats_bonus_pct": 0.1,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
+      "stackable": false
+    },
+    {
+      "id": "dice_god_hand",
+      "name_cn": "骰神之手",
+      "rarity": "legendary",
+      "description_cn": "每次摇骰自动选择最优结果（AI代选）",
+      "effect_type": "dice_auto_optimize",
+      "effect": {
+        "auto_select_best": true
+      },
+      "trigger": "on_dice_roll",
       "stackable": false
     }
   ],

@@ -1,0 +1,113 @@
+{
+  "_version": "1.0.0",
+  "_description": "经验升级系统: 经验获取、升级表、升星表",
+  "exp_sources": {
+    "level_clear_base": {
+      "formula": "10 * level",
+      "description_cn": "通关基础经验",
+      "distribution": "all_alive_heroes_evenly"
+    },
+    "kill_enemy": {
+      "value": 5,
+      "description_cn": "击杀敌人经验",
+      "distribution": "killing_hero_gets_all"
+    },
+    "boss_kill_bonus": {
+      "value": 30,
+      "description_cn": "Boss击杀额外经验",
+      "distribution": "all_alive_heroes_evenly"
+    },
+    "event_bonus_multiplier": {
+      "value": 1.5,
+      "chance": 0.1,
+      "description_cn": "随机事件: 经验+50%"
+    }
+  },
+  "exp_table": {
+    "_description": "每级所需经验(从上一级到本级), 公式: 20 + (level-1)*30 + MAX(0, level-6)*20",
+    "levels": [
+      {"level": 1, "exp_to_next": 20,  "cumulative": 20,  "est_level_at": 2,  "note": "几乎立刻"},
+      {"level": 2, "exp_to_next": 50,  "cumulative": 70,  "est_level_at": 4,  "note": ""},
+      {"level": 3, "exp_to_next": 80,  "cumulative": 150, "est_level_at": 5,  "note": ""},
+      {"level": 4, "exp_to_next": 110, "cumulative": 260, "est_level_at": 7,  "note": ""},
+      {"level": 5, "exp_to_next": 140, "cumulative": 400, "est_level_at": 9,  "note": ""},
+      {"level": 6, "exp_to_next": 190, "cumulative": 590, "est_level_at": 11, "note": "增速加快"},
+      {"level": 7, "exp_to_next": 220, "cumulative": 810, "est_level_at": 13, "note": ""},
+      {"level": 8, "exp_to_next": 250, "cumulative": 1060, "est_level_at": 16, "note": ""},
+      {"level": 9, "exp_to_next": 280, "cumulative": 1340, "est_level_at": 18, "note": ""},
+      {"level": 10, "exp_to_next": 310, "cumulative": 1650, "est_level_at": 21, "note": "成长放缓"},
+      {"level": 11, "exp_to_next": 340, "cumulative": 1990, "est_level_at": 24, "note": ""},
+      {"level": 12, "exp_to_next": 370, "cumulative": 2360, "est_level_at": 27, "note": ""},
+      {"level": 13, "exp_to_next": 400, "cumulative": 2760, "est_level_at": 30, "note": ""},
+      {"level": 14, "exp_to_next": 430, "cumulative": 3190, "est_level_at": 33, "note": ""},
+      {"level": 15, "exp_to_next": 460, "cumulative": 3650, "est_level_at": 36, "note": ""}
+    ],
+    "formula": "exp_to_next(lvl) = 20 + (lvl - 1) * 30 + MAX(0, lvl - 6) * 20",
+    "max_level": 0,
+    "_note": "max_level=0 表示无等级上限"
+  },
+  "star_upgrade": {
+    "_description": "升星系统: 2合1",
+    "rules": [
+      {
+        "from_star": 1,
+        "to_star": 2,
+        "cost_units": 2,
+        "cost_description_cn": "2张同名★1 → 1张★2",
+        "gold_cost": 0,
+        "est_level_range": "3-5关",
+        "stat_multiplier": 1.5
+      },
+      {
+        "from_star": 2,
+        "to_star": 3,
+        "cost_units": 2,
+        "cost_description_cn": "2张同名★2 → 1张★3",
+        "gold_cost": 0,
+        "est_level_range": "8-12关",
+        "stat_multiplier": 2.2
+      }
+    ],
+    "star_multipliers": {
+      "1": 1.0,
+      "2": 1.5,
+      "3": 2.2
+    },
+    "max_star": 3
+  },
+  "exp_simulation": {
+    "_description": "典型15关经验模拟(假设1英雄存活)",
+    "assumptions": {
+      "heroes_alive": "avg 2 heroes from level 3+",
+      "kill_enemies_per_level": "avg 1.5",
+      "boss_levels": [5, 10, 15]
+    },
+    "per_level_exp": {
+      "level_1": {"base": 10, "kill": 5, "boss": 0, "total_per_hero": 15, "heroes": 1, "total": 15},
+      "level_2": {"base": 20, "kill": 8, "boss": 0, "total_per_hero": 14, "heroes": 1, "total": 14},
+      "level_3": {"base": 30, "kill": 10, "boss": 0, "total_per_hero": 20, "heroes": 2, "total": 40},
+      "level_4": {"base": 40, "kill": 10, "boss": 0, "total_per_hero": 25, "heroes": 2, "total": 50},
+      "level_5": {"base": 50, "kill": 15, "boss": 30, "total_per_hero": 48, "heroes": 2, "total": 95},
+      "level_6": {"base": 60, "kill": 10, "boss": 0, "total_per_hero": 35, "heroes": 2, "total": 70},
+      "level_7": {"base": 70, "kill": 15, "boss": 0, "total_per_hero": 43, "heroes": 3, "total": 128},
+      "level_8": {"base": 80, "kill": 15, "boss": 0, "total_per_hero": 32, "heroes": 3, "total": 95},
+      "level_9": {"base": 90, "kill": 20, "boss": 0, "total_per_hero": 37, "heroes": 3, "total": 110},
+      "level_10": {"base": 100, "kill": 25, "boss": 30, "total_per_hero": 52, "heroes": 3, "total": 155},
+      "level_11": {"base": 110, "kill": 20, "boss": 0, "total_per_hero": 43, "heroes": 3, "total": 130},
+      "level_12": {"base": 120, "kill": 25, "boss": 0, "total_per_hero": 48, "heroes": 3, "total": 145},
+      "level_13": {"base": 130, "kill": 25, "boss": 0, "total_per_hero": 52, "heroes": 3, "total": 155},
+      "level_14": {"base": 140, "kill": 30, "boss": 0, "total_per_hero": 57, "heroes": 3, "total": 170},
+      "level_15": {"base": 150, "kill": 30, "boss": 30, "total_per_hero": 70, "heroes": 3, "total": 210}
+    },
+    "hero_level_progression": {
+      "_description": "单英雄在15关后的预期等级(经验平分到2-3英雄)",
+      "level_1_hero": "Lv1 → Lv2 (第2关)",
+      "level_3_heroes": "Lv2 → Lv3 (第4关)",
+      "level_5_heroes": "Lv3 → Lv4 (第7关)",
+      "level_8_heroes": "Lv4 → Lv5 (第10关)",
+      "level_11_heroes": "Lv5 → Lv6 (第14关)",
+      "_note": "15关结束时主力英雄约Lv5-6"
+    }
+  },
+  "_reserved": {}
+}

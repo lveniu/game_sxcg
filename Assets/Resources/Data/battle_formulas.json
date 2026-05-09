@@ -1,46 +1,79 @@
 {
-  "_version": "1.0.0",
-  "_description": "战斗系统核心公式: 伤害计算、暴击、站位修正、连携技",
+  "_version": "1.1.0",
+  "_description": "战斗系统核心公式: 12属性完整版",
   "damage_formula": {
-    "base_formula": "MAX(1, ROUND(attacker.attack * skill_multiplier * crit_multiplier) - target.defense)",
+    "base_formula": "MAX(1, ROUND(ATK * skill_mult * crit_mult * combo_mult) - DEF * (1 - armor_break))",
     "variables": {
-      "attacker.attack": "攻击方最终攻击力（含buff/debuff）",
-      "skill_multiplier": "技能倍率（见skills.json）",
-      "crit_multiplier": "暴击时 1.5 + crit_damage, 非暴击 1.0",
-      "target.defense": "防御方最终防御力（含buff/debuff）"
+      "ATK": "攻击方最终攻击力（含buff/debuff/站位/连携）",
+      "skill_mult": "技能倍率（见skills.json）",
+      "crit_mult": "暴击时 1.5+crit_damage, 非暴击 1.0",
+      "combo_mult": "骰子组合倍率（散牌1.0/对子2.0/三条1.5x3回合/顺子1.2x2回合）",
+      "DEF": "防御方最终防御力（含buff/debuff）",
+      "armor_break": "破甲百分比（0~1.0）"
     },
-    "min_damage": 1,
-    "_note": "减法公式简单直观，攻防差值直接决定伤害量"
+    "min_damage": 1
   },
   "crit_formula": {
     "check": "random_float < attacker.crit_rate",
     "crit_multiplier_base": 1.5,
-    "crit_damage_additive": "attacker.crit_damage",
     "final_crit_multiplier": "1.5 + attacker.crit_damage",
-    "_example": "暴击率12%, 暴击伤害50% → 暴击时 2.0x 伤害"
+    "_example": "暴击率12%, 暴击伤害50% → 暴击时 2.0x"
+  },
+  "dodge_formula": {
+    "_description": "闪避判定",
+    "effective_dodge": "CLAMP(base_dodge_rate + speed_dodge - attacker.accuracy, 0, 0.40)",
+    "speed_dodge": "MAX(0, (target.speed - attacker.speed) * 0.01)",
+    "check": "random_float < effective_dodge",
+    "on_dodge": "damage = 0",
+    "_note": "闪避上限40%，命中率克制闪避"
+  },
+  "accuracy_formula": {
+    "_description": "命中判定（克制闪避）",
+    "effective_hit": "1.0 - target.effective_dodge + attacker.accuracy",
+    "effective_hit_clamp": "CLAMP(effective_hit, 0.5, 1.0)",
+    "_note": "最低50%命中，最高100%命中"
+  },
+  "lifesteal_formula": {
+    "_description": "吸血判定",
+    "heal_amount": "MAX(1, actual_damage_dealt * attacker.lifesteal_rate)",
+    "_note": "吸血量基于实际造成伤害，不是原始伤害"
+  },
+  "thorns_formula": {
+    "_description": "反伤判定",
+    "reflect_damage": "MAX(1, ROUND(actual_damage_received * target.thorns_rate))",
+    "_note": "反伤可被防御减免，但不可被反伤（防止无限循环）"
+  },
+  "shield_formula": {
+    "_description": "护盾吸收",
+    "shield_amount": "base_shield * (1 + position_shield_bonus)",
+    "damage_to_shield_first": true,
+    "shield_overflow": "excess damage goes to HP",
+    "_note": "护盾优先吸收伤害，溢出部分扣血"
+  },
+  "effect_resist_formula": {
+    "_description": "效果抵抗（抗DOT/抗控制）",
+    "resist_check": "random_float < target.effect_resist",
+    "applies_to": [
+      "burn_dot",
+      "poison_dot",
+      "stun_rounds",
+      "curse"
+    ],
+    "on_resist": "effect_not_applied",
+    "_note": "不影响已生效的DOT，只判定新效果施加时"
+  },
+  "dot_formula": {
+    "_description": "持续伤害（灼烧/中毒/诅咒）",
+    "burn": "target.max_health * burn_pct_per_round",
+    "poison": "target.max_health * poison_pct_per_round * stack_count",
+    "curse": "target.max_health * curse_pct_per_round",
+    "_note": "DOT基于目标最大血量百分比"
   },
   "heal_formula": {
     "base_formula": "healer.attack * heal_multiplier",
-    "heal_multiplier_default": 0.5,
-    "_note": "治疗量基于攻击力 * 治疗倍率"
-  },
-  "dodge_formula": {
-    "check": "random_float < target.dodge_rate",
-    "dodge_rate_sources": [
-      "speed_based",
-      "buff_based",
-      "relic_based"
-    ],
-    "speed_dodge_formula": "MAX(0, (target.speed - attacker.speed) * 0.01)",
-    "_note": "速度差每10点 = 10%闪避率"
-  },
-  "thorns_formula": {
-    "base_formula": "damage_received * thorns_rate",
-    "thorns_rate_default": 0.0,
-    "_note": "荆棘反伤，由遗物提供"
+    "heal_multiplier_default": 0.5
   },
   "position_modifiers": {
-    "_description": "站位修正系数",
     "front": {
       "shield_bonus_pct": 0.3,
       "damage_taken_modifier": 1.0,
@@ -64,7 +97,7 @@
     }
   },
   "synergy_system": {
-    "_description": "连携技: 同职业2+单位触发",
+    "_description": "连携技",
     "synergies": [
       {
         "id": "iron_wall",
@@ -98,8 +131,7 @@
         "all_stats_bonus_pct": 0.1,
         "target": "all_allies"
       }
-    ],
-    "_reserved": {}
+    ]
   },
   "battle_timing": {
     "max_battle_time_sec": 20,
@@ -110,8 +142,7 @@
       4
     ],
     "simulate_battle_max_rounds": 100,
-    "overtime_rule": "compare_remaining_hp_percentage",
-    "_note": "超时按剩余血量百分比判定胜负"
+    "overtime_rule": "compare_remaining_hp_percentage"
   },
   "_reserved": {}
 }

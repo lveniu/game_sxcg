@@ -1,7 +1,7 @@
 {
-  "_version": "1.0.0",
-  "_description": "角色职业基础属性、成长率、定位描述",
-  "_note": "小游戏版精简为3职业: Warrior(战士) / Mage(法师) / Assassin(刺客)",
+  "_version": "1.1.0",
+  "_description": "角色职业基础属性、成长率、定位描述 — 含12属性完整版",
+  "_note": "3职业: Warrior(战士) / Mage(法师) / Assassin(刺客)",
   "classes": [
     {
       "id": "warrior",
@@ -14,7 +14,13 @@
         "defense": 10,
         "speed": 6,
         "crit_rate": 0.02,
-        "crit_damage": 0.5
+        "crit_damage": 0.5,
+        "dodge_rate": 0.0,
+        "accuracy": 0.0,
+        "lifesteal_rate": 0.0,
+        "thorns_rate": 0.0,
+        "shield_base": 0,
+        "effect_resist": 0.0
       },
       "growth_per_level": {
         "max_health": 12,
@@ -22,13 +28,19 @@
         "defense": 1.5,
         "speed": 0.3,
         "crit_rate": 0.002,
-        "crit_damage": 0.02
+        "crit_damage": 0.02,
+        "dodge_rate": 0.001,
+        "accuracy": 0.001,
+        "lifesteal_rate": 0,
+        "thorns_rate": 0,
+        "shield_base": 0.5,
+        "effect_resist": 0.001
       },
       "summon_cost": 2,
       "position_bonus": {
         "front": {
           "defense_multiplier": 1.3,
-          "shield_bonus": 0.3
+          "shield_bonus_pct": 0.3
         },
         "middle": {},
         "back": {
@@ -50,7 +62,13 @@
         "defense": 3,
         "speed": 8,
         "crit_rate": 0.05,
-        "crit_damage": 0.5
+        "crit_damage": 0.5,
+        "dodge_rate": 0.0,
+        "accuracy": 0.0,
+        "lifesteal_rate": 0.0,
+        "thorns_rate": 0.0,
+        "shield_base": 0,
+        "effect_resist": 0.0
       },
       "growth_per_level": {
         "max_health": 5,
@@ -58,7 +76,13 @@
         "defense": 0.4,
         "speed": 0.5,
         "crit_rate": 0.005,
-        "crit_damage": 0.03
+        "crit_damage": 0.03,
+        "dodge_rate": 0.001,
+        "accuracy": 0.001,
+        "lifesteal_rate": 0,
+        "thorns_rate": 0,
+        "shield_base": 0,
+        "effect_resist": 0.002
       },
       "summon_cost": 2,
       "position_bonus": {
@@ -83,7 +107,13 @@
         "defense": 3,
         "speed": 14,
         "crit_rate": 0.12,
-        "crit_damage": 0.5
+        "crit_damage": 0.5,
+        "dodge_rate": 0.05,
+        "accuracy": 0.0,
+        "lifesteal_rate": 0.0,
+        "thorns_rate": 0.0,
+        "shield_base": 0,
+        "effect_resist": 0.0
       },
       "growth_per_level": {
         "max_health": 4,
@@ -91,12 +121,18 @@
         "defense": 0.3,
         "speed": 0.8,
         "crit_rate": 0.008,
-        "crit_damage": 0.04
+        "crit_damage": 0.04,
+        "dodge_rate": 0.003,
+        "accuracy": 0.001,
+        "lifesteal_rate": 0,
+        "thorns_rate": 0,
+        "shield_base": 0,
+        "effect_resist": 0.001
       },
       "summon_cost": 1,
       "position_bonus": {
         "front": {
-          "crit_rate_bonus": 0.05
+          "crit_rate_bonus_pct": 0.05
         },
         "middle": {
           "attack_multiplier": 1.1
@@ -111,7 +147,7 @@
     }
   ],
   "star_rating": {
-    "_description": "星级倍率: 通用公式 1 + (star - 1) * 0.6",
+    "_description": "星级倍率",
     "1": {
       "multiplier": 1.0
     },
@@ -123,12 +159,72 @@
     }
   },
   "roguelike_boost": {
-    "_description": "肉鸽模式中的属性强化百分比（每次强化叠加）",
+    "_description": "肉鸽模式属性强化百分比（每次叠加）",
     "max_health_pct": 0.1,
     "attack_pct": 0.1,
     "defense_pct": 0.1,
     "speed_pct": 0.08,
-    "crit_rate_pct": 0.05
+    "crit_rate_pct": 0.05,
+    "dodge_rate_flat": 0.03,
+    "lifesteal_rate_flat": 0.03,
+    "thorns_rate_flat": 0.03,
+    "effect_resist_flat": 0.05
+  },
+  "stat_caps": {
+    "_description": "属性上下限约束",
+    "max_health": {
+      "min": 1,
+      "max": -1
+    },
+    "attack": {
+      "min": 1,
+      "max": -1
+    },
+    "defense": {
+      "min": 0,
+      "max": -2
+    },
+    "speed": {
+      "min": 1,
+      "max": 30
+    },
+    "crit_rate": {
+      "min": 0,
+      "max": 0.8
+    },
+    "crit_damage": {
+      "min": 0.5,
+      "max": 2.0
+    },
+    "dodge_rate": {
+      "min": 0,
+      "max": 0.4
+    },
+    "accuracy": {
+      "min": 0,
+      "max": 0.5
+    },
+    "lifesteal_rate": {
+      "min": 0,
+      "max": 0.3
+    },
+    "thorns_rate": {
+      "min": 0,
+      "max": 0.3
+    },
+    "shield_base": {
+      "min": 0,
+      "max": -3
+    },
+    "effect_resist": {
+      "min": 0,
+      "max": 0.5
+    },
+    "_cap_codes": {
+      "-1": "no limit",
+      "-2": "attack * 0.8",
+      "-3": "max_health * 0.5"
+    }
   },
   "_reserved": {}
 }
