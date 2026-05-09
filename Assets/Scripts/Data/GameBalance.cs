@@ -2,17 +2,21 @@ using UnityEngine;
 
 /// <summary>
 /// 数值总表 — 集中管理所有游戏数值、公式、难度曲线
+/// 职业统一：Warrior(战士) / Mage(法师) / Assassin(刺客)
 /// </summary>
 public static class GameBalance
 {
     // ========== 难度曲线 ==========
 
     /// <summary>
-    /// 关卡难度系数：每关+15%
+    /// 关卡难度系数：phase_1(1-10关)线性+15%，phase_2(11关+)增速放缓至+5%
     /// </summary>
     public static float GetLevelDifficulty(int levelId)
     {
-        return 1f + (levelId - 1) * 0.15f;
+        if (levelId <= 10)
+            return 1f + (levelId - 1) * 0.15f;
+        else
+            return 2.35f + (levelId - 10) * 0.05f; // 10关时2.35，之后每关+5%
     }
 
     /// <summary>
@@ -29,18 +33,17 @@ public static class GameBalance
     {
         return heroName switch
         {
-            "坦克" => new HeroStatTemplate(150, 8, 10, 6, 0.02f, 2, HeroClass.Tank),
-            "射手" => new HeroStatTemplate(80, 14, 4, 10, 0.08f, 2, HeroClass.Archer),
+            // 三大基础职业
+            "战士" => new HeroStatTemplate(110, 10, 8, 6, 0.05f, 2, HeroClass.Warrior),
+            "法师" => new HeroStatTemplate(70, 12, 3, 8, 0.05f, 2, HeroClass.Mage),
             "刺客" => new HeroStatTemplate(70, 16, 3, 14, 0.12f, 1, HeroClass.Assassin),
-            "法师" => new HeroStatTemplate(70, 12, 3, 8, 0.05f, 2, HeroClass.Archer),
-            "战士" => new HeroStatTemplate(110, 10, 8, 6, 0.05f, 2, HeroClass.Tank),
             // 进化形态
-            "链甲使者" => new HeroStatTemplate(200, 10, 15, 5, 0.03f, 2, HeroClass.Tank),
-            "巡游射手" => new HeroStatTemplate(100, 18, 5, 12, 0.12f, 2, HeroClass.Archer),
+            "链甲使者" => new HeroStatTemplate(200, 10, 15, 5, 0.03f, 2, HeroClass.Warrior),
+            "狂战士" => new HeroStatTemplate(130, 14, 10, 8, 0.08f, 2, HeroClass.Warrior),
+            "大法师" => new HeroStatTemplate(85, 18, 4, 10, 0.08f, 2, HeroClass.Mage),
+            "巡游法师" => new HeroStatTemplate(100, 18, 5, 12, 0.12f, 2, HeroClass.Mage),
             "影舞者" => new HeroStatTemplate(85, 22, 4, 18, 0.20f, 1, HeroClass.Assassin),
-            "大法师" => new HeroStatTemplate(85, 18, 4, 10, 0.08f, 2, HeroClass.Archer),
-            "狂战士" => new HeroStatTemplate(130, 14, 10, 8, 0.08f, 2, HeroClass.Tank),
-            _ => new HeroStatTemplate(100, 10, 5, 8, 0.05f, 1, HeroClass.Tank)
+            _ => new HeroStatTemplate(100, 10, 5, 8, 0.05f, 1, HeroClass.Warrior)
         };
     }
 
@@ -51,18 +54,18 @@ public static class GameBalance
         float diff = GetLevelDifficulty(levelId);
         var baseTemplate = enemyName switch
         {
-            "小怪" => new HeroStatTemplate(60, 6, 3, 5, 0f, 0, HeroClass.Tank),
-            "精英" => new HeroStatTemplate(120, 12, 6, 8, 0.05f, 0, HeroClass.Archer),
-            "Boss" => new HeroStatTemplate(300, 15, 10, 5, 0.1f, 0, HeroClass.Tank),
-            "自爆怪" => new HeroStatTemplate(40, 4, 1, 8, 0f, 0, HeroClass.Tank),
-            "治疗者" => new HeroStatTemplate(50, 5, 2, 4, 0f, 0, HeroClass.Archer),
-            "护盾怪" => new HeroStatTemplate(80, 5, 8, 4, 0f, 0, HeroClass.Tank),
-            "分裂怪" => new HeroStatTemplate(100, 6, 2, 5, 0f, 0, HeroClass.Tank),
+            "小怪" => new HeroStatTemplate(60, 6, 3, 5, 0f, 0, HeroClass.Warrior),
+            "精英" => new HeroStatTemplate(120, 12, 6, 8, 0.05f, 0, HeroClass.Mage),
+            "Boss" => new HeroStatTemplate(300, 15, 10, 5, 0.1f, 0, HeroClass.Warrior),
+            "自爆怪" => new HeroStatTemplate(40, 4, 1, 8, 0f, 0, HeroClass.Warrior),
+            "治疗者" => new HeroStatTemplate(50, 5, 2, 4, 0f, 0, HeroClass.Mage),
+            "护盾怪" => new HeroStatTemplate(80, 5, 8, 4, 0f, 0, HeroClass.Warrior),
+            "分裂怪" => new HeroStatTemplate(100, 6, 2, 5, 0f, 0, HeroClass.Warrior),
             "隐身怪" => new HeroStatTemplate(60, 10, 2, 12, 0.1f, 0, HeroClass.Assassin),
-            "诅咒巫师" => new HeroStatTemplate(70, 8, 4, 6, 0.05f, 0, HeroClass.Archer),
-            "重装骑士" => new HeroStatTemplate(180, 10, 12, 4, 0.03f, 0, HeroClass.Tank),
+            "诅咒巫师" => new HeroStatTemplate(70, 8, 4, 6, 0.05f, 0, HeroClass.Mage),
+            "重装骑士" => new HeroStatTemplate(180, 10, 12, 4, 0.03f, 0, HeroClass.Warrior),
             "毒液蜘蛛" => new HeroStatTemplate(90, 7, 5, 7, 0.08f, 0, HeroClass.Assassin),
-            _ => new HeroStatTemplate(60, 6, 3, 5, 0f, 0, HeroClass.Tank)
+            _ => new HeroStatTemplate(60, 6, 3, 5, 0f, 0, HeroClass.Warrior)
         };
 
         return baseTemplate.Scale(diff);

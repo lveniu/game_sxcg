@@ -60,22 +60,16 @@ public static class GameData
         return card;
     }
 
-    // ========== 英雄数据 ==========
-
-    public static HeroData CreateTankHero()
-    {
-        return CreateHeroFromTemplate("坦克", "坦克", CreateNormalAttack(), CreateShieldBashSkill(), CreateTankEvolved(), "高防高血，吸收伤害，护盾反弹");
-    }
-
-    public static HeroData CreateArcherHero()
-    {
-        return CreateHeroFromTemplate("射手", "射手", CreateNormalAttack(), CreatePierceShotSkill(), CreateArcherEvolved(), "远程输出，越远越痛");
-    }
+    // ========== 英雄数据（三职业：战士/法师/刺客） ==========
 
     public static HeroData CreateAssassinHero()
     {
         return CreateHeroFromTemplate("刺客", "刺客", CreateNormalAttack(), CreateBackstabSkill(), CreateAssassinEvolved(), "高速爆发，闪避背刺");
     }
+
+    // 兼容旧调用 — 转发到三职业版本
+    public static HeroData CreateTankHero() => CreateWarriorHero();
+    public static HeroData CreateArcherHero() => CreateMageHero();
 
     // ========== 敌人数据模板 ==========
 
@@ -300,41 +294,9 @@ public static class GameData
 
     // ========== 英雄进化形态 ==========
 
-    public static HeroData CreateTankEvolved()
-    {
-        var stats = GameBalance.GetHeroTemplate("链甲使者");
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "链甲使者";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = stats.SummonCost;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreateShieldReflectSkill();
-        data.description = "极致防御，护盾反弹伤害";
-        return data;
-    }
+    public static HeroData CreateTankEvolved() => CreateWarriorEvolved();
 
-    public static HeroData CreateArcherEvolved()
-    {
-        var stats = GameBalance.GetHeroTemplate("巡游射手");
-        var data = ScriptableObject.CreateInstance<HeroData>();
-        data.heroName = "巡游射手";
-        data.heroClass = stats.HeroClass;
-        data.baseHealth = stats.Health;
-        data.baseAttack = stats.Attack;
-        data.baseDefense = stats.Defense;
-        data.baseSpeed = stats.Speed;
-        data.baseCritRate = stats.CritRate;
-        data.summonCost = stats.SummonCost;
-        data.normalAttack = CreateNormalAttack();
-        data.activeSkill = CreatePierceShotSkill();
-        data.description = "超远射程，穿透敌阵";
-        return data;
-    }
+    public static HeroData CreateArcherEvolved() => CreateMageEvolved();
 
     public static HeroData CreateAssassinEvolved()
     {

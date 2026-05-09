@@ -479,10 +479,8 @@ namespace Game.UI
             return cardName switch
             {
                 "战士" => GameData.CreateWarriorHero(),
-                "坦克" => GameData.CreateTankHero(),
                 "法师" => GameData.CreateMageHero(),
                 "刺客" => GameData.CreateAssassinHero(),
-                "射手" => GameData.CreateArcherHero(),
                 _ => GameData.CreateWarriorHero() // 默认战士
             };
         }

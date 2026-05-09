@@ -212,7 +212,7 @@ public class IntegrationTest : MonoBehaviour
         foreach (var hero in deck.fieldHeroes)
         {
             int x = heroIndex;
-            int y = hero.Data.heroClass == HeroClass.Tank ? 0 : 2;
+            int y = hero.Data.heroClass == HeroClass.Warrior ? 0 : 2;
             grid.PlaceHero(hero, x, y);
             hero.ApplyRowEffect(grid.GetRow(new Vector2Int(x, y)));
             Debug.Log($"站位: {hero.Data.heroName} → [{x},{y}] ({grid.GetRow(new Vector2Int(x, y))})");
