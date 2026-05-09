@@ -44,6 +44,10 @@ namespace Game.UI
         [Header("子面板 - 卡组编辑")]
         public CardDeckEditorPanel cardDeckEditorPanel;
 
+        [Header("子面板 - 骰子升级&遗物")]
+        public DiceUpgradePanel diceUpgradePanel;
+        public RelicPanel relicPanel;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -161,6 +165,8 @@ namespace Game.UI
                 "RoguelikeMap" => roguelikeMapPanel,
                 "Inventory" => inventoryPanel,
                 "CardDeckEditor" => cardDeckEditorPanel,
+                "DiceUpgrade" => diceUpgradePanel,
+                "Relic" => relicPanel,
                 _ => null
             };
             if (panel != null) panel.Show();
