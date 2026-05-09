@@ -1,0 +1,238 @@
+{
+    "mechanic_enemies": [
+        {
+            "id": "shield_guard",
+            "name_cn": "护盾守卫",
+            "mechanic_type": "ShieldSwap",
+            "description": "每3回合与最低血量友方互换护盾",
+            "phase_tips": [
+                "🎯 护盾守卫正在积蓄护盾",
+                "⚠ 护盾守卫开始互换护盾！",
+                "🔥 护盾守卫进入极限防御！"
+            ],
+            "base_stats": {
+                "health_multiplier": 1.5,
+                "attack_multiplier": 0.8,
+                "defense_multiplier": 2.0,
+                "speed_multiplier": 0.6
+            },
+            "mechanic_params": {
+                "swap_interval_turns": 3,
+                "shield_pct_per_phase": [0.1, 0.15, 0.2]
+            },
+            "reward_bonus": {
+                "relic_drop_chance_bonus": 0.1
+            },
+            "min_level": 11,
+            "max_level": -1
+        },
+        {
+            "id": "reflect_puppet",
+            "name_cn": "反伤傀儡",
+            "mechanic_type": "DamageReflect",
+            "description": "反弹受到伤害的30%",
+            "phase_tips": [
+                "🎯 反伤傀儡的荆棘护甲较弱",
+                "⚠ 反伤傀儡反伤率提升！吸血/低伤应对",
+                "🔥 反傀儡伤害反弹50%！"
+            ],
+            "base_stats": {
+                "health_multiplier": 1.2,
+                "attack_multiplier": 1.0,
+                "defense_multiplier": 1.5,
+                "speed_multiplier": 0.8
+            },
+            "mechanic_params": {
+                "reflect_pct_per_phase": [0.2, 0.3, 0.5],
+                "min_damage_to_reflect": 5
+            },
+            "min_level": 12,
+            "max_level": -1
+        },
+        {
+            "id": "split_mother",
+            "name_cn": "分裂母体",
+            "mechanic_type": "SplitOnDeath",
+            "description": "死亡时分裂为2个50%属性的副本",
+            "phase_tips": [
+                "🎯 分裂母体血量较高",
+                "⚠ 分裂母体即将分裂！AOE清场准备",
+                "🔥 分裂后的副本仍有战斗力！"
+            ],
+            "base_stats": {
+                "health_multiplier": 2.0,
+                "attack_multiplier": 1.0,
+                "defense_multiplier": 0.8,
+                "speed_multiplier": 0.5
+            },
+            "mechanic_params": {
+                "split_count": 2,
+                "split_stat_pct": 0.5,
+                "split_can_split_again": false
+            },
+            "min_level": 13,
+            "max_level": -1
+        },
+        {
+            "id": "berserk_behemoth",
+            "name_cn": "狂暴巨兽",
+            "mechanic_type": "Berserk",
+            "description": "血量每降低25%，攻击+50%",
+            "phase_tips": [
+                "🎯 狂暴巨兽攻击力较低",
+                "⚠ 狂暴巨兽攻击力提升！",
+                "🔥 狂暴巨兽进入狂暴！攻击力极高！"
+            ],
+            "base_stats": {
+                "health_multiplier": 2.5,
+                "attack_multiplier": 0.6,
+                "defense_multiplier": 1.2,
+                "speed_multiplier": 0.7
+            },
+            "mechanic_params": {
+                "atk_bonus_per_threshold": 0.5,
+                "hp_thresholds": [0.75, 0.5, 0.25],
+                "max_stacks": 3
+            },
+            "min_level": 14,
+            "max_level": -1
+        },
+        {
+            "id": "summon_lord",
+            "name_cn": "召唤领主",
+            "mechanic_type": "SpawnMinions",
+            "description": "每2回合召唤1个小怪",
+            "phase_tips": [
+                "🎯 召唤领主正在积蓄力量",
+                "⚠ 召唤速度加快！优先击杀Boss",
+                "🔥 召唤领主每回合召唤！"
+            ],
+            "base_stats": {
+                "health_multiplier": 1.8,
+                "attack_multiplier": 0.7,
+                "defense_multiplier": 1.0,
+                "speed_multiplier": 0.8
+            },
+            "mechanic_params": {
+                "spawn_interval_per_phase": [3, 2, 1],
+                "minion_stat_pct": 0.4,
+                "max_minions": 3,
+                "minion_template": "小怪"
+            },
+            "min_level": 15,
+            "max_level": -1
+        },
+        {
+            "id": "bomb_timer",
+            "name_cn": "定时炸弹",
+            "mechanic_type": "TimeBomb",
+            "description": "5回合后全体高额伤害",
+            "phase_tips": [
+                "🎯 定时炸弹开始倒计时！5回合内击杀",
+                "⚠ 倒计时加速！剩余3回合！",
+                "🔥 最后警告！立即击杀否则团灭！"
+            ],
+            "base_stats": {
+                "health_multiplier": 1.0,
+                "attack_multiplier": 1.2,
+                "defense_multiplier": 0.6,
+                "speed_multiplier": 1.5
+            },
+            "mechanic_params": {
+                "bomb_timer_turns_per_phase": [8, 6, 4],
+                "bomb_damage_pct": 0.8,
+                "show_warning_at_turns_remaining": 3
+            },
+            "min_level": 16,
+            "max_level": -1
+        },
+        {
+            "id": "stealth_assassin",
+            "name_cn": "隐身刺客",
+            "mechanic_type": "StealthAssassin",
+            "description": "每2回合隐身+攻击最高攻击单位",
+            "phase_tips": [
+                "🎯 隐身刺客会定期消失",
+                "⚠ 隐身刺客伤害提高！",
+                "🔥 隐身刺客每次隐身后伤害翻倍！"
+            ],
+            "base_stats": {
+                "health_multiplier": 0.8,
+                "attack_multiplier": 2.0,
+                "defense_multiplier": 0.4,
+                "speed_multiplier": 2.0
+            },
+            "mechanic_params": {
+                "stealth_interval_per_phase": [3, 2, 2],
+                "stealth_damage_multiplier_per_phase": [1.0, 1.5, 2.0],
+                "target_preference": "highest_attack"
+            },
+            "min_level": 17,
+            "max_level": -1
+        },
+        {
+            "id": "curse_spreader",
+            "name_cn": "诅咒法师",
+            "mechanic_type": "CurseSpread",
+            "description": "攻击附带诅咒，被诅咒单位每回合掉血",
+            "phase_tips": [
+                "🎯 诅咒法师的诅咒可被净化",
+                "⚠ 诅咒伤害翻倍！",
+                "🔥 诅咒法师施加不可净化的诅咒！"
+            ],
+            "base_stats": {
+                "health_multiplier": 1.0,
+                "attack_multiplier": 1.5,
+                "defense_multiplier": 0.8,
+                "speed_multiplier": 1.2
+            },
+            "mechanic_params": {
+                "curse_damage_pct_per_phase": [0.03, 0.05, 0.08],
+                "curse_duration": 3,
+                "curse_spread_on_death": true
+            },
+            "min_level": 18,
+            "max_level": -1
+        },
+        {
+            "id": "elemental_shifter",
+            "name_cn": "元素使者",
+            "mechanic_type": "ElementalShift",
+            "description": "每回合切换免疫的职业类型",
+            "phase_tips": [
+                "🎯 元素使者每回合切换免疫",
+                "⚠ 免疫范围扩大！",
+                "🔥 元素使者免疫所有伤害1回合！"
+            ],
+            "base_stats": {
+                "health_multiplier": 1.3,
+                "attack_multiplier": 1.3,
+                "defense_multiplier": 1.0,
+                "speed_multiplier": 1.0
+            },
+            "mechanic_params": {
+                "immune_cycle": ["warrior", "mage", "assassin"],
+                "phase_3_immune_all_duration": 1,
+                "shift_warning_turns_before": 1
+            },
+            "min_level": 19,
+            "max_level": -1
+        }
+    ],
+
+    "combined_mechanics": {
+        "description": "16+关随机组合机制",
+        "min_level_for_combined": 16,
+        "max_mechanics_per_boss": 2,
+        "combination_weights": {
+            "high_damage": ["Berserk", "StealthAssassin"],
+            "defensive": ["ShieldSwap", "DamageReflect"],
+            "swarm": ["SpawnMinions", "CurseSpread"]
+        }
+    },
+
+    "difficulty_scaling": {
+        "stat_multiplier_per_level_above_10": 0.1,
+        "mechanic_strength_per_level_above_10": 0.05
+    }
+}

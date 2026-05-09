@@ -6,87 +6,41 @@ using System.Collections.Generic;
 namespace Game.UI
 {
     // ═══════════════════════════════════════════════════════════
-    // FE-08: 肉鸽地图路径UI — 分层节点图 + 路径连线 + 选择交互
+    // FE-08: 肉鸽地图路径UI — 对接后端 RoguelikeMapSystem
     // ═══════════════════════════════════════════════════════════
     //
     // 布局（竖屏 720×1280）：
     // ┌──────────────────────────────────────┐
-    // │  [返回] 层数 3/15    [遗物] [背包]   │  顶部栏
+    // │  [背包] 层数 3/15    [遗物]          │  顶部栏
     // ├──────────────────────────────────────┤
-    // │                                      │
-    // │         ○─────○                      │  Layer 0 (起始)
+    // │         ○─────○                      │  Layer 0
     // │              │                       │
-    // │    ○───○────○────○───○              │  Layer N (可选)
-    // │         ↑                            │
-    // │      [当前位置]                       │
+    // │    ○───○────○────○───○              │  Layer N
     // ├──────────────────────────────────────┤
-    // │  [节点信息栏：类型/难度/预览]          │  底部信息
+    // │  [节点信息：类型/难度/预览]            │  底部信息
     // │  [确认前往]                           │
     // └──────────────────────────────────────┘
     //
-    // 交互：
-    // 1. 地图垂直滚动（ScrollRect），自动定位到当前层
-    // 2. 可选节点：金色描边 + 呼吸动画
-    // 3. 已访问节点：绿色勾 + 半透明
-    // 4. 不可达节点：暗灰色
-    // 5. 点击可选节点 → 底部信息栏更新 → 确认按钮
-    // 6. 确认 → SelectNode(nodeId) → 状态机切换
+    // 数据源：RoguelikeMapSystem.Instance（后端单例）
+    // 状态驱动：SelectNode() → 后端 DriveStateByNodeType → 状态机切换
     //
-    // 三层动画安全：
-    // - 全部 tween 加 .SetLink(gameObject)
-    // - 基类 UIPanel.Hide() 兜底 DOTween.Kill(gameObject)
-    // - OnComplete 闭包加 null guard
+    // 三层动画安全：所有 tween 加 .SetLink(gameObject)
     // ═══════════════════════════════════════════════════════════
 
-    /// <summary>地图节点类型（与后端 MapNodeType 对齐）</summary>
-    public enum MapNodeType
-    {
-        Battle,      // 普通战斗
-        Elite,       // 精英战斗（高奖励）
-        Event,       // 随机事件
-        Shop,        // 商店
-        Rest,        // 休息点（回复生命）
-        Boss,        // Boss关（每5关强制）
-        Treasure     // 宝箱
-    }
-
-    /// <summary>地图节点数据（Mock版，后端就绪后替换为后端类）</summary>
-    public class MapNode
-    {
-        public string nodeId;
-        public int layer;
-        public int indexInLayer;
-        public MapNodeType nodeType;
-        public bool isVisited;
-        public bool isAvailable;
-        public List<string> nextNodeIds = new List<string>();
-        public List<string> prevNodeIds = new List<string>();
-        public string previewText;
-        public int difficulty;
-    }
-
-    /// <summary>地图整体数据（Mock版）</summary>
-    public class MapData
-    {
-        public List<List<MapNode>> layers = new List<List<MapNode>>();
-        public string currentNodeId;
-        public int totalLayers;
-    }
-
     /// <summary>
-    /// FE-08 肉鸽地图路径面板
-    /// 子面板模式：从 SettlementPanel 或 RoguelikeRewardPanel 打开
+    /// 肉鸽地图路径面板 — 对接后端 RoguelikeMapSystem
+    /// 状态面板模式：GameState.MapSelect 时自动显示
     /// </summary>
     public class RoguelikeMapPanel : UIPanel
     {
         // ──────── 布局常量 ────────
         private const float CANVAS_WIDTH = 720f;
-        private const float LAYER_HEIGHT = 180f;      // 层间距
-        private const float NODE_SIZE = 64f;           // 节点大小
-        private const float NODE_SPACING = 130f;       // 同层节点间距
-        private const float LINE_THICKNESS = 3f;       // 连线粗细
-        private const float PADDING_TOP = 100f;        // 内容区顶部留白
-        private const float BREATH_DURATION = 1.5f;    // 呼吸动画周期
+        private const float LAYER_HEIGHT = 180f;
+        private const float NODE_SIZE = 64f;
+        private const float NODE_SPACING = 130f;
+        private const float LINE_THICKNESS = 3f;
+        private const float PADDING_TOP = 100f;
+        private const float BREATH_DURATION = 1.5f;
 
         // ──────── 节点颜色映射 ────────
         private static readonly Color COLOR_BATTLE    = HexColor("#FF6B6B");
@@ -97,22 +51,19 @@ namespace Game.UI
         private static readonly Color COLOR_BOSS      = HexColor("#8B0000");
         private static readonly Color COLOR_TREASURE  = HexColor("#FF69B4");
 
-        private static readonly Color COLOR_AVAILABLE  = HexColor("#FFD700"); // 金色描边
-        private static readonly Color COLOR_VISITED    = new Color(0.5f, 0.8f, 0.5f, 0.6f);
-        private static readonly Color COLOR_LOCKED     = new Color(0.4f, 0.4f, 0.4f, 0.5f);
+        private static readonly Color COLOR_AVAILABLE   = HexColor("#FFD700");
         private static readonly Color COLOR_LINE_WALKED = HexColor("#FFD700");
         private static readonly Color COLOR_LINE_FUTURE = new Color(0.5f, 0.5f, 0.5f, 0.4f);
 
         // ──────── Inspector 引用 ────────
         [Header("顶部栏")]
         public Text layerProgressText;
-        public Button backButton;
-        public Button relicButton;
         public Button inventoryButton;
+        public Button relicButton;
 
         [Header("地图区域")]
         public ScrollRect mapScrollRect;
-        public RectTransform mapContent;      // ScrollRect 的 content
+        public RectTransform mapContent;
 
         [Header("底部信息栏")]
         public RectTransform bottomInfoBar;
@@ -135,10 +86,11 @@ namespace Game.UI
         protected override void Awake()
         {
             base.Awake();
-            slideInAnimation = false; // 子面板不用滑入
+            slideInAnimation = false;
 
             confirmButton?.onClick.AddListener(OnConfirmClicked);
-            backButton?.onClick.AddListener(OnBackClicked);
+            inventoryButton?.onClick.AddListener(() =>
+                NewUIManager.Instance?.ShowSubPanel("Inventory"));
         }
 
         public override void Show()
@@ -149,7 +101,6 @@ namespace Game.UI
 
         public override void OnShow()
         {
-            // 默认隐藏底部信息栏
             if (bottomInfoBar != null) bottomInfoBar.gameObject.SetActive(false);
         }
 
@@ -159,16 +110,24 @@ namespace Game.UI
         }
 
         // ══════════════════════════════════════
-        // 数据加载（Mock先行，后端就绪后替换）
+        // 数据加载 — 对接后端 RoguelikeMapSystem
         // ══════════════════════════════════════
 
-        /// <summary>加载地图数据并渲染</summary>
+        /// <summary>从后端加载地图数据并渲染</summary>
         private void LoadMapAndRender()
         {
-            // TODO: 后端就绪后替换为 RoguelikeMapSystem.Instance.GenerateMap()
-            currentMapData = GenerateMockMap(15);
+            var mapSystem = RoguelikeMapSystem.Instance;
 
-            // 构建节点查找表
+            // 后端未初始化时安全兜底
+            if (mapSystem == null || mapSystem.CurrentMap == null)
+            {
+                Debug.LogWarning("[MapPanel] RoguelikeMapSystem 未就绪，使用空地图");
+                return;
+            }
+
+            currentMapData = mapSystem.CurrentMap;
+
+            // 使用后端已建好的索引（MapData.BuildIndex）
             nodeLookup.Clear();
             foreach (var layer in currentMapData.layers)
             {
@@ -178,114 +137,11 @@ namespace Game.UI
                 }
             }
 
+            // 确保可达节点标记正确
+            mapSystem.GetAvailableNodes();
+
             RenderMap();
             ScrollToCurrentLayer();
-        }
-
-        /// <summary>
-        /// Mock地图生成 — 15层，每层2-4个节点，随机类型
-        /// </summary>
-        private MapData GenerateMockMap(int totalLayers)
-        {
-            var map = new MapData
-            {
-                totalLayers = totalLayers,
-                currentNodeId = "node_0_0"
-            };
-
-            var rand = new System.Random(42); // 固定种子方便测试
-
-            for (int i = 0; i < totalLayers; i++)
-            {
-                int nodeCount = (i == 0) ? 1 : (i == totalLayers - 1) ? 1 : rand.Next(2, 5);
-                var layer = new List<MapNode>();
-
-                for (int j = 0; j < nodeCount; j++)
-                {
-                    var node = new MapNode
-                    {
-                        nodeId = $"node_{i}_{j}",
-                        layer = i,
-                        indexInLayer = j,
-                        nodeType = GetRandomNodeType(rand, i, totalLayers),
-                        isVisited = (i == 0),      // 起始点已访问
-                        isAvailable = (i == 1),     // 第1层可选
-                        previewText = "",
-                        difficulty = Mathf.Clamp(i / 3 + 1, 1, 5)
-                    };
-                    node.previewText = GetPreviewText(node.nodeType, node.difficulty);
-                    layer.Add(node);
-                }
-                map.layers.Add(layer);
-            }
-
-            // 生成连接关系
-            for (int i = 0; i < totalLayers - 1; i++)
-            {
-                var currentLayer = map.layers[i];
-                var nextLayer = map.layers[i + 1];
-
-                foreach (var node in currentLayer)
-                {
-                    // 每个节点连接1-2个下一层节点
-                    int connections = rand.Next(1, Mathf.Min(3, nextLayer.Count + 1));
-                    for (int c = 0; c < connections; c++)
-                    {
-                        int targetIdx = rand.Next(0, nextLayer.Count);
-                        var target = nextLayer[targetIdx];
-                        if (!node.nextNodeIds.Contains(target.nodeId))
-                        {
-                            node.nextNodeIds.Add(target.nodeId);
-                            target.prevNodeIds.Add(node.nodeId);
-                        }
-                    }
-                }
-
-                // 确保下一层每个节点至少有一个前驱
-                foreach (var nextNode in nextLayer)
-                {
-                    if (nextNode.prevNodeIds.Count == 0)
-                    {
-                        int sourceIdx = rand.Next(0, currentLayer.Count);
-                        var source = currentLayer[sourceIdx];
-                        nextNode.prevNodeIds.Add(source.nodeId);
-                        source.nextNodeIds.Add(nextNode.nodeId);
-                    }
-                }
-            }
-
-            return map;
-        }
-
-        private static MapNodeType GetRandomNodeType(System.Random rand, int layer, int total)
-        {
-            // Boss 每5层
-            if (layer > 0 && layer % 5 == 0 && layer < total - 1) return MapNodeType.Boss;
-            // 第0层总是起始(用Rest表示)
-            if (layer == 0) return MapNodeType.Rest;
-
-            double r = rand.NextDouble();
-            if (r < 0.35) return MapNodeType.Battle;
-            if (r < 0.50) return MapNodeType.Elite;
-            if (r < 0.65) return MapNodeType.Event;
-            if (r < 0.78) return MapNodeType.Shop;
-            if (r < 0.90) return MapNodeType.Rest;
-            return MapNodeType.Treasure;
-        }
-
-        private static string GetPreviewText(MapNodeType type, int difficulty)
-        {
-            return type switch
-            {
-                MapNodeType.Battle   => $"⚔ {difficulty}星敌人",
-                MapNodeType.Elite    => $"💀 {difficulty}星精英",
-                MapNodeType.Event    => "❓ 随机事件",
-                MapNodeType.Shop     => "🛒 商店",
-                MapNodeType.Rest     => "⛺ 休息点",
-                MapNodeType.Boss     => $"👹 Boss (Lv.{difficulty})",
-                MapNodeType.Treasure => "🎁 宝箱",
-                _ => "???"
-            };
         }
 
         // ══════════════════════════════════════
@@ -299,8 +155,8 @@ namespace Game.UI
             if (currentMapData == null) return;
 
             int totalLayers = currentMapData.totalLayers;
-            float contentHeight = PADDING_TOP + totalLayers * LAYER_HEIGHT + 200f;
-            mapContent.sizeDelta = new Vector2(CANVAS_WIDTH, contentHeight);
+            float totalHeight = PADDING_TOP + totalLayers * LAYER_HEIGHT + 200f;
+            mapContent.sizeDelta = new Vector2(CANVAS_WIDTH, totalHeight);
 
             // 1. 先画连线（在节点下面）
             RenderLines();
@@ -321,16 +177,13 @@ namespace Game.UI
             PlayEntryAnimation();
         }
 
-        /// <summary>渲染单个节点</summary>
         private void RenderNode(MapNode node)
         {
-            // 创建节点 GameObject
             var go = new GameObject($"Node_{node.nodeId}");
             go.transform.SetParent(mapContent, false);
 
             var rect = go.AddComponent<RectTransform>();
-            Vector2 pos = GetNodePosition(node);
-            rect.anchoredPosition = pos;
+            rect.anchoredPosition = GetNodePosition(node);
             rect.sizeDelta = new Vector2(NODE_SIZE, NODE_SIZE);
             rect.pivot = new Vector2(0.5f, 0.5f);
 
@@ -339,65 +192,34 @@ namespace Game.UI
             bgImage.color = GetNodeColor(node);
             bgImage.raycastTarget = true;
 
-            // 按钮组件
+            // 按钮
             var button = go.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
             button.onClick.AddListener(() => OnNodeClicked(node.nodeId));
 
-            // 节点类型图标（文字模拟）
-            var iconGo = new GameObject("Icon");
-            iconGo.transform.SetParent(go.transform, false);
-            var iconRect = iconGo.AddComponent<RectTransform>();
-            iconRect.anchorMin = Vector2.zero;
-            iconRect.anchorMax = Vector2.one;
-            iconRect.offsetMin = Vector2.zero;
-            iconRect.offsetMax = Vector2.zero;
-            var iconText = iconGo.AddComponent<Text>();
-            iconText.text = GetNodeIcon(node.nodeType);
-            iconText.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
-            iconText.fontSize = 28;
-            iconText.alignment = TextAnchor.MiddleCenter;
-            iconText.color = Color.white;
-            iconText.raycastTarget = false;
+            // 节点类型图标
+            CreateChildText(go, "Icon", Vector2.zero, Vector2.one,
+                GetNodeIcon(node.nodeType), 28, Color.white, TextAnchor.MiddleCenter);
 
-            // 难度星级（小字）
+            // 难度星级
             if (node.difficulty > 0)
             {
-                var diffGo = new GameObject("Difficulty");
-                diffGo.transform.SetParent(go.transform, false);
-                var diffRect = diffGo.AddComponent<RectTransform>();
-                diffRect.anchorMin = new Vector2(0, 0);
-                diffRect.anchorMax = new Vector2(1, 0.4f);
-                diffRect.offsetMin = Vector2.zero;
-                diffRect.offsetMax = Vector2.zero;
-                var diffText = diffGo.AddComponent<Text>();
-                diffText.text = new string('★', node.difficulty);
-                diffText.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
-                diffText.fontSize = 10;
-                diffText.alignment = TextAnchor.MiddleCenter;
-                diffText.color = Color.yellow;
-                diffText.raycastTarget = false;
+                CreateChildText(go, "Difficulty",
+                    new Vector2(0, 0), new Vector2(1, 0.4f),
+                    new string('★', Mathf.Min(node.difficulty, 5)), 10, Color.yellow, TextAnchor.MiddleCenter);
             }
 
             // 状态装饰
             if (node.isVisited)
-            {
                 ApplyVisitedStyle(rect, bgImage);
-            }
             else if (node.isAvailable)
-            {
                 ApplyAvailableStyle(rect);
-            }
             else
-            {
                 ApplyLockedStyle(bgImage);
-            }
 
-            // 记录
             nodeRects[node.nodeId] = rect;
         }
 
-        /// <summary>渲染所有路径连线</summary>
         private void RenderLines()
         {
             foreach (var layer in currentMapData.layers)
@@ -414,7 +236,6 @@ namespace Game.UI
             }
         }
 
-        /// <summary>画两点之间的连线（Image + 旋转拉伸）</summary>
         private void DrawLine(MapNode from, MapNode to)
         {
             var go = new GameObject($"Line_{from.nodeId}_{to.nodeId}");
@@ -423,19 +244,14 @@ namespace Game.UI
             var rect = go.AddComponent<RectTransform>();
             var image = go.AddComponent<Image>();
             image.raycastTarget = false;
+            image.color = from.isVisited ? COLOR_LINE_WALKED : COLOR_LINE_FUTURE;
 
-            // 路径样式：已走过=金色实线，未走=灰色半透明
-            bool walked = from.isVisited;
-            image.color = walked ? COLOR_LINE_WALKED : COLOR_LINE_FUTURE;
-
-            // 计算起点终点
             Vector2 fromPos = GetNodePosition(from);
             Vector2 toPos = GetNodePosition(to);
             Vector2 delta = toPos - fromPos;
             float distance = delta.magnitude;
             float angle = Mathf.Atan2(delta.x, delta.y) * Mathf.Rad2Deg;
 
-            // 设置位置和旋转
             rect.sizeDelta = new Vector2(LINE_THICKNESS, distance);
             rect.pivot = new Vector2(0.5f, 0f);
             rect.anchoredPosition = fromPos;
@@ -444,19 +260,14 @@ namespace Game.UI
             lineRects.Add(rect);
         }
 
-        /// <summary>清除地图（节点+连线）</summary>
         private void ClearMap()
         {
             foreach (var kvp in nodeRects)
-            {
                 if (kvp.Value != null) Destroy(kvp.Value.gameObject);
-            }
             nodeRects.Clear();
 
             foreach (var line in lineRects)
-            {
                 if (line != null) Destroy(line.gameObject);
-            }
             lineRects.Clear();
 
             nodeLookup.Clear();
@@ -472,78 +283,57 @@ namespace Game.UI
             var layer = currentMapData.layers[node.layer];
             int count = layer.Count;
 
-            // 居中分布
             float totalWidth = (count - 1) * NODE_SPACING;
             float startX = (CANVAS_WIDTH - totalWidth) / 2f;
 
             float x = startX + node.indexInLayer * NODE_SPACING;
-            float y = contentHeight - PADDING_TOP - node.layer * LAYER_HEIGHT;
+            float y = totalContentHeight - PADDING_TOP - node.layer * LAYER_HEIGHT;
 
             return new Vector2(x, y);
         }
 
-        private float contentHeight =>
+        private float totalContentHeight =>
             mapContent != null ? mapContent.sizeDelta.y : 3000f;
 
         // ══════════════════════════════════════
         // 节点样式
         // ══════════════════════════════════════
 
-        private Color GetNodeColor(MapNode node)
+        private static Color GetNodeColor(MapNode node) => node.nodeType switch
         {
-            return node.nodeType switch
-            {
-                MapNodeType.Battle   => COLOR_BATTLE,
-                MapNodeType.Elite    => COLOR_ELITE,
-                MapNodeType.Event    => COLOR_EVENT,
-                MapNodeType.Shop     => COLOR_SHOP,
-                MapNodeType.Rest     => COLOR_REST,
-                MapNodeType.Boss     => COLOR_BOSS,
-                MapNodeType.Treasure => COLOR_TREASURE,
-                _ => Color.gray
-            };
-        }
+            MapNodeType.Battle   => COLOR_BATTLE,
+            MapNodeType.Elite    => COLOR_ELITE,
+            MapNodeType.Event    => COLOR_EVENT,
+            MapNodeType.Shop     => COLOR_SHOP,
+            MapNodeType.Rest     => COLOR_REST,
+            MapNodeType.Boss     => COLOR_BOSS,
+            MapNodeType.Treasure => COLOR_TREASURE,
+            _ => Color.gray
+        };
 
-        private static string GetNodeIcon(MapNodeType type)
+        private static string GetNodeIcon(MapNodeType type) => type switch
         {
-            return type switch
-            {
-                MapNodeType.Battle   => "⚔",
-                MapNodeType.Elite    => "💀",
-                MapNodeType.Event    => "?",
-                MapNodeType.Shop     => "$",
-                MapNodeType.Rest     => "⛺",
-                MapNodeType.Boss     => "👹",
-                MapNodeType.Treasure => "🎁",
-                _ => "?"
-            };
-        }
+            MapNodeType.Battle   => "⚔",
+            MapNodeType.Elite    => "💀",
+            MapNodeType.Event    => "?",
+            MapNodeType.Shop     => "$",
+            MapNodeType.Rest     => "⛺",
+            MapNodeType.Boss     => "👹",
+            MapNodeType.Treasure => "🎁",
+            _ => "?"
+        };
 
         private void ApplyVisitedStyle(RectTransform rect, Image bg)
         {
-            // 半透明 + 绿色调
             bg.color = new Color(0.5f, 0.8f, 0.5f, 0.6f);
-
-            // 添加勾号标记
-            var checkGo = new GameObject("Check");
-            checkGo.transform.SetParent(rect, false);
-            var checkRect = checkGo.AddComponent<RectTransform>();
-            checkRect.anchorMin = new Vector2(0.6f, 0.6f);
-            checkRect.anchorMax = new Vector2(1f, 1f);
-            checkRect.offsetMin = Vector2.zero;
-            checkRect.offsetMax = Vector2.zero;
-            var checkText = checkGo.AddComponent<Text>();
-            checkText.text = "✓";
-            checkText.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
-            checkText.fontSize = 16;
-            checkText.alignment = TextAnchor.MiddleCenter;
-            checkText.color = Color.green;
-            checkText.raycastTarget = false;
+            CreateChildText(rect.gameObject, "Check",
+                new Vector2(0.6f, 0.6f), new Vector2(1f, 1f),
+                "✓", 16, Color.green, TextAnchor.MiddleCenter);
         }
 
         private void ApplyAvailableStyle(RectTransform rect)
         {
-            // 金色描边效果：外层放大一点的半透明金色圈
+            // 金色描边
             var outlineGo = new GameObject("Outline");
             outlineGo.transform.SetParent(rect, false);
             var outlineRect = outlineGo.AddComponent<RectTransform>();
@@ -565,7 +355,7 @@ namespace Game.UI
                 .SetLink(gameObject);
         }
 
-        private void ApplyLockedStyle(Image bg)
+        private static void ApplyLockedStyle(Image bg)
         {
             var c = bg.color;
             bg.color = new Color(c.r * 0.4f, c.g * 0.4f, c.b * 0.4f, 0.5f);
@@ -579,7 +369,6 @@ namespace Game.UI
         {
             if (!nodeLookup.TryGetValue(nodeId, out var node)) return;
 
-            // 只允许点击可选节点
             if (!node.isAvailable)
             {
                 // 不可选时抖动反馈
@@ -598,7 +387,6 @@ namespace Game.UI
                 prevRect.localScale = Vector3.one;
             }
 
-            // 选中当前节点
             selectedNodeId = nodeId;
             if (nodeRects.TryGetValue(nodeId, out var selectedRect))
             {
@@ -607,7 +395,6 @@ namespace Game.UI
                     .SetLink(gameObject);
             }
 
-            // 更新底部信息栏
             UpdateBottomInfo(node);
         }
 
@@ -624,9 +411,12 @@ namespace Game.UI
                 nodePreviewText.text = node.previewText;
 
             if (nodeDifficultyText != null)
-                nodeDifficultyText.text = $"难度: {new string('★', node.difficulty)}{new string('☆', 5 - node.difficulty)}";
+            {
+                int diff = Mathf.Min(node.difficulty, 5);
+                nodeDifficultyText.text = $"难度: {new string('★', diff)}{new string('☆', 5 - diff)}";
+            }
 
-            // 底部栏弹出动画
+            // 底部栏弹出
             bottomInfoBar.anchoredPosition = new Vector2(0, -200f);
             bottomInfoBar.DOAnchorPosY(0f, 0.3f)
                 .SetEase(Ease.OutBack)
@@ -636,53 +426,21 @@ namespace Game.UI
         private void OnConfirmClicked()
         {
             if (string.IsNullOrEmpty(selectedNodeId)) return;
-            if (!nodeLookup.TryGetValue(selectedNodeId, out var node)) return;
 
-            // TODO: 后端就绪后替换为 RoguelikeMapSystem.Instance.SelectNode(selectedNodeId)
-            Debug.Log($"[MapPanel] 选择节点: {selectedNodeId} ({node.nodeType})");
-
-            // 确认动画：选中节点放大脉冲 → 非选中淡出 → 过渡
-            PlayConfirmAnimation(node, () =>
+            // 确认动画 → 调用后端 SelectNode（后端内部驱动状态切换）
+            PlayConfirmAnimation(() =>
             {
-                // 根据节点类型切换状态
-                TransitionByNodeType(node);
+                var mapSystem = RoguelikeMapSystem.Instance;
+                if (mapSystem != null)
+                {
+                    mapSystem.SelectNode(selectedNodeId);
+                    // 后端 SelectNode → DriveStateByNodeType → 自动切换状态 → 本面板 Hide
+                }
+                else
+                {
+                    Debug.LogError("[MapPanel] RoguelikeMapSystem 为空，无法选择节点");
+                }
             });
-        }
-
-        private void OnBackClicked()
-        {
-            Hide();
-        }
-
-        /// <summary>根据节点类型切换到对应游戏阶段</summary>
-        private void TransitionByNodeType(MapNode node)
-        {
-            // TODO: 后端联调时完善状态切换逻辑
-            switch (node.nodeType)
-            {
-                case MapNodeType.Battle:
-                case MapNodeType.Elite:
-                case MapNodeType.Boss:
-                    // 战斗类 → DiceRoll
-                    GameStateMachine.Instance?.ChangeState(GameState.DiceRoll);
-                    break;
-
-                case MapNodeType.Event:
-                    // 事件 → 显示EventPanel子面板
-                    NewUIManager.Instance?.ShowSubPanel("Event");
-                    break;
-
-                case MapNodeType.Shop:
-                    // 商店 → 显示ShopPanel子面板
-                    NewUIManager.Instance?.ShowSubPanel("Shop");
-                    break;
-
-                case MapNodeType.Rest:
-                case MapNodeType.Treasure:
-                    // 休息/宝箱 → 直接进下一关DiceRoll
-                    GameStateMachine.Instance?.ChangeState(GameState.DiceRoll);
-                    break;
-            }
         }
 
         // ══════════════════════════════════════
@@ -693,7 +451,6 @@ namespace Game.UI
         {
             if (currentMapData == null || mapScrollRect == null) return;
 
-            // 找到当前节点所在层
             string currentId = currentMapData.currentNodeId;
             if (!nodeLookup.TryGetValue(currentId, out var currentNode)) return;
 
@@ -701,7 +458,6 @@ namespace Game.UI
             float targetY = PADDING_TOP + (currentMapData.totalLayers - currentNode.layer - 1) * LAYER_HEIGHT;
             float normalizedPos = Mathf.Clamp01(targetY / contentH);
 
-            // 延迟滚动（等渲染完成）
             DOVirtual.DelayedCall(0.3f, () =>
             {
                 if (mapScrollRect != null)
@@ -713,7 +469,6 @@ namespace Game.UI
         // 动画
         // ══════════════════════════════════════
 
-        /// <summary>入场动画：节点从底部依次飞入</summary>
         private void PlayEntryAnimation()
         {
             foreach (var layer in currentMapData.layers)
@@ -723,9 +478,11 @@ namespace Game.UI
                 {
                     if (!nodeRects.TryGetValue(node.nodeId, out var rect)) continue;
 
+                    var targetPos = GetNodePosition(node);
                     rect.anchoredPosition -= new Vector2(0, 80f);
                     rect.localScale = Vector3.zero;
-                    rect.DOAnchorPos(GetNodePosition(node), 0.5f)
+
+                    rect.DOAnchorPos(targetPos, 0.5f)
                         .SetDelay(layerIdx * 0.08f)
                         .SetEase(Ease.OutBack)
                         .SetLink(gameObject);
@@ -737,27 +494,29 @@ namespace Game.UI
             }
         }
 
-        /// <summary>确认动画：选中节点放大脉冲 → 非选中淡出</summary>
-        private void PlayConfirmAnimation(MapNode selected, System.Action onComplete)
+        private void PlayConfirmAnimation(System.Action onComplete)
         {
-            if (!nodeRects.TryGetValue(selected.nodeId, out var selectedRect))
+            if (string.IsNullOrEmpty(selectedNodeId) ||
+                !nodeRects.TryGetValue(selectedNodeId, out var selectedRect))
             {
                 onComplete?.Invoke();
                 return;
             }
 
+            var capturedRect = selectedRect;
+
             // 选中节点脉冲
-            selectedRect.DOScale(Vector3.one * 1.5f, 0.4f)
+            capturedRect.DOScale(Vector3.one * 1.5f, 0.4f)
                 .SetEase(Ease.OutQuad)
                 .SetLink(gameObject)
                 .OnComplete(() =>
                 {
-                    if (selectedRect == null) { onComplete?.Invoke(); return; }
+                    if (capturedRect == null) { onComplete?.Invoke(); return; }
 
                     // 非选中节点淡出
                     foreach (var kvp in nodeRects)
                     {
-                        if (kvp.Key == selected.nodeId) continue;
+                        if (kvp.Key == selectedNodeId) continue;
                         if (kvp.Value != null)
                         {
                             kvp.Value.DOScale(Vector3.zero, 0.3f)
@@ -766,7 +525,6 @@ namespace Game.UI
                         }
                     }
 
-                    // 延迟后执行回调
                     DOVirtual.DelayedCall(0.5f, () => onComplete?.Invoke());
                 });
         }
@@ -784,6 +542,27 @@ namespace Game.UI
                 currentLayer = node.layer;
 
             layerProgressText.text = $"地图 {currentLayer + 1}/{currentMapData.totalLayers}";
+        }
+
+        /// <summary>创建子物体 Text 的快捷方法</summary>
+        private static void CreateChildText(GameObject parent, string name,
+            Vector2 anchorMin, Vector2 anchorMax,
+            string text, int fontSize, Color color, TextAnchor alignment)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent.transform, false);
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var t = go.AddComponent<Text>();
+            t.text = text;
+            t.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
+            t.fontSize = fontSize;
+            t.alignment = alignment;
+            t.color = color;
+            t.raycastTarget = false;
         }
 
         private static Color HexColor(string hex)
