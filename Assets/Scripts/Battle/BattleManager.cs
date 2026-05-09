@@ -367,6 +367,22 @@ public class BattleManager : MonoBehaviour
 
     void RemoveDeadUnits()
     {
+        // 先尝试复活：检查玩家方死亡单位是否有复活遗物可用
+        if (RelicSystem.Instance != null)
+        {
+            for (int i = playerUnits.Count - 1; i >= 0; i--)
+            {
+                var hero = playerUnits[i];
+                if (hero != null && hero.IsDead)
+                {
+                    // 尝试复活，成功则跳过移除
+                    if (RelicSystem.Instance.TryRevive(hero))
+                        continue;
+                }
+            }
+        }
+
+        // 移除确认死亡的单位（复活失败的）
         playerUnits.RemoveAll(u => u == null || u.IsDead);
         enemyUnits.RemoveAll(u => u == null || u.IsDead);
     }
@@ -482,7 +498,16 @@ public class BattleManager : MonoBehaviour
                 AutoChessAI.TakeAction(unit, simPlayers, simEnemies);
             }
 
-            // 清理死亡
+            // 清理死亡（先尝试复活）
+            if (RelicSystem.Instance != null)
+            {
+                for (int i = simPlayers.Count - 1; i >= 0; i--)
+                {
+                    var h = simPlayers[i];
+                    if (h != null && h.IsDead && RelicSystem.Instance.TryRevive(h))
+                        continue;
+                }
+            }
             simPlayers.RemoveAll(u => u == null || u.IsDead);
             simEnemies.RemoveAll(u => u == null || u.IsDead);
 

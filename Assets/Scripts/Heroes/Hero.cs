@@ -250,6 +250,18 @@ public class Hero : MonoBehaviour
     }
 
     /// <summary>
+    /// 复活 — 遗物等效果将已死亡英雄恢复到指定血量
+    /// </summary>
+    public void Revive(int healAmount)
+    {
+        if (!IsDead) return;
+        CurrentHealth = Mathf.Min(MaxHealth, Mathf.Max(1, healAmount));
+        IsStunned = false;
+        HasArmorBreak = false;
+        Debug.Log($"{Data.heroName} 复活！恢复至 {CurrentHealth}/{MaxHealth} HP");
+    }
+
+    /// <summary>
     /// 获得护盾
     /// </summary>
     public void AddShield(int shieldAmount)
@@ -350,6 +362,17 @@ public class Hero : MonoBehaviour
         IsStunned = false;
         HasArmorBreak = false;
         LightningChainBounces = 0;
+    }
+
+    /// <summary>
+    /// 复活：恢复指定血量并清除死亡状态
+    /// </summary>
+    public void Revive(int healthAmount)
+    {
+        CurrentHealth = Mathf.Clamp(healthAmount, 1, MaxHealth);
+        IsStunned = false;
+        HasArmorBreak = false;
+        Debug.Log($"{Data.heroName} 被复活！恢复 {CurrentHealth}/{MaxHealth} HP");
     }
 
     /// <summary>

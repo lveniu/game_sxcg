@@ -157,15 +157,23 @@ public class RelicSystem
     /// </summary>
     public bool TryRevive(Hero hero)
     {
+        if (hero == null || !hero.IsDead) return false;
+
         foreach (var relic in OwnedRelics)
         {
             if (!relic.IsActive || relic.Data == null) continue;
             if (relic.Data.effectType == RelicEffectType.Revive && !relic.HasBeenUsedThisLevel)
             {
+                // 标记遗物本关已使用
                 relic.Trigger();
+
+                // 计算恢复血量（effectValue 为百分比，凤凰羽毛默认 0.5 = 50%）
                 int healAmount = Mathf.RoundToInt(hero.MaxHealth * relic.Data.effectValue);
-                // 复活逻辑需要特殊处理（因为Hero已标记IsDead）
-                Debug.Log($"[遗物] {relic.Data.relicName} 触发复活！恢复 {healAmount} 生命");
+
+                // 执行复活：恢复血量，清除死亡状态
+                hero.Revive(healAmount);
+
+                Debug.Log($"[遗物] {relic.Data.relicName} 触发复活！{hero.Data.heroName} 恢复 {healAmount} 生命 ({hero.CurrentHealth}/{hero.MaxHealth})");
                 OnRelicTriggered?.Invoke(relic);
                 return true;
             }

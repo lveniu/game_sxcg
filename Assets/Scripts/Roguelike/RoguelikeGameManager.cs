@@ -141,11 +141,35 @@ public class RoguelikeGameManager : MonoBehaviour
     /// </summary>
     void CreateNewUnit(RewardOption reward)
     {
-        // 通过GameBalance获取模板数据来创建Hero
         var template = GameBalance.GetHeroTemplate(reward.HeroTemplateName);
-        // Hero是MonoBehaviour，需要外部创建，这里只记录需求
-        Debug.Log($"[肉鸽] 新单位请求: {reward.HeroTemplateName} (星{reward.Rarity})");
+        if (template == null)
+        {
+            Debug.LogError($"[肉鸽] 找不到英雄模板: {reward.HeroTemplateName}");
+            return;
+        }
+
+        // 创建HeroData
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = reward.HeroTemplateName;
+        data.heroClass = template.HeroClass;
+        data.baseHealth = template.Health;
+        data.baseAttack = template.Attack;
+        data.baseDefense = template.Defense;
+        data.baseSpeed = template.Speed;
+        data.baseCritRate = template.CritRate;
+        data.summonCost = template.SummonCost;
+
+        // 发出事件通知外部（如BattleManager）创建实际的Hero GameObject
+        // 此处先记录待创建数据，由OnNewUnitRequested事件驱动外部工厂
+        OnNewUnitRequested?.Invoke(data, reward.Rarity);
+        Debug.Log($"[肉鸽] 新单位请求: {reward.HeroTemplateName} (星{reward.Rarity}) HP={template.Health} ATK={template.Attack}");
     }
+
+    /// <summary>
+    /// 新单位创建请求事件 — 外部(如BattleManager)订阅此事件来创建Hero GameObject
+    /// 参数: HeroData模板, 推荐星级
+    /// </summary>
+    public event System.Action<HeroData, int> OnNewUnitRequested;
 
     /// <summary>
     /// 添加已创建的Hero到队伍

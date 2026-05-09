@@ -658,11 +658,40 @@ public class MechanicEnemySystem
 
     private Hero CreateMinion(string templateName, float statPct)
     {
-        // 简化实现：基于模板创建弱化版英雄
-        // 实际项目中需要通过对象池创建
         Debug.Log($"[MechanicEnemy] 创建小怪: {templateName} ({statPct * 100}%属性)");
-        // MVP: 返回null，实际需要由BattleManager的工厂方法创建
-        return null;
+
+        // 从GameBalance获取模板数据
+        var template = GameBalance.GetHeroTemplate(templateName);
+        if (template == null)
+        {
+            Debug.LogWarning($"[MechanicEnemy] 找不到模板: {templateName}，使用默认小怪模板");
+            template = GameBalance.GetHeroTemplate("小怪");
+        }
+        if (template == null)
+        {
+            Debug.LogError($"[MechanicEnemy] 默认小怪模板也不存在，无法创建");
+            return null;
+        }
+
+        // 创建GameObject + Hero组件
+        var go = new GameObject($"Minion_{templateName}");
+        go.transform.SetParent(transform);
+        var hero = go.AddComponent<Hero>();
+
+        // 构建HeroData
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = templateName;
+        data.heroClass = template.HeroClass;
+        data.baseHealth = Mathf.RoundToInt(template.Health * statPct);
+        data.baseAttack = Mathf.RoundToInt(template.Attack * statPct);
+        data.baseDefense = Mathf.RoundToInt(template.Defense * statPct);
+        data.baseSpeed = Mathf.RoundToInt(template.Speed * statPct);
+        data.baseCritRate = template.CritRate * statPct;
+        data.summonCost = template.SummonCost;
+
+        hero.Initialize(data, starLevel: 1);
+        Debug.Log($"[MechanicEnemy] 小怪创建成功: {templateName} HP={hero.MaxHealth} ATK={hero.Attack}");
+        return hero;
     }
 
     private Hero FindLowestHealthAlly(Hero exclude, List<Hero> allies)
