@@ -41,6 +41,7 @@ public class Hero : MonoBehaviour
     public HeroData Data { get; private set; }
     public int StarLevel { get; private set; } = 1;
     public bool IsDead => CurrentHealth <= 0;
+    public bool IsBoss { get; set; } = false;
 
     // 装备
     public Dictionary<EquipmentSlot, EquipmentData> EquippedItems { get; private set; } = new();
