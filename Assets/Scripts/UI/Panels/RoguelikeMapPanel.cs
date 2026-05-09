@@ -427,13 +427,16 @@ namespace Game.UI
         {
             if (string.IsNullOrEmpty(selectedNodeId)) return;
 
+            // Bug#10 fix: 捕获到局部变量，防止动画回调时 selectedNodeId 已被 ClearMap() 置 null
+            string capturedNodeId = selectedNodeId;
+
             // 确认动画 → 调用后端 SelectNode（后端内部驱动状态切换）
             PlayConfirmAnimation(() =>
             {
                 var mapSystem = RoguelikeMapSystem.Instance;
                 if (mapSystem != null)
                 {
-                    mapSystem.SelectNode(selectedNodeId);
+                    mapSystem.SelectNode(capturedNodeId);
                     // 后端 SelectNode → DriveStateByNodeType → 自动切换状态 → 本面板 Hide
                 }
                 else
@@ -504,6 +507,7 @@ namespace Game.UI
             }
 
             var capturedRect = selectedRect;
+            string capturedId = selectedNodeId;  // Bug#10 fix: 闭包捕获
 
             // 选中节点脉冲
             capturedRect.DOScale(Vector3.one * 1.5f, 0.4f)
@@ -516,7 +520,7 @@ namespace Game.UI
                     // 非选中节点淡出
                     foreach (var kvp in nodeRects)
                     {
-                        if (kvp.Key == selectedNodeId) continue;
+                        if (kvp.Key == capturedId) continue;
                         if (kvp.Value != null)
                         {
                             kvp.Value.DOScale(Vector3.zero, 0.3f)

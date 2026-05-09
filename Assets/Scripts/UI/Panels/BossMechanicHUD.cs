@@ -688,6 +688,24 @@ namespace Game.UI
 
         protected override void OnDestroy()
         {
+            // P2 fix: OnDestroy 时确保退订所有事件，防止面板被直接销毁时泄漏
+            var bm = BattleManager.Instance;
+            if (bm != null)
+            {
+                bm.OnBattleStarted -= OnBattleStarted;
+                bm.OnBattleEnded -= OnBattleEnded;
+            }
+
+            var mes = MechanicEnemySystem.Instance;
+            if (mes != null)
+            {
+                mes.OnMechanicTriggered -= OnMechanicTriggered;
+                mes.OnBossPhaseChanged -= OnBossPhaseChanged;
+                mes.OnMechanicWarning -= OnMechanicWarning;
+                mes.OnMinionsSpawned -= OnMinionsSpawned;
+                mes.OnBombExploded -= OnBombExploded;
+            }
+
             KillAllTweens();
             ClearTips();
             base.OnDestroy();
