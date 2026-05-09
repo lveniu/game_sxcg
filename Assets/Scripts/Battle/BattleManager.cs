@@ -104,6 +104,25 @@ public class BattleManager : MonoBehaviour
         // 应用连携技Buff
         SynergySystem.ApplySynergies(playerUnits);
 
+        // 注册机制怪（如果有Boss）
+        if (MechanicEnemySystem.Instance != null)
+        {
+            int levelId = RoguelikeGameManager.Instance?.CurrentLevel ?? 0;
+            MechanicEnemySystem.Instance.RegisterBossMechanics(enemyUnits, levelId);
+        }
+
+        // 面效果：激活 OnBattleStart 类型
+        if (FaceEffectExecutor.Instance != null && RoguelikeGameManager.Instance != null)
+        {
+            var diceRoller = RoguelikeGameManager.Instance.DiceRoller;
+            if (diceRoller != null && diceRoller.Dices != null && diceRoller.Dices.Length > 0)
+            {
+                var lastVals = LastDiceValues ?? new int[] { 1, 2, 3 };
+                FaceEffectExecutor.Instance.ActivateBattleStartEffects(
+                    diceRoller.Dices, lastVals, playerUnits, enemyUnits);
+            }
+        }
+
         // 战斗开始时根据骰子组合触发一次性效果
         if (diceCombo != null)
         {
@@ -281,10 +300,19 @@ public class BattleManager : MonoBehaviour
         {
             yield return new WaitForSeconds(battleTickInterval / battleSpeed);
 
+            // 机制怪：每tick触发
+            if (MechanicEnemySystem.Instance != null)
+                MechanicEnemySystem.Instance.OnBattleTick(playerUnits, enemyUnits);
+
+            // 面效果：每回合触发
+            if (FaceEffectExecutor.Instance != null)
+                FaceEffectExecutor.Instance.ProcessPerTurnEffects(playerUnits, enemyUnits);
+
             // 我方单位行动
             foreach (var unit in playerUnits)
             {
                 if (unit == null || unit.IsDead) continue;
+                if (unit.IsStunned) { unit.SetStunned(false); continue; } // 眩晕跳过一回合
                 AutoChessAI.TakeAction(unit, enemyUnits, playerUnits);
             }
 
@@ -292,6 +320,11 @@ public class BattleManager : MonoBehaviour
             foreach (var unit in enemyUnits)
             {
                 if (unit == null || unit.IsDead) continue;
+                if (unit.IsStunned) { unit.SetStunned(false); continue; }
+                // 机制怪行为覆盖
+                if (MechanicEnemySystem.Instance != null &&
+                    MechanicEnemySystem.Instance.OverrideEnemyAction(unit, enemyUnits, playerUnits))
+                    continue;
                 AutoChessAI.TakeAction(unit, playerUnits, enemyUnits);
             }
 
@@ -338,6 +371,14 @@ public class BattleManager : MonoBehaviour
         bool allPlayerDead = playerUnits.TrueForAll(u => u == null || u.IsDead);
 
         PlayerWon = allEnemyDead && !allPlayerDead;
+
+        // 清理机制怪战斗状态
+        if (MechanicEnemySystem.Instance != null)
+            MechanicEnemySystem.Instance.ClearBattleState();
+
+        // 清理面效果战斗状态
+        if (FaceEffectExecutor.Instance != null)
+            FaceEffectExecutor.Instance.ClearBattleEffects();
 
         if (PlayerWon)
             Debug.Log("战斗胜利！");

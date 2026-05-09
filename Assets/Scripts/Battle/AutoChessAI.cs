@@ -105,6 +105,17 @@ public static class AutoChessAI
             self.BattleAttack, self.BattleCritRate, self.BattleCritDamage, effectiveDef);
         target.TakeDamage(damage, self);
 
+        // 面效果：OnAttack 触发
+        if (FaceEffectExecutor.Instance != null)
+            FaceEffectExecutor.Instance.ProcessOnAttackEffects(self, target, null, null);
+
+        // 机制怪：Boss受伤通知
+        if (MechanicEnemySystem.Instance != null)
+        {
+            MechanicEnemySystem.Instance.OnBossDamaged(target, damage, self);
+            MechanicEnemySystem.Instance.OnBossAttacked(self, damage);
+        }
+
         // 闪电链：弹射到附近敌人
         if (self.LightningChainBounces > 0)
         {

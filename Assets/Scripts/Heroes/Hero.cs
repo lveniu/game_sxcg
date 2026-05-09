@@ -68,6 +68,10 @@ public class Hero : MonoBehaviour
     public float BattleDodgeRate { get; set; }
     public float BattleCritDamage { get; set; } = 0.5f; // 暴击伤害加成 (50%)
 
+    // 机制怪系统 & 面效果状态
+    public bool IsStunned { get; private set; }
+    public bool HasArmorBreak { get; set; }
+
     // 棋盘位置
     public Vector2Int GridPosition { get; set; }
     public GridRow CurrentRow { get; set; }
@@ -318,7 +322,14 @@ public class Hero : MonoBehaviour
         BattleSpeed = Speed;
         BattleDodgeRate = GetRelicBuffValue(RelicBuffType.DodgeRate);
         BattleCritDamage = 0.5f + GetRelicBuffValue(RelicBuffType.CritDamageBonus);
+        IsStunned = false;
+        HasArmorBreak = false;
     }
+
+    /// <summary>
+    /// 设置/取消眩晕状态
+    /// </summary>
+    public void SetStunned(bool stunned) => IsStunned = stunned;
 
     /// <summary>
     /// 应用骰子组合效果
