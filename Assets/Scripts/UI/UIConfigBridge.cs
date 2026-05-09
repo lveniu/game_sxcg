@@ -436,6 +436,243 @@ namespace Game.UI
             };
         }
 
+        // ========== 结算面板数据（从 drop_tables.json gold_rewards + levels.json 读取） ==========
+
+        /// <summary>
+        /// 获取关卡金币奖励（从 drop_tables.json gold_rewards 计算）
+        /// 公式: base_gold + level * level_bonus + 里程碑加成
+        /// </summary>
+        public static int GetGoldReward(int level)
+        {
+            var dropCfg = ConfigLoader.LoadDropTables();
+            var goldCfg = dropCfg?.gold_rewards;
+            if (goldCfg != null)
+            {
+                int baseGold = goldCfg.base_gold;
+                int levelBonus = goldCfg.level_bonus;
+                int total = baseGold + level * levelBonus;
+
+                // 里程碑加成
+                if (goldCfg.milestone_bonus != null)
+                {
+                    string levelKey = level.ToString();
+                    if (goldCfg.milestone_bonus.TryGetValue(levelKey, out int bonus))
+                        total += bonus;
+                }
+
+                return total;
+            }
+
+            // 硬编码回退
+            return 20 + level * 10;
+        }
+
+        /// <summary>
+        /// 获取关卡显示数据（关卡名、难度、敌人池等）
+        /// </summary>
+        public static LevelDisplayData GetLevelDisplayData(int level)
+        {
+            var levelsCfg = ConfigLoader.LoadLevels();
+            if (levelsCfg?.level_templates != null)
+            {
+                foreach (var kvp in levelsCfg.level_templates)
+                {
+                    var tier = kvp.Value;
+                    if (tier?.range != null && level >= tier.range[0] && level <= tier.range[1])
+                    {
+                        bool isBoss = tier.boss_levels != null && tier.boss_levels.Contains(level);
+                        return new LevelDisplayData
+                        {
+                            levelId = level,
+                            tierName = tier._description ?? kvp.Key,
+                            enemyPool = tier.enemy_pool ?? new List<string>(),
+                            maxEnemies = tier.max_enemies,
+                            isBoss = isBoss,
+                            allowElite = tier.allow_elite,
+                            allowMechanic = tier.allow_mechanic
+                        };
+                    }
+                }
+            }
+
+            // 硬编码回退
+            return new LevelDisplayData
+            {
+                levelId = level,
+                tierName = $"第{level}关",
+                enemyPool = new List<string>(),
+                maxEnemies = 3,
+                isBoss = level % 5 == 0,
+                allowElite = level >= 3,
+                allowMechanic = level >= 6
+            };
+        }
+
+        /// <summary>
+        /// 获取关卡标题文本（"第 N 关 - 章节名"）
+        /// </summary>
+        public static string GetLevelTitle(int level)
+        {
+            var data = GetLevelDisplayData(level);
+            if (data.isBoss)
+                return $"⚔ 第 {level} 关 — BOSS战";
+            return $"第 {level} 关 — {data.tierName}";
+        }
+
+        /// <summary>
+        /// 获取关卡难度系数文本
+        /// </summary>
+        public static string GetDifficultyText(int level)
+        {
+            float diff = BalanceProvider.GetLevelDifficulty(level);
+            if (diff < 0.5f) return "简单";
+            if (diff < 1.0f) return "普通";
+            if (diff < 1.5f) return "困难";
+            if (diff < 2.0f) return "噩梦";
+            return "地狱";
+        }
+
+        /// <summary>
+        /// 获取关卡难度颜色
+        /// </summary>
+        public static Color GetDifficultyColor(int level)
+        {
+            float diff = BalanceProvider.GetLevelDifficulty(level);
+            if (diff < 0.5f) return new Color(0.5f, 0.9f, 0.5f);
+            if (diff < 1.0f) return new Color(0.9f, 0.9f, 0.3f);
+            if (diff < 1.5f) return new Color(1f, 0.6f, 0.2f);
+            if (diff < 2.0f) return new Color(0.9f, 0.2f, 0.2f);
+            return new Color(0.8f, 0f, 0.8f);
+        }
+
+        // ========== 技能显示桥接（从 skills.json 读取） ==========
+
+        /// <summary>
+        /// 获取英雄主动技能显示数据
+        /// </summary>
+        public static SkillDisplayData GetHeroActiveSkillDisplay(HeroClass heroClass)
+        {
+            var skillsCfg = ConfigLoader.LoadSkills();
+            if (skillsCfg?.hero_skills != null)
+            {
+                string classId = heroClass.ToString().ToLower();
+                var entry = skillsCfg.hero_skills.Find(s => s.hero_class == classId);
+                if (entry?.active_skill != null)
+                {
+                    return new SkillDisplayData
+                    {
+                        nameCN = entry.active_skill.name_cn ?? "",
+                        descriptionCN = entry.active_skill.description_cn ?? "",
+                        target = entry.active_skill.target_type ?? "single",
+                        cooldown = entry.active_skill.cooldown_rounds,
+                        multiplier = entry.active_skill.skill_multiplier
+                    };
+                }
+            }
+
+            // 硬编码回退
+            return heroClass switch
+            {
+                HeroClass.Warrior => new SkillDisplayData { nameCN = "盾击", descriptionCN = "对单体造成1.5倍伤害并击晕1回合", target = "single", cooldown = 3, multiplier = 1.5f },
+                HeroClass.Mage => new SkillDisplayData { nameCN = "火球术", descriptionCN = "对全体造成0.8倍伤害并附加灼烧", target = "aoe", cooldown = 4, multiplier = 0.8f },
+                HeroClass.Assassin => new SkillDisplayData { nameCN = "暗杀", descriptionCN = "对单体造成2倍伤害，必定暴击", target = "single", cooldown = 3, multiplier = 2.0f },
+                _ => new SkillDisplayData { nameCN = "普攻", descriptionCN = "", target = "single", cooldown = 0, multiplier = 1.0f }
+            };
+        }
+
+        /// <summary>
+        /// 获取英雄被动技能显示数据
+        /// </summary>
+        public static SkillDisplayData GetHeroPassiveDisplay(HeroClass heroClass)
+        {
+            var skillsCfg = ConfigLoader.LoadSkills();
+            if (skillsCfg?.hero_skills != null)
+            {
+                string classId = heroClass.ToString().ToLower();
+                var entry = skillsCfg.hero_skills.Find(s => s.hero_class == classId);
+                if (entry?.passive != null)
+                {
+                    return new SkillDisplayData
+                    {
+                        nameCN = entry.passive.name_cn ?? "",
+                        descriptionCN = entry.passive.description_cn ?? "",
+                        target = "self",
+                        cooldown = entry.passive.cooldown_rounds,
+                        multiplier = 0f
+                    };
+                }
+            }
+
+            // 硬编码回退
+            return heroClass switch
+            {
+                HeroClass.Warrior => new SkillDisplayData { nameCN = "坚韧", descriptionCN = "防御+20%，受击时10%概率触发护盾", target = "self", cooldown = 0 },
+                HeroClass.Mage => new SkillDisplayData { nameCN = "奥术亲和", descriptionCN = "暴击率+5%，暴击时回复10%血量", target = "self", cooldown = 0 },
+                HeroClass.Assassin => new SkillDisplayData { nameCN = "暗影步", descriptionCN = "速度+15%，闪避后下次攻击必暴", target = "self", cooldown = 0 },
+                _ => new SkillDisplayData { nameCN = "无", descriptionCN = "", target = "self", cooldown = 0 }
+            };
+        }
+
+        /// <summary>
+        /// 获取骰子组合技能显示数据（从 skills.json dice_combo_skills 读取）
+        /// </summary>
+        public static SkillDisplayData GetDiceComboSkillDisplay(string comboId)
+        {
+            var skillsCfg = ConfigLoader.LoadSkills();
+            if (skillsCfg?.dice_combo_skills?.skills != null)
+            {
+                var entry = skillsCfg.dice_combo_skills.skills.Find(s => s.combo_id == comboId);
+                if (entry != null)
+                {
+                    return new SkillDisplayData
+                    {
+                        nameCN = entry.skill_name_cn ?? comboId,
+                        descriptionCN = entry.description_cn ?? "",
+                        target = entry.target ?? "all",
+                        cooldown = 0,
+                        multiplier = entry.damage_multiplier > 0 ? entry.damage_multiplier : entry.attack_bonus_pct
+                    };
+                }
+            }
+
+            return new SkillDisplayData { nameCN = comboId, descriptionCN = "", target = "all", cooldown = 0 };
+        }
+
+        /// <summary>
+        /// 获取骰子组合技能使用次数限制文本
+        /// </summary>
+        public static string GetComboSkillLimitText()
+        {
+            int limit = BalanceProvider.GetDiceComboSkillUsageLimit();
+            return $"每场战斗限用{limit}次";
+        }
+
+        // ========== 战斗显示工具 ==========
+
+        /// <summary>
+        /// 格式化战斗时间显示
+        /// </summary>
+        public static string FormatBattleTime(float seconds)
+        {
+            if (seconds < 60f)
+                return $"{seconds:F1}秒";
+            int min = (int)(seconds / 60f);
+            float sec = seconds % 60f;
+            return $"{min}分{sec:F0}秒";
+        }
+
+        /// <summary>
+        /// 获取战斗速度档位显示文本
+        /// </summary>
+        public static string[] GetSpeedLabels()
+        {
+            var speeds = BalanceProvider.GetSpeedOptions();
+            var labels = new string[speeds.Count];
+            for (int i = 0; i < speeds.Count; i++)
+                labels[i] = $"{speeds[i]}x";
+            return labels;
+        }
+
         // ========== 奖励选项描述 ==========
 
         /// <summary>
@@ -616,6 +853,32 @@ namespace Game.UI
                 _ => "未知"
             };
         }
+    }
+
+    /// <summary>
+    /// 关卡显示数据（结算面板/战斗面板使用）
+    /// </summary>
+    public class LevelDisplayData
+    {
+        public int levelId;
+        public string tierName;
+        public List<string> enemyPool;
+        public int maxEnemies;
+        public bool isBoss;
+        public bool allowElite;
+        public bool allowMechanic;
+    }
+
+    /// <summary>
+    /// 技能显示数据（英雄选择面板/战斗面板使用）
+    /// </summary>
+    public class SkillDisplayData
+    {
+        public string nameCN;
+        public string descriptionCN;
+        public string target;     // single / aoe / self / all
+        public int cooldown;
+        public float multiplier;
     }
 
     /// <summary>

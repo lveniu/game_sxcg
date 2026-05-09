@@ -200,16 +200,25 @@ namespace Game.UI
         {
             if (comboArea) comboArea.SetActive(true);
 
+            // 通过UIConfigBridge获取配置化显示数据
+            var comboDisplay = UIConfigBridge.GetDiceComboDisplayData(combo.Type);
+
             if (combinationText)
             {
                 if (combo.Type == DiceCombinationType.None)
                     combinationText.text = "无组合";
                 else
-                    combinationText.text = combo.Description;
+                    combinationText.text = comboDisplay.nameCN;
             }
 
             if (effectDescText)
-                effectDescText.text = combo.EffectDescription;
+            {
+                // 配置有描述则优先用配置，否则用模型自带
+                if (comboDisplay != null && !string.IsNullOrEmpty(comboDisplay.description))
+                    effectDescText.text = comboDisplay.description;
+                else
+                    effectDescText.text = combo.EffectDescription;
+            }
         }
 
         #endregion

@@ -56,7 +56,7 @@ namespace Game.UI
             // Level reached — prefer RoguelikeGameManager's tracked level
             int level = rgm != null ? rgm.CurrentLevel : (gsm != null ? gsm.CurrentLevel : 0);
             if (levelReachedText != null)
-                levelReachedText.text = $"到达关卡: {level}";
+                levelReachedText.text = $"到达: {UIConfigBridge.GetLevelTitle(level)}";
 
             // Relic count from RoguelikeGameManager
             int relicCount = 0;

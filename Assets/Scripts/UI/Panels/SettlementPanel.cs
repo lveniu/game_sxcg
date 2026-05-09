@@ -86,9 +86,9 @@ namespace Game.UI
                 resultTitleText.rectTransform.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutBack);
             }
 
-            // 关卡
+            // 关卡（从UIConfigBridge获取关卡标题）
             if (levelText != null)
-                levelText.text = $"第 {level} 关";
+                levelText.text = UIConfigBridge.GetLevelTitle(level);
 
             // 装备掉落（胜利时）
             ShowEquipmentDrop(won);
@@ -125,8 +125,8 @@ namespace Game.UI
         {
             if (goldRewardText == null) return;
 
-            // 基础金币奖励 = 20 + level * 10
-            int goldReward = 20 + level * 10;
+            // 从 ConfigLoader → UIConfigBridge 获取金币奖励（JSON配置优先）
+            int goldReward = UIConfigBridge.GetGoldReward(level);
 
             var inventory = PlayerInventory.Instance;
             if (inventory != null)
