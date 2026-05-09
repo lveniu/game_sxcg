@@ -369,17 +369,6 @@ public class Hero : MonoBehaviour
     }
 
     /// <summary>
-    /// 复活：恢复指定血量并清除死亡状态
-    /// </summary>
-    public void Revive(int healthAmount)
-    {
-        CurrentHealth = Mathf.Clamp(healthAmount, 1, MaxHealth);
-        IsStunned = false;
-        HasArmorBreak = false;
-        Debug.Log($"{Data.heroName} 被复活！恢复 {CurrentHealth}/{MaxHealth} HP");
-    }
-
-    /// <summary>
     /// 设置/取消眩晕状态
     /// </summary>
     public void SetStunned(bool stunned) => IsStunned = stunned;
