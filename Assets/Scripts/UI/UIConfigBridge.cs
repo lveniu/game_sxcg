@@ -197,7 +197,7 @@ namespace Game.UI
                 },
                 _ => new DiceComboDisplayData
                 {
-                    comboType = DiceCombinationType.Scattered,
+                    comboType = DiceCombinationType.None,
                     nameCN = "散牌",
                     description = "无加成，骰子点数之和提供微量攻击加成",
                     borderColor = HexToColor("#95A5A6"),
