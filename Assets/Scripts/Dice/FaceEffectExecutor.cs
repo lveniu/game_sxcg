@@ -284,7 +284,8 @@ public class FaceEffectExecutor
             var effectDef = FindEffectDef(kvp.Key);
             if (effectDef == null || effectDef.triggerTiming != FaceEffectTrigger.OnAttack) continue;
 
-            if (!playerHeroes.Contains(attacker)) continue;
+            // playerHeroes 为空时跳过阵营检查（兼容 AutoChessAI 调用）
+            if (playerHeroes != null && !playerHeroes.Contains(attacker)) continue;
 
             float value = CalculateEffectValue(effectDef, kvp.Value);
             ExecuteEffect(effectDef, value, playerHeroes, enemyHeroes, attacker, target);

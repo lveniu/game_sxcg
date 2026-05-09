@@ -14,7 +14,8 @@ public static class AutoChessAI
         if (self == null || self.IsDead) return;
 
         // 治疗者AI：优先治疗血量最低的友方
-        if (self.Data.heroName == "治疗者" && allies != null && allies.Count > 0)
+        bool isHealer = self.Data.heroName == "治疗者" || self.Data.heroName == "治疗兵";
+        if (isHealer && allies != null && allies.Count > 0)
         {
             Hero weakest = FindWeakestAlly(allies);
             if (weakest != null && weakest.CurrentHealth < weakest.MaxHealth * 0.8f)
@@ -39,7 +40,7 @@ public static class AutoChessAI
         }
         else
         {
-            NormalAttack(self, target);
+            NormalAttack(self, target, allies, enemies);
         }
     }
 
@@ -94,7 +95,7 @@ public static class AutoChessAI
     /// <summary>
     /// 普通攻击
     /// </summary>
-    static void NormalAttack(Hero self, Hero target)
+    static void NormalAttack(Hero self, Hero target, List<Hero> allies = null, List<Hero> enemies = null)
     {
         // 破甲：忽略目标部分防御
         int effectiveDef = target.BattleDefense;
@@ -107,7 +108,7 @@ public static class AutoChessAI
 
         // 面效果：OnAttack 触发
         if (FaceEffectExecutor.Instance != null)
-            FaceEffectExecutor.Instance.ProcessOnAttackEffects(self, target, null, null);
+            FaceEffectExecutor.Instance.ProcessOnAttackEffects(self, target, allies, enemies);
 
         // 机制怪：Boss受伤通知
         if (MechanicEnemySystem.Instance != null)

@@ -52,6 +52,12 @@ public class BattleManager : MonoBehaviour
             return;
         }
         Instance = this;
+
+        // 初始化纯C#单例（非MonoBehaviour，需手动创建）
+        if (MechanicEnemySystem.Instance == null)
+            new MechanicEnemySystem();
+        if (FaceEffectExecutor.Instance == null)
+            new FaceEffectExecutor();
     }
 
     /// <summary>
