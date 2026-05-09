@@ -37,6 +37,9 @@ namespace Game.UI
         public ShopPanel shopPanel;
         public EquipPanel equipPanel;
 
+        [Header("子面板 - 肉鸽地图&背包")]
+        public RoguelikeMapPanel roguelikeMapPanel;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -150,6 +153,7 @@ namespace Game.UI
                 "Event" => eventPanel,
                 "Shop" => shopPanel,
                 "Equip" => equipPanel,
+                "RoguelikeMap" => roguelikeMapPanel,
                 _ => null
             };
             if (panel != null) panel.Show();

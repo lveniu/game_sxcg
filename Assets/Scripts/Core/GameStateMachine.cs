@@ -11,6 +11,7 @@ public enum GameState
 {
     MainMenu,           // 主菜单
     HeroSelect,         // 选择初始英雄（战/法/刺三选一）
+    MapSelect,          // BE-08 地图路径选择
     DiceRoll,           // 骰子阶段（投掷+免费重摇1次）
     Battle,             // 自动战斗
     Settlement,         // 结算（判断胜负）
@@ -91,7 +92,11 @@ public class GameStateMachine : MonoBehaviour
                 ChangeState(GameState.HeroSelect);
                 break;
             case GameState.HeroSelect:
-                ChangeState(GameState.DiceRoll);
+                ChangeState(GameState.MapSelect);
+                break;
+            case GameState.MapSelect:
+                // MapSelect → DiceRoll 由 RoguelikeMapSystem.SelectNode() 驱动
+                // 这里不自动推进，等玩家选择节点
                 break;
             case GameState.DiceRoll:
                 ChangeState(GameState.Battle);
@@ -112,10 +117,10 @@ public class GameStateMachine : MonoBehaviour
                 }
                 break;
             case GameState.RoguelikeReward:
-                // 奖励选完，进入下一关
+                // 奖励选完，回到地图选择（而非直接骰子）
                 CurrentLevel++;
                 IsGameWon = false;
-                ChangeState(GameState.DiceRoll);
+                ChangeState(GameState.MapSelect);
                 break;
             case GameState.GameOver:
                 ChangeState(GameState.MainMenu);
@@ -164,6 +169,15 @@ public class GameStateMachine : MonoBehaviour
             case GameState.HeroSelect:
                 // UI由NewUIManager自动处理
                 Debug.Log("[StateMachine] 进入英雄选择");
+                break;
+
+            case GameState.MapSelect:
+                // 首次进入时生成地图，后续进入时刷新可选节点
+                if (RoguelikeMapSystem.Instance == null)
+                    new RoguelikeMapSystem();
+                if (RoguelikeMapSystem.Instance.CurrentMap == null)
+                    RoguelikeMapSystem.Instance.GenerateMap(15);
+                Debug.Log($"[StateMachine] 进入地图选择 — {RoguelikeMapSystem.Instance.GetMapStats()}");
                 break;
 
             case GameState.DiceRoll:
