@@ -532,6 +532,38 @@ public class DiceSystemConfig
     public string _description;
     public DiceConfigSection dice_config;
     public List<DiceCombinationEntry> combinations;
+    public SumBonusTableConfig sum_bonus_table;
+    public FaceUpgradeConfig face_upgrade;
+}
+
+public class SumBonusTableConfig
+{
+    public string _description;
+    public int min_sum;
+    public int max_sum;
+    public string bonus_formula;
+}
+
+public class FaceUpgradeConfig
+{
+    public string _description;
+    public List<int> upgradeable_faces;
+    public List<SpecialFaceEntry> special_faces;
+}
+
+public class SpecialFaceEntry
+{
+    public string id;
+    public string name_cn;
+    public int replaces_face;
+    public string effect;
+    public int hits;
+    public float damage_per_hit_multiplier;
+    public float shield_pct;
+    public int duration_rounds;
+    public float heal_pct;
+    public float dot_pct;
+    public float crit_damage_bonus;
 }
 
 public class DiceConfigSection
