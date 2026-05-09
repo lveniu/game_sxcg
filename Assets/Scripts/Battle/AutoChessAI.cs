@@ -110,11 +110,15 @@ public static class AutoChessAI
         if (FaceEffectExecutor.Instance != null)
             FaceEffectExecutor.Instance.ProcessOnAttackEffects(self, target, allies, enemies);
 
-        // 机制怪：Boss受伤通知
+        // 机制怪：Boss受伤通知（target是被攻击者，self是攻击者）
         if (MechanicEnemySystem.Instance != null)
         {
+            // Boss被攻击时：target是Boss → 触发DamageReflect/Berserk
             MechanicEnemySystem.Instance.OnBossDamaged(target, damage, self);
-            MechanicEnemySystem.Instance.OnBossAttacked(self, damage);
+
+            // Boss攻击别人后回血：self是Boss → 触发HealOnAttack
+            if (MechanicEnemySystem.Instance.IsRegisteredBoss(self))
+                MechanicEnemySystem.Instance.OnBossAttacked(self, damage);
         }
 
         // 闪电链：弹射到附近敌人

@@ -85,6 +85,14 @@ public class MechanicEnemySystem
     }
 
     /// <summary>
+    /// 判断某单位是否已注册为机制怪Boss
+    /// </summary>
+    public bool IsRegisteredBoss(Hero hero)
+    {
+        return hero != null && _bossStates.ContainsKey(hero.GetInstanceID());
+    }
+
+    /// <summary>
     /// 战斗开始时注册所有Boss机制
     /// 由 BattleManager.StartBattle() 在 ApplyDiceComboEffects 之后调用
     /// </summary>
@@ -528,7 +536,8 @@ public class MechanicEnemySystem
 
         if (state.isStealthed)
         {
-            // 解除隐身，攻击最高攻击单位
+            // 解除隐身，攻击敌方最高攻击单位
+            // 注意：OverrideEnemyAction 传入 allies 是敌方队伍（对Boss而言玩家是"allies"参数）
             state.isStealthed = false;
 
             float[] dmgMults = GetMechanicParamFloatArray(state, "stealth_damage_multiplier_per_phase");
@@ -536,7 +545,7 @@ public class MechanicEnemySystem
             if (dmgMults != null && state.currentPhase - 1 < dmgMults.Length)
                 dmgMult = dmgMults[state.currentPhase - 1];
 
-            Hero target = FindHighestAttackEnemy(enemies);
+            Hero target = FindHighestAttackEnemy(allies);
             if (target != null)
             {
                 int dmg = Mathf.RoundToInt(state.owner.BattleAttack * dmgMult);
@@ -660,22 +669,28 @@ public class MechanicEnemySystem
     {
         Debug.Log($"[MechanicEnemy] 创建小怪: {templateName} ({statPct * 100}%属性)");
 
-        // 从GameBalance获取模板数据
-        var template = GameBalance.GetHeroTemplate(templateName);
+        // 优先使用敌人模板（分裂体属于敌方单位）
+        var template = GameBalance.GetEnemyTemplate(templateName);
+        // fallback: 英雄模板
         if (template == null)
+            template = GameBalance.GetHeroTemplate(templateName);
+        // fallback: 去掉"_分裂体"后缀匹配
+        if (template == null && templateName.EndsWith("_分裂体"))
         {
-            Debug.LogWarning($"[MechanicEnemy] 找不到模板: {templateName}，使用默认小怪模板");
-            template = GameBalance.GetHeroTemplate("小怪");
+            var baseName = templateName.Replace("_分裂体", "");
+            template = GameBalance.GetEnemyTemplate(baseName);
+            if (template == null)
+                template = GameBalance.GetHeroTemplate(baseName);
         }
+        // 最终 fallback: 默认小怪属性
         if (template == null)
         {
-            Debug.LogError($"[MechanicEnemy] 默认小怪模板也不存在，无法创建");
-            return null;
+            Debug.LogWarning($"[MechanicEnemy] 找不到模板: {templateName}，使用默认小怪属性");
+            template = new GameBalance.HeroStatTemplate(80, 8, 5, 7, 0.03f, 1, HeroClass.Warrior);
         }
 
-        // 创建GameObject + Hero组件
+        // 创建GameObject + Hero组件（MechanicEnemySystem非MonoBehaviour，不设parent）
         var go = new GameObject($"Minion_{templateName}");
-        go.transform.SetParent(transform);
         var hero = go.AddComponent<Hero>();
 
         // 构建HeroData
@@ -690,6 +705,7 @@ public class MechanicEnemySystem
         data.summonCost = template.SummonCost;
 
         hero.Initialize(data, starLevel: 1);
+        hero.IsBoss = false;
         Debug.Log($"[MechanicEnemy] 小怪创建成功: {templateName} HP={hero.MaxHealth} ATK={hero.Attack}");
         return hero;
     }
