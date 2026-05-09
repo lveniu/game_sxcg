@@ -201,7 +201,7 @@ namespace Game.UI
             if (comboArea) comboArea.SetActive(true);
 
             // 通过UIConfigBridge获取配置化显示数据
-            var comboDisplay = UIConfigBridge.GetDiceComboDisplayData(combo.Type);
+            var comboDisplay = UIConfigBridge.GetComboDisplayData(combo.Type);
 
             if (combinationText)
             {

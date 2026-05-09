@@ -29,6 +29,7 @@ public class BattleManager : MonoBehaviour
     // 骰子组合（战斗开始时由外部设置）
     public DiceCombination CurrentDiceCombo { get; private set; }
     public bool DiceSkillUsed { get; private set; } // 骰子技能是否已释放
+    public int[] LastDiceValues { get; private set; } // 投掷的原始骰子值（供UI显示）
 
     // 战斗速度档位（从 battle_formulas.json 的 speed_options 读取）
     public static float SPEED_1X = 1f;
@@ -89,6 +90,16 @@ public class BattleManager : MonoBehaviour
         PlayerWon = false;
         DiceSkillUsed = false;
         CurrentDiceCombo = diceCombo;
+
+        // 从骰子组合推导原始值（供UI演出使用）
+        if (diceCombo != null && diceCombo.Type != DiceCombinationType.None)
+        {
+            LastDiceValues = DeduceDiceValues(diceCombo);
+        }
+        else
+        {
+            LastDiceValues = null;
+        }
 
         // 应用连携技Buff
         SynergySystem.ApplySynergies(playerUnits);
@@ -454,5 +465,28 @@ public class BattleManager : MonoBehaviour
         BattleTimer = 0f;
         CurrentDiceCombo = null;
         DiceSkillUsed = false;
+        LastDiceValues = null;
+    }
+
+    /// <summary>
+    /// 从 DiceCombination 推导原始骰子值数组（供UI演出使用）
+    /// </summary>
+    private int[] DeduceDiceValues(DiceCombination combo)
+    {
+        switch (combo.Type)
+        {
+            case DiceCombinationType.ThreeOfAKind:
+                return new int[] { combo.ThreeValue, combo.ThreeValue, combo.ThreeValue };
+            case DiceCombinationType.Straight:
+                return combo.StraightValues ?? new int[] { 1, 2, 3 };
+            case DiceCombinationType.Pair:
+                return new int[] { combo.PairValue, combo.PairValue, combo.SingleValue };
+            default:
+                // 其他组合类型用组合内的值或默认
+                if (combo.StraightValues != null) return combo.StraightValues;
+                if (combo.ThreeValue > 0) return new int[] { combo.ThreeValue, combo.ThreeValue, combo.ThreeValue };
+                if (combo.PairValue > 0) return new int[] { combo.PairValue, combo.PairValue, combo.SingleValue };
+                return new int[] { 1, 2, 3 };
+        }
     }
 }
