@@ -234,10 +234,14 @@ public static class GameBalance
         var fbTemplate = enemyName switch
         {
             "小怪" => new HeroStatTemplate(60, 6, 3, 5, 0f, 0, HeroClass.Warrior),
+            "弓手" => new HeroStatTemplate(50, 8, 2, 7, 0.05f, 0, HeroClass.Assassin),
+            "重装兵" => new HeroStatTemplate(80, 7, 8, 3, 0f, 0, HeroClass.Warrior),
             "精英" => new HeroStatTemplate(120, 12, 6, 8, 0.05f, 0, HeroClass.Mage),
             "Boss" => new HeroStatTemplate(300, 15, 10, 5, 0.1f, 0, HeroClass.Warrior),
+            "巨型Boss" => new HeroStatTemplate(500, 20, 15, 4, 0.15f, 0, HeroClass.Warrior),
             "自爆怪" => new HeroStatTemplate(40, 4, 1, 8, 0f, 0, HeroClass.Warrior),
             "治疗者" => new HeroStatTemplate(50, 5, 2, 4, 0f, 0, HeroClass.Mage),
+            "治疗兵" => new HeroStatTemplate(50, 5, 2, 4, 0f, 0, HeroClass.Mage),
             "护盾怪" => new HeroStatTemplate(80, 5, 8, 4, 0f, 0, HeroClass.Warrior),
             "分裂怪" => new HeroStatTemplate(100, 6, 2, 5, 0f, 0, HeroClass.Warrior),
             "隐身怪" => new HeroStatTemplate(60, 10, 2, 12, 0.1f, 0, HeroClass.Assassin),

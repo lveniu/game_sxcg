@@ -24,6 +24,8 @@ public static class BalanceProvider
     private static EconomyConfig _economy;
     private static RelicsConfig _relics;
     private static DiceSystemConfig _diceSystem;
+    private static MechanicEnemiesConfig _mechanicEnemies;
+    private static FaceEffectsConfig _faceEffects;
 
     // 懒加载属性
     public static HeroClassesConfig HeroClasses => _heroClasses ?? (_heroClasses = ConfigLoader.LoadHeroClasses());
@@ -35,6 +37,8 @@ public static class BalanceProvider
     public static EconomyConfig Economy => _economy ?? (_economy = ConfigLoader.LoadEconomy());
     public static RelicsConfig Relics => _relics ?? (_relics = ConfigLoader.LoadRelics());
     public static DiceSystemConfig DiceSystem => _diceSystem ?? (_diceSystem = ConfigLoader.LoadDiceSystem());
+    public static MechanicEnemiesConfig MechanicEnemies => _mechanicEnemies ?? (_mechanicEnemies = ConfigLoader.LoadMechanicEnemies());
+    public static FaceEffectsConfig FaceEffects => _faceEffects ?? (_faceEffects = ConfigLoader.LoadFaceEffects());
 
     /// <summary>
     /// 热重载所有配置（策划调数值后调用）
@@ -51,6 +55,8 @@ public static class BalanceProvider
         _economy = null;
         _relics = null;
         _diceSystem = null;
+        _mechanicEnemies = null;
+        _faceEffects = null;
         GameBalance.ReloadConfigs();
         Debug.Log("[BalanceProvider] 所有配置已重新加载");
     }
@@ -401,6 +407,90 @@ public static class BalanceProvider
     public static int GetMaxRerollsFromRelics() => DiceSystem?.dice_config?.max_rerolls_from_relics ?? 3;
     /// <summary>骰子组合列表</summary>
     public static List<DiceCombinationEntry> GetDiceCombinations() => DiceSystem?.combinations ?? new List<DiceCombinationEntry>();
+
+    // ========== 机制敌人相关 ==========
+
+    /// <summary>
+    /// 获取所有机制敌人配置列表
+    /// </summary>
+    public static List<MechanicEnemyEntry> GetMechanicEnemies()
+    {
+        return MechanicEnemies?.mechanic_enemies ?? new List<MechanicEnemyEntry>();
+    }
+
+    /// <summary>
+    /// 按ID获取机制敌人配置
+    /// </summary>
+    public static MechanicEnemyEntry GetMechanicEnemy(string id)
+    {
+        var enemies = MechanicEnemies?.mechanic_enemies;
+        if (enemies == null) return null;
+        return enemies.Find(e => e.id == id);
+    }
+
+    /// <summary>
+    /// 根据关卡ID获取匹配的机制怪配置
+    /// </summary>
+    public static MechanicEnemyEntry GetMechanicEnemyForLevel(int levelId)
+    {
+        var entries = MechanicEnemies?.mechanic_enemies;
+        if (entries == null || entries.Count == 0) return null;
+
+        if (levelId >= 16)
+        {
+            // 16+关：从所有 min_level <= levelId 的条目中随机选
+            var candidates = entries.FindAll(e => e.min_level <= levelId);
+            return candidates.Count > 0 ? candidates[UnityEngine.Random.Range(0, candidates.Count)] : null;
+        }
+
+        // 11-15关：精确匹配 min_level
+        return entries.Find(e => e.min_level == levelId)
+            ?? entries.Find(e => e.min_level <= levelId);
+    }
+
+    /// <summary>
+    /// 获取组合机制配置
+    /// </summary>
+    public static CombinedMechanicsConfig GetCombinedMechanics()
+    {
+        return MechanicEnemies?.combined_mechanics;
+    }
+
+    /// <summary>
+    /// 获取难度缩放配置
+    /// </summary>
+    public static MechanicDifficultyScaling GetMechanicDifficultyScaling()
+    {
+        return MechanicEnemies?.difficulty_scaling;
+    }
+
+    // ========== 骰子面效果相关 ==========
+
+    /// <summary>
+    /// 获取骰子面效果配置
+    /// </summary>
+    public static FaceEffectsConfig GetFaceEffectsConfig()
+    {
+        return FaceEffects;
+    }
+
+    /// <summary>
+    /// 按效果ID查找面效果定义
+    /// </summary>
+    public static FaceEffectDef GetFaceEffectDef(string effectId)
+    {
+        var effects = FaceEffects?.effects;
+        if (effects == null) return null;
+        return effects.Find(e => e.effectId == effectId);
+    }
+
+    /// <summary>
+    /// 获取所有面效果定义
+    /// </summary>
+    public static List<FaceEffectDef> GetAllFaceEffects()
+    {
+        return FaceEffects?.effects ?? new List<FaceEffectDef>();
+    }
 
     // ========== 星级相关 ==========
 

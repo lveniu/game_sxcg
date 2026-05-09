@@ -198,15 +198,17 @@ namespace Game.UI
             if (active) highlight.color = COLOR_RARITY_GOLD;
         }
 
+        /// <summary>
+        /// 返回当前Tab过滤后的物品列表（副本，避免枚举期间修改崩溃）
+        /// </summary>
         private List<EquipmentData> GetFilteredItems()
         {
             // MVP: 只有装备类，其他Tab返回空
             if (currentTab == ItemCategory.Material || currentTab == ItemCategory.Consumable)
                 return new List<EquipmentData>();
 
-            return currentTab == ItemCategory.Equipment
-                ? displayItems
-                : displayItems; // All 也显示全部装备
+            // 返回副本，防止调用方 foreach 枚举期间修改 displayItems 导致崩溃
+            return new List<EquipmentData>(displayItems);
         }
 
         // ══════════════════════════════════════

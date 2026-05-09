@@ -44,6 +44,115 @@ public static class GameData
         return data;
     }
 
+    /// <summary>
+    /// JSON id → 中文显示名映射（enemies.json 里的 id → GameData 中文名）
+    /// </summary>
+    static readonly Dictionary<string, string> EnemyIdToNameCn = new Dictionary<string, string>
+    {
+        {"minion", "小怪"},
+        {"ranger", "弓手"},
+        {"brute", "重装兵"},
+        {"elite", "精英"},
+        {"bomber", "自爆怪"},
+        {"healer", "治疗者"},
+        {"shielder", "护盾怪"},
+        {"splitter", "分裂怪"},
+        {"stealth", "隐身怪"},
+        {"curse_mage", "诅咒巫师"},
+        {"heavy_knight", "重装骑士"},
+        {"venom_spider", "毒液蜘蛛"},
+        {"boss_standard", "Boss"},
+        {"boss_mega", "巨型Boss"},
+    };
+
+    /// <summary>
+    /// 根据 JSON id 创建敌人（属性从 enemies.json 读取，技能根据类型匹配）
+    /// LevelManager 的新入口，替代各个 CreateEnemy* 硬编码方法
+    /// </summary>
+    public static HeroData CreateEnemyByJsonId(string jsonId, int levelId = 1)
+    {
+        if (string.IsNullOrEmpty(jsonId)) return CreateEnemyGrunt(levelId);
+
+        // 1. 获取中文名
+        string nameCn = EnemyIdToNameCn.GetValueOrDefault(jsonId, jsonId);
+
+        // 2. 尝试从 enemies.json 获取属性（通过 GameBalance 已实现的 JSON 优先 + fallback）
+        var stats = GameBalance.GetEnemyTemplate(nameCn, levelId);
+
+        // 3. 根据 jsonId 匹配技能
+        SkillData activeSkill = GetSkillForEnemyType(jsonId);
+        string desc = GetDescForEnemyType(jsonId);
+
+        // 4. 创建 HeroData（复用 CreateEnemyFromTemplate 的逻辑）
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = nameCn;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = 0;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = activeSkill;
+        data.description = desc;
+        return data;
+    }
+
+    /// <summary>
+    /// 根据敌人 JSON id 匹配对应的技能
+    /// </summary>
+    static SkillData GetSkillForEnemyType(string jsonId)
+    {
+        return jsonId switch
+        {
+            "elite" => CreatePierceShotSkill(),
+            "boss_standard" => CreateAOESmashSkill(),
+            "boss_mega" => CreateAOESmashSkill(),
+            "healer" => CreateHealSkill(),
+            "curse_mage" => CreateCurseSkill(),
+            _ => null // 大部分敌人没有特殊技能，用普攻
+        };
+    }
+
+    /// <summary>
+    /// 根据敌人 JSON id 返回描述
+    /// </summary>
+    static string GetDescForEnemyType(string jsonId)
+    {
+        return jsonId switch
+        {
+            "minion" => "普通小怪",
+            "ranger" => "远程弓手",
+            "brute" => "高防重装兵",
+            "elite" => "精英敌人",
+            "bomber" => "死亡时对周围造成高额伤害",
+            "healer" => "每回合给友方回血",
+            "shielder" => "开场自带护盾",
+            "splitter" => "死亡时分裂成2个小怪",
+            "stealth" => "每3回合隐身1回合",
+            "curse_mage" => "攻击降低目标攻击力，持续2回合",
+            "heavy_knight" => "极高防御，每次受击只造成1点伤害",
+            "venom_spider" => "攻击附带剧毒，每回合扣血",
+            "boss_standard" => "Boss战",
+            "boss_mega" => "巨型Boss战",
+            _ => ""
+        };
+    }
+
+    /// <summary>
+    /// 随机获取一张奖励卡牌（从奖励池中随机选一张）
+    /// </summary>
+    public static CardData GetRandomRewardCard()
+    {
+        var pool = CreateRewardCards();
+        if (pool == null || pool.Count == 0) return CreatePowerTrainingCard();
+
+        int idx = UnityEngine.Random.Range(0, pool.Count);
+        var instance = pool[idx];
+        return instance != null ? instance.Data : CreatePowerTrainingCard();
+    }
+
     static CardData CreateCard(string name, CardType type, CardRarity rarity, CardEffectId effectId, int cost, string desc,
         int effectValue = 0, DiceCombinationType combo = DiceCombinationType.None, float comboMultiplier = 1f)
     {

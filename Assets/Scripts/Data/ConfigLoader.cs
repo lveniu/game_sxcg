@@ -88,6 +88,12 @@ public static class ConfigLoader
 
     /// <summary>加载掉落表配置</summary>
     public static DropTablesConfig LoadDropTables() => Load<DropTablesConfig>("drop_tables");
+
+    /// <summary>加载机制敌人配置（独立 mechanic_enemies.json）</summary>
+    public static MechanicEnemiesFileConfig LoadMechanicEnemies() => Load<MechanicEnemiesFileConfig>("mechanic_enemies");
+
+    /// <summary>加载骰子面效果配置</summary>
+    public static FaceEffectsConfig LoadFaceEffects() => Load<FaceEffectsConfig>("face_effects");
 }
 
 // =====================================================================
@@ -307,11 +313,17 @@ public class BossEntry
     public int summon_interval_rounds;
 }
 
-// NOTE: The old MechanicEnemiesConfig/MechanicEnemyEntry that was nested in EnemiesConfig
-// has been replaced by the standalone mechanic_enemies.json config classes below.
-// The EnemiesConfig.mechanic_enemies field now references the new MechanicEnemiesConfig type.
-// If the old enemies.json still has a mechanic_enemies section, it will deserialize into
-// MechanicEnemiesConfig with mechanic_enemies=null (different field name).
+// NOTE: MechanicEnemiesConfig is the type used by EnemiesConfig.mechanic_enemies field.
+// It shares the same sub-models (MechanicEnemyEntry, CombinedMechanicsConfig, etc.)
+// as the standalone MechanicEnemiesFileConfig used for mechanic_enemies.json.
+
+/// <summary>机制敌人配置（嵌套在 enemies.json 中）</summary>
+public class MechanicEnemiesConfig
+{
+    public List<MechanicEnemyEntry> mechanic_enemies;
+    public CombinedMechanicsConfig combined_mechanics;
+    public MechanicDifficultyScalingConfig difficulty_scaling;
+}
 
 public class EnemyCountFormulaConfig
 {
@@ -652,4 +664,100 @@ public class EquipmentDropConfig
     public int guaranteed_every_n_levels;
     public float random_drop_chance;
     public bool no_drop_in_first_2_levels;
+}
+
+// ---------- mechanic_enemies.json ----------
+
+/// <summary>
+/// 机制敌人配置（独立 mechanic_enemies.json）
+/// 匹配 mechanic_enemies.json 的顶层结构
+/// </summary>
+public class MechanicEnemiesFileConfig
+{
+    public string _version;
+    public string _description;
+    public List<MechanicEnemyEntry> mechanic_enemies;
+    public CombinedMechanicsConfig combined_mechanics;
+    public MechanicDifficultyScalingConfig difficulty_scaling;
+}
+
+/// <summary>机制敌人条目</summary>
+public class MechanicEnemyEntry
+{
+    public string id;
+    public string name_cn;
+    public string mechanic_type;
+    public string description;
+    public List<string> phase_tips;
+    public MechanicEnemyBaseStats base_stats;
+    public Dictionary<string, object> mechanic_params;
+    public MechanicEnemyRewardBonus reward_bonus;
+    public int min_level;
+    public int max_level;
+}
+
+/// <summary>机制敌人基础属性乘数</summary>
+public class MechanicEnemyBaseStats
+{
+    public float health_multiplier;
+    public float attack_multiplier;
+    public float defense_multiplier;
+    public float speed_multiplier;
+}
+
+/// <summary>机制敌人奖励加成</summary>
+public class MechanicEnemyRewardBonus
+{
+    public float relic_drop_chance_bonus;
+}
+
+/// <summary>组合机制配置（16+关随机组合）</summary>
+public class CombinedMechanicsConfig
+{
+    public string description;
+    public int min_level_for_combined;
+    public int max_mechanics_per_boss;
+    public Dictionary<string, List<string>> combination_weights;
+}
+
+/// <summary>机制敌人难度缩放配置</summary>
+public class MechanicDifficultyScalingConfig
+{
+    public float stat_multiplier_per_level_above_10;
+    public float mechanic_strength_per_level_above_10;
+}
+
+// ---------- face_effects.json ----------
+
+/// <summary>骰子面效果配置</summary>
+public class FaceEffectsConfig
+{
+    public List<FaceEffectDef> effects;
+    public FaceEffectUpgradeConfig upgrade_config;
+}
+
+/// <summary>单个面效果定义</summary>
+public class FaceEffectDef
+{
+    public string effectId;
+    public string effectType;
+    public string effectName;
+    public string descriptionTemplate;
+    public string targetScope;
+    public string triggerTiming;
+    public int baseValue;
+    public int growthPerLevel;
+    public int maxLevel;
+    public List<int> applicableFaces;
+    public string iconRef;
+    public string rarity;
+}
+
+/// <summary>面效果升级配置</summary>
+public class FaceEffectUpgradeConfig
+{
+    public int max_upgrades_per_run;
+    public List<int> cost_free_levels;
+    public int rare_min_level;
+    public int epic_min_level;
 }

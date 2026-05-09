@@ -39,6 +39,7 @@ namespace Game.UI
 
         [Header("子面板 - 肉鸽地图&背包")]
         public RoguelikeMapPanel roguelikeMapPanel;
+        public InventoryPanel inventoryPanel;
 
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
@@ -83,7 +84,8 @@ namespace Game.UI
                 { GameState.Battle, battlePanel },
                 { GameState.Settlement, settlementPanel },
                 { GameState.RoguelikeReward, roguelikeRewardPanel },
-                { GameState.GameOver, gameOverPanel }
+                { GameState.GameOver, gameOverPanel },
+                { GameState.MapSelect, roguelikeMapPanel }
             };
         }
 
@@ -154,6 +156,7 @@ namespace Game.UI
                 "Shop" => shopPanel,
                 "Equip" => equipPanel,
                 "RoguelikeMap" => roguelikeMapPanel,
+                "Inventory" => inventoryPanel,
                 _ => null
             };
             if (panel != null) panel.Show();
