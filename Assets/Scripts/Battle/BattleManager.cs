@@ -168,17 +168,18 @@ public class BattleManager : MonoBehaviour
                 var skillData = BalanceProvider.GetDiceComboSkill("pair");
                 // 对子：护盾（从 battle_formulas.json 的 front.shield_bonus_pct 取，fallback 0.15）
                 float shieldPct = BalanceProvider.GetPositionModifier("front")?.shield_bonus_pct ?? 0.15f;
+                // 暴击率加成：优先从 skills.json 的 crit_rate_bonus 读取，fallback 0.1
+                float critBonus = skillData?.crit_rate_bonus > 0 ? skillData.crit_rate_bonus : 0.1f;
 
                 foreach (var hero in playerUnits)
                 {
                     if (hero == null || hero.IsDead) continue;
                     int shield = Mathf.RoundToInt(hero.MaxHealth * shieldPct);
                     hero.AddShield(shield);
-                    // 暴击率+10%
-                    hero.BattleCritRate += 0.1f;
+                    hero.BattleCritRate += critBonus;
                 }
-                Debug.Log($"[骰子技能] 对子！全体获得护盾({shieldPct*100}%生命)+暴击率+10%");
-                OnDiceSkillTriggered?.Invoke("对子！全体护盾+暴击+10%");
+                Debug.Log($"[骰子技能] 对子！全体获得护盾({shieldPct*100}%生命)+暴击率+{critBonus*100}%");
+                OnDiceSkillTriggered?.Invoke($"对子！全体护盾+暴击+{critBonus*100}%");
                 break;
             }
         }

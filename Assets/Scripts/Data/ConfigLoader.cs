@@ -489,6 +489,7 @@ public class DiceComboSkillEntry
     public float damage_multiplier;
     public string target;
     public float sum_attack_bonus_pct;
+    public float crit_rate_bonus;
     public string description_cn;
 }
 

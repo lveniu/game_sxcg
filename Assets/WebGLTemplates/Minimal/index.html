@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>{{{ PRODUCT_NAME }}}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { 
+      width: 100%; height: 100%; 
+      overflow: hidden; 
+      background: #1a1a2e;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+    }
+    #unity-container {
+      position: relative;
+      width: 100%;
+      max-width: 720px;
+      height: 100%;
+      max-height: 1280px;
+    }
+    #unity-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #unity-loading-bar {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      text-align: center;
+      color: #fff;
+      font-family: sans-serif;
+    }
+    #unity-progress-bar {
+      width: 200px;
+      height: 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    #unity-progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #4a9eff, #00d4aa);
+      border-radius: 3px;
+      transition: width 0.2s ease;
+    }
+    #unity-logo { width: 80px; height: 80px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div id="unity-container">
+    <canvas id="unity-canvas"></canvas>
+    <div id="unity-loading-bar">
+      <div id="unity-logo"></div>
+      <div id="unity-progress-bar">
+        <div id="unity-progress-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    var container = document.querySelector("#unity-container");
+    var canvas = document.querySelector("#unity-canvas");
+    var loadingBar = document.querySelector("#unity-loading-bar");
+    var progressBarFill = document.querySelector("#unity-progress-bar-fill");
+
+    var buildUrl = "Build";
+    var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+    var config = {
+      dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+      frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+      codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "{{{ COMPANY_NAME }}}",
+      productName: "{{{ PRODUCT_NAME }}}",
+      productVersion: "{{{ PRODUCT_VERSION }}}",
+      showBanner: function(msg, type) { console.log('[Unity] ' + type + ': ' + msg); }
+    };
+
+    loadingBar.style.display = "block";
+
+    var script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = function() {
+      createUnityInstance(canvas, config, function(progress) {
+        progressBarFill.style.width = (progress * 100) + "%";
+      }).then(function(unityInstance) {
+        loadingBar.style.display = "none";
+      }).catch(function(message) {
+        console.error("[Unity] 加载失败:", message);
+      });
+    };
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>
