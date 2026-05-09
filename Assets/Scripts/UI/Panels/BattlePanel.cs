@@ -74,9 +74,10 @@ namespace Game.UI
         [Header("敌方单位容器")]
         public RectTransform enemyUnitsContainer;
 
-        // ========== 骰子技能特效层 (FE-04.2 新增) ==========
+        // ========== 骰子技能特效层 (FE-04.2 + FE-04.3 增强) ==========
         [Header("骰子技能特效")]
-        public Image flashOverlay;               // 全屏闪光遮罩
+        public DiceSkillCinematic diceSkillCinematic; // 全屏演出控制器(FE-04.3)
+        public Image flashOverlay;               // 全屏闪光遮罩(降级兼容)
         public RectTransform damageNumbersContainer;  // 伤害数字容器
         public GameObject damageNumberPrefab;     // 伤害数字预制体
         public float flashDuration = 0.4f;
@@ -140,6 +141,9 @@ namespace Game.UI
 
         // 日志缓存
         private List<string> logLines = new List<string>();
+
+        // Bug#4 fix: 追踪所有活跃的DOTween，防止切场景泄漏
+        private List<Tween> activeTweens = new List<Tween>();
 
         // 速度显示
         private static readonly string[] SPEED_LABELS = { "x1", "x2", "x4" };
@@ -239,12 +243,22 @@ namespace Game.UI
             diceSkillButton?.onClick.RemoveAllListeners();
             resultConfirmButton?.onClick.RemoveAllListeners();
 
-            // 清理DOTween动画
+            // Bug#4 fix: 统一Kill所有追踪的DOTween
+            KillAllActiveTweens();
+
+            // 清理特定组件上的DOTween（兜底）
             resultPopup?.DOKill();
             if (resultPopup != null) resultPopup.gameObject.SetActive(false);
             vsDivider?.DOKill();
             flashOverlay?.DOKill();
             damageNumbersContainer?.DOKill();
+            relicBarContainer?.DOKill();
+            resultIcon?.DOKill();
+            rewardPreview?.DOKill();
+            resultConfirmButton?.transform.DOKill();
+
+            // FE-04.3: 停止全屏演出
+            if (diceSkillCinematic != null) diceSkillCinematic.Stop();
 
             // 清理血条
             ClearUnitBars();
@@ -309,10 +323,19 @@ namespace Game.UI
             var combo = bm?.CurrentDiceCombo;
             if (combo == null) return;
 
-            // 1) 全屏闪光
-            PlayFlashEffect(combo.Type);
+            // FE-04.3: 优先使用全屏演出控制器
+            if (diceSkillCinematic != null)
+            {
+                int[] diceValues = bm.LastDiceValues ?? new int[] { 1, 2, 3 };
+                diceSkillCinematic.Play(combo, diceValues);
+            }
+            else
+            {
+                // 降级：简单闪光
+                PlayFlashEffect(combo.Type);
+            }
 
-            // 2) 伤害数字飘出
+            // 伤害数字飘出
             PlayDamageNumbers(combo);
         }
 
@@ -334,21 +357,23 @@ namespace Game.UI
                 _ => new Color(1f, 1f, 1f, 0.4f)
             };
 
-            // 闪光序列：透明 → 亮 → 透明
+            // Bug#4 fix: 闪光序列统一追踪，切场景时可被Kill
             flashOverlay.color = Color.clear;
-            flashOverlay.DOColor(flashColor, flashDuration * 0.3f).SetEase(Ease.OutQuad)
-                .OnComplete(() =>
+            var fadeIn = flashOverlay.DOColor(flashColor, flashDuration * 0.3f).SetEase(Ease.OutQuad);
+            TrackTween(fadeIn);
+            fadeIn.OnComplete(() =>
+            {
+                if (flashOverlay != null)
                 {
-                    if (flashOverlay != null)
+                    var fadeOut = flashOverlay.DOColor(Color.clear, flashDuration * 0.7f).SetEase(Ease.InQuad);
+                    TrackTween(fadeOut);
+                    fadeOut.OnComplete(() =>
                     {
-                        flashOverlay.DOColor(Color.clear, flashDuration * 0.7f).SetEase(Ease.InQuad)
-                            .OnComplete(() =>
-                            {
-                                if (flashOverlay != null)
-                                    flashOverlay.gameObject.SetActive(false);
-                            });
-                    }
-                });
+                        if (flashOverlay != null)
+                            flashOverlay.gameObject.SetActive(false);
+                    });
+                }
+            });
         }
 
         /// <summary>
@@ -361,8 +386,18 @@ namespace Game.UI
             var bm = BattleManager.Instance;
             if (bm?.enemyUnits == null) return;
 
-            // 根据组合类型计算伤害
-            int baseDamage = combo.TotalValue * 5;
+            // 根据组合类型估算伤害（用于UI展示）
+            int baseDamage = 0;
+            var diceValues = bm.LastDiceValues;
+            if (diceValues != null)
+            {
+                foreach (var v in diceValues) baseDamage += v;
+                baseDamage *= 5;
+            }
+            else
+            {
+                baseDamage = 30; // 降级默认值
+            }
             bool isCrit = combo.Type == DiceCombinationType.ThreeOfAKind;
             bool isAOE = combo.Type == DiceCombinationType.ThreeOfAKind;
 
@@ -423,8 +458,12 @@ namespace Game.UI
             seq.Insert(0.4f, text.DOFade(0f, damageNumberDuration - 0.4f));
             seq.OnComplete(() =>
             {
+                // Bug#4 fix: 从追踪列表移除已完成的Tween
+                activeTweens.Remove(seq);
                 if (go != null) Destroy(go);
             });
+            // Bug#4 fix: 追踪Sequence防止泄漏
+            TrackTween(seq);
         }
 
         private static Color GetDamageNumberColor(DiceCombinationType type)
@@ -645,10 +684,21 @@ namespace Game.UI
             // 标题 + 颜色区分
             if (resultTitleText != null)
             {
-                resultTitleText.text = won ? "🏆 战斗胜利！" : "💀 战斗失败...";
+                string fullTitle = won ? "🏆 战斗胜利！" : "💀 战斗失败...";
                 resultTitleText.color = won
                     ? new Color(1f, 0.85f, 0.2f)
                     : new Color(0.8f, 0.2f, 0.2f);
+
+                if (won)
+                {
+                    // FE-04.4: 胜利打字机效果
+                    resultTitleText.text = "";
+                    TypewriterEffect(resultTitleText, fullTitle, 0.08f, 0.3f);
+                }
+                else
+                {
+                    resultTitleText.text = fullTitle;
+                }
             }
 
             // 副标题
@@ -658,6 +708,9 @@ namespace Game.UI
                 resultSubText.text = won
                     ? $"用时 {bm?.BattleTimer:F0}s"
                     : "英雄已阵亡...";
+                resultSubText.color = won
+                    ? new Color(0.8f, 0.9f, 0.8f)
+                    : new Color(0.6f, 0.3f, 0.3f);
             }
 
             // 背景色区分
@@ -676,8 +729,10 @@ namespace Game.UI
 
                 if (won)
                 {
-                    // 胜利：缩放弹入 + 金色光晕脉冲
-                    resultIcon.DOScale(Vector3.one * 1.2f, 0.6f).SetEase(Ease.OutBack)
+                    // 胜利：从上方滑入 + 金色光晕脉冲
+                    resultIcon.anchoredPosition = new Vector2(0, 300f);
+                    resultIcon.DOAnchorPosY(0f, 0.6f).SetEase(Ease.OutBack);
+                    resultIcon.DOScale(Vector3.one * 1.2f, 0.5f).SetEase(Ease.OutBack)
                         .OnComplete(() =>
                         {
                             resultIcon.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutQuad);
@@ -688,10 +743,11 @@ namespace Game.UI
                 }
                 else
                 {
-                    // 失败：从上方掉落 + 抖动
-                    resultIcon.anchoredPosition = new Vector2(0, 200f);
-                    resultIcon.DOAnchorPosY(0f, 0.5f).SetEase(Ease.InBounce);
+                    // FE-04.4: 失败红闪特效
+                    resultIcon.anchoredPosition = new Vector2(0, 0f);
                     resultIcon.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutQuad);
+                    // 红闪：背景快速闪烁3次
+                    PlayRedFlashEffect(3, 0.15f);
                 }
             }
 
@@ -724,6 +780,27 @@ namespace Game.UI
                 }
             }
 
+            // FE-04.4: 入场动画区分
+            if (won)
+            {
+                // 胜利：从底部滑入
+                resultPopup.anchoredPosition = new Vector2(0, -600f);
+                resultPopup.localScale = Vector3.one;
+                resultPopup.DOAnchorPosY(0f, 0.6f).SetEase(Ease.OutBack);
+            }
+            else
+            {
+                // 失败：缩放弹出（带抖动）
+                resultPopup.anchoredPosition = Vector2.zero;
+                resultPopup.localScale = Vector3.zero;
+                resultPopup.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutBack)
+                    .OnComplete(() =>
+                    {
+                        // 抖动效果
+                        resultPopup.DOShakeAnchorPos(0.3f, 10f, 20, 90f, false, true, ShakeRandomnessMode.Harmonic);
+                    });
+            }
+
             // 显示确认按钮
             if (resultConfirmButton != null)
             {
@@ -733,10 +810,44 @@ namespace Game.UI
                 resultConfirmButton.transform.DOScale(Vector3.one, 0.4f)
                     .SetDelay(won ? 0.8f : 0.5f).SetEase(Ease.OutBack);
             }
+        }
 
-            // 入场动画
-            resultPopup.localScale = Vector3.zero;
-            resultPopup.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutBack);
+        /// <summary>
+        /// 打字机效果 — 逐字显示文本
+        /// </summary>
+        private void TypewriterEffect(Text text, string fullText, float charDelay, float startDelay)
+        {
+            if (text == null || string.IsNullOrEmpty(fullText)) return;
+
+            text.text = "";
+            float delay = startDelay;
+            for (int i = 1; i <= fullText.Length; i++)
+            {
+                int len = i;
+                DOVirtual.DelayedCall(delay, () =>
+                {
+                    if (text != null) text.text = fullText.Substring(0, len);
+                });
+                delay += charDelay;
+            }
+        }
+
+        /// <summary>
+        /// 失败红闪特效 — 背景快速闪烁
+        /// </summary>
+        private void PlayRedFlashEffect(int flashCount, float flashDuration)
+        {
+            if (resultBg == null) return;
+
+            Color baseColor = new Color(0.2f, 0.05f, 0.05f, 0.92f);
+            Color flashColor = new Color(0.5f, 0.1f, 0.1f, 0.95f);
+
+            Sequence seq = DOTween.Sequence();
+            for (int i = 0; i < flashCount; i++)
+            {
+                seq.Append(resultBg.DOColor(flashColor, flashDuration * 0.5f));
+                seq.Append(resultBg.DOColor(baseColor, flashDuration * 0.5f));
+            }
         }
 
         private void OnResultConfirmClicked()
@@ -943,6 +1054,9 @@ namespace Game.UI
                 // FE-04.1: 查找属性文本（可能在prefab中已存在）
                 var statsObj = go.transform.Find("StatsText");
                 bar.statsText = statsObj?.GetComponent<Text>();
+                // Bug#5 fix: prefab分支也需要初始化StatsText可见性
+                if (bar.statsText != null)
+                    bar.statsText.gameObject.SetActive(isPlayer);
 
                 bar.canvasGroup = go.GetComponent<CanvasGroup>();
                 if (bar.canvasGroup == null)
@@ -1148,6 +1262,43 @@ namespace Game.UI
                 3 => "★★★",
                 _ => ""
             };
+        }
+
+        // ========== 清理 ==========
+
+        /// <summary>
+        /// Bug#4 fix: 切场景时清理DOTween和事件订阅，防止泄漏
+        /// </summary>
+        protected override void OnDestroy()
+        {
+            // Bug#4 fix: 清理unitBar上的DOTween动画，防止切场景泄漏
+            KillAllUnitBarTweens(playerBars);
+            KillAllUnitBarTweens(enemyBars);
+            resultPopup?.DOKill();
+            vsDivider?.DOKill();
+            flashOverlay?.DOKill();
+            damageNumbersContainer?.DOKill();
+
+            // 取消后端事件订阅（OnHide可能已执行，但双重退订安全）
+            var bm = BattleManager.Instance;
+            if (bm != null)
+            {
+                bm.OnBattleStarted -= OnBattleStarted;
+                bm.OnBattleEnded -= OnBattleEnded;
+                bm.OnBattleSpeedChanged -= OnBattleSpeedChanged;
+                bm.OnDiceSkillTriggered -= OnDiceSkillTriggered;
+            }
+
+            base.OnDestroy();
+        }
+
+        private void KillAllUnitBarTweens(List<UnitBar> bars)
+        {
+            if (bars == null) return;
+            foreach (var bar in bars)
+            {
+                if (bar?.rect != null) bar.rect.DOKill();
+            }
         }
     }
 }

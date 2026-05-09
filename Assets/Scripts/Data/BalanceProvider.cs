@@ -1,0 +1,441 @@
+using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+
+/// <summary>
+/// 数值配置统一入口 — 前端和后端都通过此入口获取配置数据
+/// 不直接操作 GameBalance 的硬编码，而是从 JSON 配置读取
+/// 
+/// 设计原则：
+/// 1. 所有配置读取的唯一入口
+/// 2. JSON 优先，fallback 到 GameBalance 硬编码默认值
+/// 3. 缓存配置实例，避免重复反序列化
+/// 4. 提供热重载接口（调试/策划调数值用）
+/// </summary>
+public static class BalanceProvider
+{
+    // ========== 配置缓存 ==========
+    private static HeroClassesConfig _heroClasses;
+    private static EnemiesConfig _enemies;
+    private static LevelsConfig _levels;
+    private static BattleFormulasConfig _battleFormulas;
+    private static SkillsConfig _skills;
+    private static DropTablesConfig _dropTables;
+    private static EconomyConfig _economy;
+    private static RelicsConfig _relics;
+    private static DiceSystemConfig _diceSystem;
+
+    // 懒加载属性
+    public static HeroClassesConfig HeroClasses => _heroClasses ?? (_heroClasses = ConfigLoader.LoadHeroClasses());
+    public static EnemiesConfig Enemies => _enemies ?? (_enemies = ConfigLoader.LoadEnemies());
+    public static LevelsConfig Levels => _levels ?? (_levels = ConfigLoader.LoadLevels());
+    public static BattleFormulasConfig BattleFormulas => _battleFormulas ?? (_battleFormulas = ConfigLoader.LoadBattleFormulas());
+    public static SkillsConfig Skills => _skills ?? (_skills = ConfigLoader.LoadSkills());
+    public static DropTablesConfig DropTables => _dropTables ?? (_dropTables = ConfigLoader.LoadDropTables());
+    public static EconomyConfig Economy => _economy ?? (_economy = ConfigLoader.LoadEconomy());
+    public static RelicsConfig Relics => _relics ?? (_relics = ConfigLoader.LoadRelics());
+    public static DiceSystemConfig DiceSystem => _diceSystem ?? (_diceSystem = ConfigLoader.LoadDiceSystem());
+
+    /// <summary>
+    /// 热重载所有配置（策划调数值后调用）
+    /// </summary>
+    public static void ReloadAll()
+    {
+        ConfigLoader.ClearCache();
+        _heroClasses = null;
+        _enemies = null;
+        _levels = null;
+        _battleFormulas = null;
+        _skills = null;
+        _dropTables = null;
+        _economy = null;
+        _relics = null;
+        _diceSystem = null;
+        GameBalance.ReloadConfigs();
+        Debug.Log("[BalanceProvider] 所有配置已重新加载");
+    }
+
+    // ========== 英雄相关 ==========
+
+    /// <summary>
+    /// 获取所有英雄职业配置列表
+    /// </summary>
+    public static List<HeroClassEntry> GetAllHeroClasses()
+    {
+        return HeroClasses?.classes ?? new List<HeroClassEntry>();
+    }
+
+    /// <summary>
+    /// 按角色类型获取英雄配置
+    /// </summary>
+    public static HeroClassEntry GetHeroClass(string heroId)
+    {
+        var classes = HeroClasses?.classes;
+        if (classes == null) return null;
+        return classes.Find(c => c.id == heroId || c.name_cn == heroId);
+    }
+
+    /// <summary>
+    /// 按角色枚举获取英雄配置
+    /// </summary>
+    public static HeroClassEntry GetHeroClass(HeroClass heroClass)
+    {
+        string roleId = heroClass.ToString().ToLower();
+        return GetHeroClass(roleId);
+    }
+
+    /// <summary>
+    /// 获取英雄基础属性（JSON优先，fallback到GameBalance）
+    /// </summary>
+    public static HeroStatTemplate GetHeroStats(string heroId)
+    {
+        var entry = GetHeroClass(heroId);
+        if (entry != null)
+        {
+            HeroClass cls = ParseHeroClass(entry.role ?? entry.id);
+            return new HeroStatTemplate(
+                entry.base_stats.max_health,
+                entry.base_stats.attack,
+                entry.base_stats.defense,
+                entry.base_stats.speed,
+                entry.base_stats.crit_rate,
+                entry.summon_cost,
+                cls
+            );
+        }
+        // fallback
+        return GameBalance.GetHeroTemplate(heroId);
+    }
+
+    // ========== 敌人相关 ==========
+
+    /// <summary>
+    /// 获取所有敌人配置
+    /// </summary>
+    public static List<EnemyEntry> GetAllEnemies()
+    {
+        return Enemies?.enemy_types ?? new List<EnemyEntry>();
+    }
+
+    /// <summary>
+    /// 按ID/中文名获取敌人配置
+    /// </summary>
+    public static EnemyEntry GetEnemy(string enemyId)
+    {
+        var enemies = Enemies?.enemy_types;
+        if (enemies == null) return null;
+        return enemies.Find(e => e.id == enemyId || e.name_cn == enemyId);
+    }
+
+    /// <summary>
+    /// 获取敌人属性模板（含难度缩放）
+    /// </summary>
+    public static HeroStatTemplate GetEnemyStats(string enemyId, int levelId = 1)
+    {
+        return GameBalance.GetEnemyTemplate(enemyId, levelId);
+    }
+
+    // ========== 关卡相关 ==========
+
+    /// <summary>
+    /// 获取关卡配置
+    /// </summary>
+    public static LevelTierEntry GetLevel(int levelId)
+    {
+        var templates = Levels?.level_templates;
+        if (templates == null) return null;
+        foreach (var kvp in templates)
+        {
+            if (kvp.Value?.range != null && levelId >= kvp.Value.range[0] && levelId <= kvp.Value.range[1])
+                return kvp.Value;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 获取所有关卡配置
+    /// </summary>
+    public static List<LevelTierEntry> GetAllLevels()
+    {
+        var templates = Levels?.level_templates;
+        if (templates == null) return new List<LevelTierEntry>();
+        return templates.Values.ToList();
+    }
+
+    // ========== 战斗公式相关 ==========
+
+    /// <summary>
+    /// 获取暴击基础倍率（默认1.5）
+    /// </summary>
+    public static float GetCritMultiplierBase()
+    {
+        return BattleFormulas?.crit_formula?.crit_multiplier_base ?? 1.5f;
+    }
+
+    /// <summary>
+    /// 获取最低伤害（默认1）
+    /// </summary>
+    public static int GetMinDamage()
+    {
+        return BattleFormulas?.damage_formula?.min_damage ?? 1;
+    }
+
+    /// <summary>
+    /// 获取默认治疗倍率（默认0.5）
+    /// </summary>
+    public static float GetHealMultiplierDefault()
+    {
+        return BattleFormulas?.heal_formula?.heal_multiplier_default ?? 0.5f;
+    }
+
+    /// <summary>
+    /// 获取最大战斗时间（秒）
+    /// </summary>
+    public static float GetMaxBattleTime()
+    {
+        return BattleFormulas?.battle_timing?.max_battle_time_sec ?? 20f;
+    }
+
+    /// <summary>
+    /// 获取战斗Tick间隔（秒）
+    /// </summary>
+    public static float GetBattleTickInterval()
+    {
+        return BattleFormulas?.battle_timing?.battle_tick_interval_sec ?? 0.3f;
+    }
+
+    /// <summary>
+    /// 获取模拟战斗最大轮数
+    /// </summary>
+    public static int GetSimulateBattleMaxRounds()
+    {
+        return BattleFormulas?.battle_timing?.simulate_battle_max_rounds ?? 100;
+    }
+
+    /// <summary>
+    /// 获取战斗速度档位
+    /// </summary>
+    public static List<int> GetSpeedOptions()
+    {
+        return BattleFormulas?.battle_timing?.speed_options ?? new List<int> { 1, 2, 4 };
+    }
+
+    /// <summary>
+    /// 获取站位修正系数
+    /// </summary>
+    public static PositionModEntry GetPositionModifier(string position)
+    {
+        var pos = BattleFormulas?.position_modifiers;
+        if (pos == null) return null;
+        return position switch
+        {
+            "front" => pos.front,
+            "middle" => pos.middle,
+            "back" => pos.back,
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// 获取连携技列表
+    /// </summary>
+    public static List<SynergyEntry> GetSynergies()
+    {
+        return BattleFormulas?.synergy_system?.synergies ?? new List<SynergyEntry>();
+    }
+
+    // ========== 技能相关 ==========
+
+    /// <summary>
+    /// 获取职业的普通攻击技能
+    /// </summary>
+    public static SkillDetailEntry GetNormalAttack(string heroClass)
+    {
+        string id = heroClass.ToLower();
+        var entry = Skills?.hero_skills?.Find(s => s.hero_class == id);
+        return entry?.normal_attack;
+    }
+
+    /// <summary>
+    /// 获取职业的主动技能
+    /// </summary>
+    public static SkillDetailEntry GetActiveSkill(string heroClass)
+    {
+        string id = heroClass.ToLower();
+        var entry = Skills?.hero_skills?.Find(s => s.hero_class == id);
+        return entry?.active_skill;
+    }
+
+    /// <summary>
+    /// 获取职业的被动技能
+    /// </summary>
+    public static PassiveSkillEntry GetPassive(string heroClass)
+    {
+        string id = heroClass.ToLower();
+        var entry = Skills?.hero_skills?.Find(s => s.hero_class == id);
+        return entry?.passive;
+    }
+
+    /// <summary>
+    /// 获取骰子组合技能
+    /// </summary>
+    public static DiceComboSkillEntry GetDiceComboSkill(string comboId)
+    {
+        var skills = Skills?.dice_combo_skills?.skills;
+        if (skills == null) return null;
+        return skills.Find(s => s.combo_id == comboId);
+    }
+
+    /// <summary>
+    /// 获取骰子组合技能使用次数限制
+    /// </summary>
+    public static int GetDiceComboSkillUsageLimit()
+    {
+        return Skills?.dice_combo_skills?.usage_limit_per_battle ?? 1;
+    }
+
+    // ========== 掉落/奖励相关 ==========
+
+    /// <summary>
+    /// 获取肉鸽奖励类型权重（按关卡阶段）
+    /// </summary>
+    public static int GetRewardWeight(string rewardTypeId, int levelId)
+    {
+        var rewardTypes = DropTables?.roguelike_rewards?.reward_types;
+        if (rewardTypes == null) return 0;
+
+        var entry = rewardTypes.Find(r => r.id == rewardTypeId);
+        if (entry?.weight_by_phase == null) return 0;
+
+        string phase = GetPhaseKey(levelId);
+        if (entry.weight_by_phase.TryGetValue(phase, out int weight))
+            return weight;
+
+        return 0;
+    }
+
+    /// <summary>
+    /// 获取奖励选项数量（默认3）
+    /// </summary>
+    public static int GetRewardChoiceCount()
+    {
+        return DropTables?.roguelike_rewards?.max_choices ?? 3;
+    }
+
+    /// <summary>
+    /// 获取金币奖励
+    /// </summary>
+    public static int GetGoldReward(int levelId)
+    {
+        return GameBalance.GetBaseGoldReward(levelId);
+    }
+
+    /// <summary>
+    /// 获取保底触发次数
+    /// </summary>
+    public static int GetGuaranteeTriggerCount()
+    {
+        return DropTables?.roguelike_rewards?.guarantee_system?.trigger_missing_count ?? 3;
+    }
+
+    /// <summary>
+    /// 获取保底权重倍率
+    /// </summary>
+    public static float GetGuaranteeWeightMultiplier()
+    {
+        return DropTables?.roguelike_rewards?.guarantee_system?.weight_multiplier_on_guarantee ?? 2f;
+    }
+
+    // ========== 经济相关 ==========
+
+    /// <summary>初始金币</summary>
+    public static int GetStartingGold() => Economy?.settings?.starting_gold ?? 10;
+    /// <summary>利息率(%)</summary>
+    public static int GetInterestRate() => Economy?.settings?.interest_rate_pct ?? 10;
+    /// <summary>最大利息</summary>
+    public static int GetMaxInterest() => Economy?.settings?.max_interest ?? 5;
+    /// <summary>重摇基础费用</summary>
+    public static int GetRerollCostBase() => Economy?.settings?.reroll_cost_base ?? 1;
+    /// <summary>重摇费用递增</summary>
+    public static int GetRerollCostIncrement() => Economy?.settings?.reroll_cost_increment ?? 1;
+
+    // ========== 遗物相关 ==========
+
+    /// <summary>
+    /// 获取所有遗物配置
+    /// </summary>
+    public static List<RelicEntry> GetAllRelics()
+    {
+        return Relics?.relics ?? new List<RelicEntry>();
+    }
+
+    /// <summary>
+    /// 获取遗物稀有度权重
+    /// </summary>
+    public static int GetRelicRarityWeight(string rarity, int currentLevel)
+    {
+        var weights = Relics?.rarity_weights;
+        if (weights == null) return 0;
+        if (weights.TryGetValue(rarity, out RelicRarityWeight weight))
+        {
+            if (currentLevel >= weight.min_level)
+                return weight.base_weight;
+        }
+        return 0;
+    }
+
+    /// <summary>最大遗物数量</summary>
+    public static int GetMaxRelicsPerRun() => Relics?.max_relics_per_run ?? 10;
+    /// <summary>遗物最大选择数</summary>
+    public static int GetMaxRelicChoices() => Relics?.max_relic_choices ?? 3;
+
+    // ========== 骰子相关 ==========
+
+    /// <summary>骰子数量</summary>
+    public static int GetDiceCount() => DiceSystem?.dice_config?.dice_count ?? 3;
+    /// <summary>骰子面数</summary>
+    public static int GetDiceFaces() => DiceSystem?.dice_config?.faces ?? 6;
+    /// <summary>免费重摇次数</summary>
+    public static int GetFreeRerolls() => DiceSystem?.dice_config?.free_rerolls ?? 1;
+    /// <summary>遗物增加的最大重摇次数</summary>
+    public static int GetMaxRerollsFromRelics() => DiceSystem?.dice_config?.max_rerolls_from_relics ?? 3;
+    /// <summary>骰子组合列表</summary>
+    public static List<DiceCombinationEntry> GetDiceCombinations() => DiceSystem?.combinations ?? new List<DiceCombinationEntry>();
+
+    // ========== 星级相关 ==========
+
+    /// <summary>星级倍率</summary>
+    public static float GetStarMultiplier(int starLevel)
+    {
+        return GameBalance.GetStarMultiplier(starLevel);
+    }
+
+    // ========== 难度相关 ==========
+
+    /// <summary>关卡难度系数</summary>
+    public static float GetLevelDifficulty(int levelId)
+    {
+        return GameBalance.GetLevelDifficulty(levelId);
+    }
+
+    // ========== 工具方法 ==========
+
+    /// <summary>关卡ID → 阶段Key</summary>
+    private static string GetPhaseKey(int levelId)
+    {
+        if (levelId <= 5) return "phase_1_level_1_5";
+        if (levelId <= 10) return "phase_2_level_6_10";
+        return "phase_3_level_11_plus";
+    }
+
+    /// <summary>字符串 → HeroClass 枚举</summary>
+    private static HeroClass ParseHeroClass(string role)
+    {
+        if (string.IsNullOrEmpty(role)) return HeroClass.Warrior;
+        string r = role.ToLower().Trim();
+        if (r == "warrior" || r == "战士") return HeroClass.Warrior;
+        if (r == "mage" || r == "法师") return HeroClass.Mage;
+        if (r == "assassin" || r == "刺客") return HeroClass.Assassin;
+        return HeroClass.Warrior;
+    }
+}

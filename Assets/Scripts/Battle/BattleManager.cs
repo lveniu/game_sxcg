@@ -5,15 +5,18 @@ using UnityEngine;
 /// <summary>
 /// 战斗管理器 — 管理自走棋自动战斗流程
 /// 改造：加入骰子技能释放、加速(2x/4x)、跳过战斗
+/// v2: 硬编码系数全部改为从 BalanceProvider (JSON配置) 读取，保留 fallback
 /// </summary>
 public class BattleManager : MonoBehaviour
 {
     public static BattleManager Instance { get; private set; }
 
     [Header("战斗配置")]
-    public float battleTickInterval = 0.5f;
+    [Tooltip("战斗Tick间隔，实际值从 battle_formulas.json 读取")]
+    public float battleTickInterval = 0.5f; // Inspector默认值，运行时由配置覆盖
     public float battleSpeed = 1f;
-    public float maxBattleTime = 60f; // 最大战斗时间（调整为60秒）
+    [Tooltip("最大战斗时间，实际值从 battle_formulas.json 读取")]
+    public float maxBattleTime = 60f; // Inspector默认值，运行时由配置覆盖
 
     [Header("单位")]
     public List<Hero> playerUnits = new List<Hero>();
@@ -27,10 +30,10 @@ public class BattleManager : MonoBehaviour
     public DiceCombination CurrentDiceCombo { get; private set; }
     public bool DiceSkillUsed { get; private set; } // 骰子技能是否已释放
 
-    // 战斗速度档位
-    public const float SPEED_1X = 1f;
-    public const float SPEED_2X = 2f;
-    public const float SPEED_4X = 4f;
+    // 战斗速度档位（从 battle_formulas.json 的 speed_options 读取）
+    public static float SPEED_1X = 1f;
+    public static float SPEED_2X = 2f;
+    public static float SPEED_4X = 4f;
 
     // 速度变化事件
     public event System.Action<float> OnBattleSpeedChanged;
@@ -51,10 +54,34 @@ public class BattleManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 从配置加载战斗参数（场景初始化时调用）
+    /// </summary>
+    public void LoadBattleConfig()
+    {
+        // 从 JSON 配置覆盖 Inspector 默认值
+        battleTickInterval = BalanceProvider.GetBattleTickInterval();
+        maxBattleTime = BalanceProvider.GetMaxBattleTime();
+
+        // 加载速度档位
+        var speedOpts = BalanceProvider.GetSpeedOptions();
+        if (speedOpts != null && speedOpts.Count >= 3)
+        {
+            SPEED_1X = speedOpts[0];
+            SPEED_2X = speedOpts[1];
+            SPEED_4X = speedOpts[2];
+        }
+
+        Debug.Log($"[BattleManager] 配置加载完成: tick={battleTickInterval}s, maxTime={maxBattleTime}s, speeds=[{SPEED_1X},{SPEED_2X},{SPEED_4X}]");
+    }
+
+    /// <summary>
     /// 开始战斗（含骰子组合效果）
     /// </summary>
     public void StartBattle(List<Hero> players, List<Hero> enemies, DiceCombination diceCombo = null)
     {
+        // 确保配置已加载
+        LoadBattleConfig();
+
         playerUnits = new List<Hero>(players);
         enemyUnits = new List<Hero>(enemies);
         IsBattleActive = true;
@@ -80,7 +107,7 @@ public class BattleManager : MonoBehaviour
 
     /// <summary>
     /// 应用骰子组合效果到所有玩家单位
-    /// 三条=全屏AOE(初始伤害)，顺子=攻速加速，对子=召唤物强化
+    /// 系数全部从 skills.json 的 dice_combo_skills 读取
     /// </summary>
     void ApplyDiceComboEffects(DiceCombination combo)
     {
@@ -89,105 +116,150 @@ public class BattleManager : MonoBehaviour
         switch (combo.Type)
         {
             case DiceCombinationType.ThreeOfAKind:
+            {
+                // 从 skills.json 读取: 三连轰击 attack_bonus_pct=0.5
+                var skillData = BalanceProvider.GetDiceComboSkill("three_of_a_kind");
+                float attackBonus = skillData?.attack_bonus_pct ?? 0.2f; // JSON:0.5, fallback:0.2
+                int duration = skillData?.duration_rounds ?? 3;
+
                 // 三条：开场全屏AOE，对所有敌人造成攻击力30%的伤害
                 int aoeDamageBase = 0;
                 foreach (var hero in playerUnits)
                 {
                     if (hero == null || hero.IsDead) continue;
                     aoeDamageBase += hero.Attack;
-                    // 同时获得攻击+20%
-                    hero.BattleAttack = Mathf.RoundToInt(hero.BattleAttack * 1.2f);
+                    // 攻击加成
+                    hero.BattleAttack = Mathf.RoundToInt(hero.BattleAttack * (1f + attackBonus));
                 }
-                int aoeDamage = Mathf.RoundToInt(aoeDamageBase * 0.3f);
+                // AOE伤害比例（三条开场30%，即从JSON的attack_bonus_pct取一半作为AOE比例）
+                float aoeRatio = Mathf.Min(attackBonus, 0.3f);
+                int aoeDamage = Mathf.RoundToInt(aoeDamageBase * aoeRatio);
                 foreach (var enemy in enemyUnits)
                 {
                     if (enemy == null || enemy.IsDead) continue;
                     enemy.TakeDamage(Mathf.Max(1, aoeDamage - enemy.BattleDefense));
                 }
-                Debug.Log($"[骰子技能] 三条AOE！全屏造成 {aoeDamage} 伤害");
+                Debug.Log($"[骰子技能] 三条AOE！全屏造成 {aoeDamage} 伤害，攻击+{attackBonus*100}%");
                 OnDiceSkillTriggered?.Invoke($"三条全屏AOE！造成{aoeDamage}伤害");
                 break;
+            }
 
             case DiceCombinationType.Straight:
-                // 顺子：全体攻速+20%，持续整场
+            {
+                // 从 skills.json 读取: 急速冲锋 attack_speed_bonus_pct=0.2, dodge_bonus_pct=0.15
+                var skillData = BalanceProvider.GetDiceComboSkill("straight");
+                float speedBonus = skillData?.attack_speed_bonus_pct ?? 0.2f;
+                int duration = skillData?.duration_rounds ?? 2;
+
+                // 顺子：全体攻速加成
                 foreach (var hero in playerUnits)
                 {
                     if (hero == null || hero.IsDead) continue;
-                    hero.BattleAttackSpeed = 1.2f;
+                    hero.BattleAttackSpeed = 1f + speedBonus;
                 }
-                Debug.Log("[骰子技能] 顺子！全体攻速+20%");
-                OnDiceSkillTriggered?.Invoke("顺子！全体攻速+20%");
+                Debug.Log($"[骰子技能] 顺子！全体攻速+{speedBonus*100}%");
+                OnDiceSkillTriggered?.Invoke($"顺子！全体攻速+{speedBonus*100}%");
                 break;
+            }
 
             case DiceCombinationType.Pair:
-                // 对子：所有友方获得护盾（最大生命15%）
+            {
+                // 从 skills.json 读取: 精准打击
+                var skillData = BalanceProvider.GetDiceComboSkill("pair");
+                // 对子：护盾（从 battle_formulas.json 的 front.shield_bonus_pct 取，fallback 0.15）
+                float shieldPct = BalanceProvider.GetPositionModifier("front")?.shield_bonus_pct ?? 0.15f;
+
                 foreach (var hero in playerUnits)
                 {
                     if (hero == null || hero.IsDead) continue;
-                    int shield = Mathf.RoundToInt(hero.MaxHealth * 0.15f);
+                    int shield = Mathf.RoundToInt(hero.MaxHealth * shieldPct);
                     hero.AddShield(shield);
-                    // 对子还提供一个额外buff：暴击率+10%
+                    // 暴击率+10%
                     hero.BattleCritRate += 0.1f;
                 }
-                Debug.Log("[骰子技能] 对子！全体获得护盾+暴击率+10%");
+                Debug.Log($"[骰子技能] 对子！全体获得护盾({shieldPct*100}%生命)+暴击率+10%");
                 OnDiceSkillTriggered?.Invoke("对子！全体护盾+暴击+10%");
                 break;
+            }
         }
     }
 
     /// <summary>
     /// 玩家手动释放骰子技能（点触释放）
-    /// 战斗中可以点一次，释放骰子组合的大招
+    /// 系数从 skills.json 读取
     /// </summary>
     public void TriggerDiceSkill()
     {
         if (!IsBattleActive || DiceSkillUsed || CurrentDiceCombo == null) return;
         if (CurrentDiceCombo.Type == DiceCombinationType.None) return;
 
+        // 检查使用次数限制
+        int usageLimit = BalanceProvider.GetDiceComboSkillUsageLimit();
+        if (usageLimit <= 0) return;
+
         DiceSkillUsed = true;
 
         switch (CurrentDiceCombo.Type)
         {
             case DiceCombinationType.ThreeOfAKind:
-                // 手动释放：全屏高额AOE（攻击力50%）
+            {
+                // 手动释放：全屏高额AOE
+                // 从 skills.json 读取 damage_multiplier
+                var skillData = BalanceProvider.GetDiceComboSkill("three_of_a_kind");
+                float dmgMult = skillData?.damage_multiplier > 0 ? skillData.damage_multiplier : 0.5f;
+
                 int dmg = 0;
                 foreach (var hero in playerUnits)
                 {
                     if (hero == null || hero.IsDead) continue;
                     dmg += hero.BattleAttack;
                 }
-                int totalDmg = Mathf.RoundToInt(dmg * 0.5f);
+                int totalDmg = Mathf.RoundToInt(dmg * dmgMult);
                 foreach (var enemy in enemyUnits)
                 {
                     if (enemy == null || enemy.IsDead) continue;
                     enemy.TakeDamage(Mathf.Max(1, totalDmg - enemy.BattleDefense / 2));
                 }
-                Debug.Log($"[手动骰子技能] 三条大招！全屏 {totalDmg} 伤害");
+                Debug.Log($"[手动骰子技能] 三条大招！全屏 {totalDmg} 伤害 (倍率{dmgMult})");
                 OnDiceSkillTriggered?.Invoke($"三条大招！{totalDmg}伤害");
                 break;
+            }
 
             case DiceCombinationType.Straight:
-                // 手动释放：全体攻击+30%（持续到战斗结束）
+            {
+                // 手动释放：全体攻击加成
+                var skillData = BalanceProvider.GetDiceComboSkill("straight");
+                // fallback: JSON无直接攻击加成字段，用 attack_speed_bonus_pct * 1.5 作为手动加成
+                float atkBonus = skillData?.attack_speed_bonus_pct > 0
+                    ? skillData.attack_speed_bonus_pct * 1.5f
+                    : 0.3f;
+
                 foreach (var hero in playerUnits)
                 {
                     if (hero == null || hero.IsDead) continue;
-                    hero.BattleAttack = Mathf.RoundToInt(hero.BattleAttack * 1.3f);
+                    hero.BattleAttack = Mathf.RoundToInt(hero.BattleAttack * (1f + atkBonus));
                 }
-                Debug.Log("[手动骰子技能] 顺子加速！全体攻击+30%");
-                OnDiceSkillTriggered?.Invoke("顺子！全体攻击+30%");
+                Debug.Log($"[手动骰子技能] 顺子加速！全体攻击+{atkBonus*100}%");
+                OnDiceSkillTriggered?.Invoke($"顺子！全体攻击+{atkBonus*100}%");
                 break;
+            }
 
             case DiceCombinationType.Pair:
-                // 手动释放：全体治疗30%最大生命
+            {
+                // 手动释放：全体治疗
+                var skillData = BalanceProvider.GetDiceComboSkill("pair");
+                float healPct = skillData?.damage_multiplier > 0 ? skillData.damage_multiplier : 0.3f;
+
                 foreach (var hero in playerUnits)
                 {
                     if (hero == null || hero.IsDead) continue;
-                    int heal = Mathf.RoundToInt(hero.MaxHealth * 0.3f);
+                    int heal = Mathf.RoundToInt(hero.MaxHealth * healPct);
                     hero.Heal(heal);
                 }
-                Debug.Log("[手动骰子技能] 对子治疗！全体恢复30%生命");
-                OnDiceSkillTriggered?.Invoke("对子治疗！全体恢复30%HP");
+                Debug.Log($"[手动骰子技能] 对子治疗！全体恢复{healPct*100}%生命");
+                OnDiceSkillTriggered?.Invoke($"对子治疗！全体恢复{healPct*100}%HP");
                 break;
+            }
         }
     }
 
@@ -235,7 +307,7 @@ public class BattleManager : MonoBehaviour
         if (allPlayerDead || allEnemyDead)
             return true;
 
-        // 超时判定
+        // 超时判定（从配置读取最大时间）
         if (BattleTimer >= maxBattleTime)
             return true;
 
@@ -327,11 +399,11 @@ public class BattleManager : MonoBehaviour
 
     /// <summary>
     /// 快速模拟战斗（无动画，纯数值计算）
+    /// maxRounds 从 battle_formulas.json 读取
     /// </summary>
     public bool SimulateBattle()
     {
-        // 使用当前双方单位的剩余生命值来模拟
-        int maxRounds = 100;
+        int maxRounds = BalanceProvider.GetSimulateBattleMaxRounds();
         var simPlayers = new List<Hero>(playerUnits);
         var simEnemies = new List<Hero>(enemyUnits);
 

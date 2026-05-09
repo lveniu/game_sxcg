@@ -79,6 +79,12 @@ namespace Game.UI
         public float dimmedScale = 0.85f;
         public float dimmedAlpha = 0.4f;
 
+        // FE-05: 浮动动画参数
+        [Header("浮动动画")]
+        public float floatAmplitude = 8f;       // 浮动幅度(px)
+        public float floatDuration = 1.5f;      // 一个浮动周期(秒)
+        public Ease floatEase = Ease.InOutSine; // 浮动缓动
+
         // 当前奖励数据
         private List<RewardOption> currentRewards = new List<RewardOption>();
 
@@ -98,6 +104,8 @@ namespace Game.UI
             public Button button;
             public int index;
             public bool isFlipped;
+            public Vector2 originalPosition;  // 卡片初始位置（浮动基准）
+            public Tweener floatTween;         // 浮动动画引用（用于停止）
         }
         private List<RewardCard> cards = new List<RewardCard>();
 
@@ -193,7 +201,7 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// FE-05.1: 卡片入场翻转动画（依次翻入）
+        /// FE-05.1: 卡片入场翻转动画（依次翻入）+ 浮动循环
         /// </summary>
         private IEnumerator AnimateCardEntry()
         {
@@ -231,7 +239,52 @@ namespace Game.UI
                 flipSeq.Insert(0.3f, card.rect.DORotate(Vector3.zero, 0.2f).SetEase(Ease.OutQuad));
 
                 card.isFlipped = true;
+
+                // 记录初始位置
+                card.originalPosition = Vector2.zero;
+
+                // 翻入完成后启动浮动动画（延迟按index错开）
+                int capturedI = i;
+                flipSeq.OnComplete(() => StartFloatAnimation(cards[capturedI]));
             }
+        }
+
+        /// <summary>
+        /// FE-05: 启动卡片浮动循环动画
+        /// </summary>
+        private void StartFloatAnimation(RewardCard card)
+        {
+            if (card.rect == null) return;
+
+            // 用相位偏移让每张卡片浮动节奏错开
+            float phaseOffset = card.index * 0.4f;
+            float yBase = card.originalPosition.y;
+
+            card.floatTween = card.rect.DOAnchorPosY(yBase + floatAmplitude, floatDuration)
+                .SetEase(floatEase)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetDelay(phaseOffset);
+        }
+
+        /// <summary>
+        /// FE-05: 停止单张卡片浮动
+        /// </summary>
+        private void StopFloatAnimation(RewardCard card)
+        {
+            if (card.floatTween != null && card.floatTween.IsActive())
+            {
+                card.floatTween.Kill();
+                card.floatTween = null;
+            }
+        }
+
+        /// <summary>
+        /// FE-05: 停止所有卡片浮动
+        /// </summary>
+        private void StopAllFloatAnimations()
+        {
+            foreach (var card in cards)
+                StopFloatAnimation(card);
         }
 
         /// <summary>
@@ -456,11 +509,19 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// FE-05.4: 选中卡片 → 其余灰化缩小
+        /// FE-05.4: 选中卡片 → 翻转到居中 + 其余灰化缩小
         /// </summary>
         private void SelectCard(int index)
         {
             selectedIndex = index;
+
+            // 先停止所有浮动
+            StopAllFloatAnimations();
+
+            // 居中位置（cardsContainer的中心）
+            Vector2 centerPos = Vector2.zero;
+            if (cardsContainer != null)
+                centerPos = cardsContainer.rect.center - cardsContainer.rect.min;
 
             for (int i = 0; i < cards.Count; i++)
             {
@@ -469,9 +530,20 @@ namespace Game.UI
 
                 if (i == index)
                 {
-                    // 选中的卡片：放大 + 亮色
-                    card.rect.DOScale(Vector3.one * selectedScale, 0.3f).SetEase(Ease.OutBack);
-                    if (card.canvasGroup != null) card.canvasGroup.alpha = 1f;
+                    // ===== 选中卡片：翻转到居中 =====
+                    Sequence selectSeq = DOTween.Sequence();
+
+                    // Step1: 翻转到侧面（Y 90°）
+                    selectSeq.Append(card.rect.DORotate(new Vector3(0f, 90f, 0f), 0.15f).SetEase(Ease.InQuad));
+
+                    // Step2: 同时移动到居中 + 放大
+                    selectSeq.Join(card.rect.DOAnchorPos(centerPos, 0.25f).SetEase(Ease.OutCubic));
+                    selectSeq.Join(card.rect.DOScale(Vector3.one * selectedScale, 0.25f).SetEase(Ease.OutBack));
+
+                    // Step3: 翻回正面
+                    selectSeq.Append(card.rect.DORotate(Vector3.zero, 0.15f).SetEase(Ease.OutQuad));
+
+                    // 高亮边框
                     if (card.borderImage != null)
                     {
                         card.borderImage.DOColor(
@@ -480,12 +552,11 @@ namespace Game.UI
                         );
                     }
 
-                    // 轻微上移
-                    card.rect.DOAnchorPosY(15f, 0.3f).SetEase(Ease.OutCubic);
+                    if (card.canvasGroup != null) card.canvasGroup.alpha = 1f;
                 }
                 else
                 {
-                    // 未选中：灰化 + 缩小
+                    // 未选中：灰化 + 缩小 + 淡出
                     card.rect.DOScale(Vector3.one * dimmedScale, 0.3f).SetEase(Ease.OutQuad);
                     if (card.canvasGroup != null)
                         card.canvasGroup.DOFade(dimmedAlpha, 0.3f);
@@ -688,6 +759,7 @@ namespace Game.UI
 
         private void ClearCards()
         {
+            StopAllFloatAnimations();
             foreach (var card in cards)
             {
                 if (card.rect != null)

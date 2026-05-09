@@ -9,19 +9,49 @@ namespace Game.UI
     /// 设计原则：
     /// 1. 前端面板不直接读JSON，也不直接依赖GameBalance
     /// 2. 所有显示数值统一从这里获取
-    /// 3. 当后端ConfigLoader就绪后，只需修改本类的数据源
+    /// 3. 数据源已切换为ConfigLoader，从JSON配置读取
     /// 
-    /// 当前状态：桥接GameBalance硬编码数据 → 后续切换为ConfigLoader
+    /// 降级策略：JSON加载失败时回退到内置默认值
     /// </summary>
     public static class UIConfigBridge
     {
-        // ========== 英雄选择面板数据 ==========
+        // ========== 英雄选择面板数据（从 hero_classes.json 读取） ==========
 
         /// <summary>
         /// 获取英雄卡片显示数据
         /// </summary>
         public static HeroDisplayData GetHeroDisplayData(HeroClass heroClass)
         {
+            // 尝试从JSON读取
+            var heroCfg = ConfigLoader.LoadHeroClasses();
+            if (heroCfg?.classes != null)
+            {
+                string classId = heroClass.ToString().ToLower();
+                var entry = heroCfg.classes.Find(c => c.role?.ToLower() == classId || c.id == classId);
+                if (entry != null)
+                {
+                    return new HeroDisplayData
+                    {
+                        heroClass = heroClass,
+                        displayName = entry.name_cn,
+                        className = entry.name_cn,
+                        description = entry.description ?? "",
+                        icon = entry.icon_ref ?? $"{classId}_icon",
+                        color = HexToColor(entry.color ?? GetDefaultClassColor(heroClass)),
+                        stats = new HeroStats
+                        {
+                            maxHealth = entry.base_stats.max_health,
+                            attack = entry.base_stats.attack,
+                            defense = entry.base_stats.defense,
+                            speed = entry.base_stats.speed,
+                            critRate = entry.base_stats.crit_rate
+                        },
+                        summonCost = entry.summon_cost
+                    };
+                }
+            }
+
+            // 硬编码回退
             return heroClass switch
             {
                 HeroClass.Warrior => new HeroDisplayData
@@ -32,14 +62,7 @@ namespace Game.UI
                     description = "高防高血，近战输出，队伍前排坦克",
                     icon = "warrior_icon",
                     color = HexToColor("#4A90D9"),
-                    stats = new HeroStats
-                    {
-                        maxHealth = 150,
-                        attack = 8,
-                        defense = 10,
-                        speed = 6,
-                        critRate = 0.02f
-                    },
+                    stats = new HeroStats { maxHealth = 150, attack = 8, defense = 10, speed = 6, critRate = 0.02f },
                     summonCost = 2
                 },
                 HeroClass.Mage => new HeroDisplayData
@@ -50,14 +73,7 @@ namespace Game.UI
                     description = "远程AOE法术输出，群体伤害专家",
                     icon = "mage_icon",
                     color = HexToColor("#9B59B6"),
-                    stats = new HeroStats
-                    {
-                        maxHealth = 70,
-                        attack = 12,
-                        defense = 3,
-                        speed = 8,
-                        critRate = 0.05f
-                    },
+                    stats = new HeroStats { maxHealth = 70, attack = 12, defense = 3, speed = 8, critRate = 0.05f },
                     summonCost = 2
                 },
                 HeroClass.Assassin => new HeroDisplayData
@@ -68,14 +84,7 @@ namespace Game.UI
                     description = "高速爆发，闪避背刺，单体秒杀",
                     icon = "assassin_icon",
                     color = HexToColor("#E74C3C"),
-                    stats = new HeroStats
-                    {
-                        maxHealth = 70,
-                        attack = 16,
-                        defense = 3,
-                        speed = 14,
-                        critRate = 0.12f
-                    },
+                    stats = new HeroStats { maxHealth = 70, attack = 16, defense = 3, speed = 14, critRate = 0.12f },
                     summonCost = 1
                 },
                 _ => null
@@ -87,6 +96,37 @@ namespace Game.UI
         /// </summary>
         public static HeroDisplayData[] GetAllHeroDisplayData()
         {
+            // 尝试从JSON读取所有英雄
+            var heroCfg = ConfigLoader.LoadHeroClasses();
+            if (heroCfg?.classes != null)
+            {
+                var result = new List<HeroDisplayData>();
+                foreach (var entry in heroCfg.classes)
+                {
+                    HeroClass cls = ParseHeroClass(entry.role);
+                    result.Add(new HeroDisplayData
+                    {
+                        heroClass = cls,
+                        displayName = entry.name_cn,
+                        className = entry.name_cn,
+                        description = entry.description ?? "",
+                        icon = entry.icon_ref ?? $"{entry.id}_icon",
+                        color = HexToColor(entry.color ?? GetDefaultClassColor(cls)),
+                        stats = new HeroStats
+                        {
+                            maxHealth = entry.base_stats.max_health,
+                            attack = entry.base_stats.attack,
+                            defense = entry.base_stats.defense,
+                            speed = entry.base_stats.speed,
+                            critRate = entry.base_stats.crit_rate
+                        },
+                        summonCost = entry.summon_cost
+                    });
+                }
+                if (result.Count > 0) return result.ToArray();
+            }
+
+            // 硬编码回退
             return new HeroDisplayData[]
             {
                 GetHeroDisplayData(HeroClass.Warrior),
@@ -95,13 +135,37 @@ namespace Game.UI
             };
         }
 
-        // ========== 骰子组合显示数据 ==========
+        // ========== 骰子组合显示数据（从 dice_system.json 读取） ==========
 
         /// <summary>
         /// 获取骰子组合的显示信息
         /// </summary>
         public static DiceComboDisplayData GetComboDisplayData(DiceCombinationType comboType)
         {
+            var diceCfg = ConfigLoader.LoadDiceSystem();
+            if (diceCfg?.combinations != null)
+            {
+                string comboId = comboType.ToString().ToLower();
+                var entry = diceCfg.combinations.Find(c => c.id == comboId);
+                if (entry != null)
+                {
+                    return new DiceComboDisplayData
+                    {
+                        comboType = comboType,
+                        nameCN = entry.name_cn ?? comboId,
+                        description = entry.effects?.GetValue("description_cn")?.ToString() ?? "",
+                        borderColor = entry.visual != null && entry.visual.GetValue("border_color") != null
+                            ? HexToColor(entry.visual.GetValue("border_color").ToString())
+                            : GetDefaultComboColor(comboType),
+                        glowIntensity = entry.visual != null && entry.visual.GetValue("glow_intensity") != null
+                            ? (float)entry.visual.GetValue("glow_intensity")
+                            : GetDefaultGlow(comboType),
+                        sortPriority = entry.sort_priority
+                    };
+                }
+            }
+
+            // 硬编码回退
             return comboType switch
             {
                 DiceCombinationType.ThreeOfAKind => new DiceComboDisplayData
@@ -143,13 +207,29 @@ namespace Game.UI
             };
         }
 
-        // ========== 骰子特殊面显示数据 ==========
+        // ========== 骰子特殊面显示数据（从 dice_system.json face_upgrade 读取） ==========
 
         /// <summary>
         /// 获取骰子特殊面的显示信息
         /// </summary>
         public static DiceFaceDisplayData GetSpecialFaceDisplay(string faceId)
         {
+            var diceCfg = ConfigLoader.LoadDiceSystem();
+            if (diceCfg?.face_upgrade?.special_faces != null)
+            {
+                var entry = diceCfg.face_upgrade.special_faces.Find(f => f.id == faceId);
+                if (entry != null)
+                {
+                    return new DiceFaceDisplayData
+                    {
+                        nameCN = entry.name_cn ?? faceId,
+                        color = GetSpecialFaceColor(faceId),
+                        description = entry.effect ?? ""
+                    };
+                }
+            }
+
+            // 硬编码回退
             return faceId switch
             {
                 "lightning" => new DiceFaceDisplayData { nameCN = "⚡闪电", color = HexToColor("#F1C40F"), description = "连锁闪电x3" },
@@ -161,7 +241,7 @@ namespace Game.UI
             };
         }
 
-        // ========== 遗物稀有度显示 ==========
+        // ========== 遗物稀有度显示（从 relics.json rarity_weights 读取） ==========
 
         /// <summary>
         /// 获取遗物稀有度显示信息
@@ -178,14 +258,29 @@ namespace Game.UI
             };
         }
 
+        /// <summary>
+        /// 遗物稀有度字符串转int
+        /// </summary>
+        public static int RarityToInt(string rarity)
+        {
+            return rarity?.ToLower() switch
+            {
+                "common" => 1,
+                "rare" => 2,
+                "epic" => 3,
+                "legendary" => 4,
+                _ => 0
+            };
+        }
+
         public static Color GetRarityColor(int rarity)
         {
             return rarity switch
             {
-                1 => new Color(0.85f, 0.85f, 0.85f), // 灰白
-                2 => new Color(0.26f, 0.53f, 0.96f),  // 蓝
-                3 => new Color(0.64f, 0.21f, 0.93f),  // 紫
-                4 => new Color(1f, 0.75f, 0f),        // 金（传说）
+                1 => new Color(0.85f, 0.85f, 0.85f),
+                2 => new Color(0.26f, 0.53f, 0.96f),
+                3 => new Color(0.64f, 0.21f, 0.93f),
+                4 => new Color(1f, 0.75f, 0f),
                 _ => Color.white
             };
         }
@@ -223,11 +318,21 @@ namespace Game.UI
         /// </summary>
         public static Color GetClassColor(HeroClass heroClass)
         {
+            // 尝试从JSON读取
+            var heroCfg = ConfigLoader.LoadHeroClasses();
+            if (heroCfg?.classes != null)
+            {
+                string classId = heroClass.ToString().ToLower();
+                var entry = heroCfg.classes.Find(c => c.role?.ToLower() == classId || c.id == classId);
+                if (entry != null && !string.IsNullOrEmpty(entry.color))
+                    return HexToColor(entry.color);
+            }
+
             return heroClass switch
             {
-                HeroClass.Warrior => new Color(0.9f, 0.4f, 0.3f),   // 红
-                HeroClass.Mage => new Color(0.3f, 0.5f, 0.9f),      // 蓝
-                HeroClass.Assassin => new Color(0.7f, 0.3f, 0.9f),  // 紫
+                HeroClass.Warrior => new Color(0.9f, 0.4f, 0.3f),
+                HeroClass.Mage => new Color(0.3f, 0.5f, 0.9f),
+                HeroClass.Assassin => new Color(0.7f, 0.3f, 0.9f),
                 _ => Color.white
             };
         }
@@ -260,7 +365,7 @@ namespace Game.UI
             };
         }
 
-        // ========== 遗物显示桥接 ==========
+        // ========== 遗物显示桥接（从 relics.json 读取） ==========
 
         /// <summary>
         /// 从RelicData转为前端显示数据
@@ -324,7 +429,7 @@ namespace Game.UI
                 RelicEffectType.PoisonAttack => $"攻击附带中毒{Mathf.RoundToInt(value)}%/回合",
                 RelicEffectType.GiantSlayer => $"对高血量敌人额外伤害+{Mathf.RoundToInt(value * 100)}%",
                 RelicEffectType.ExtraReroll => $"重摇次数+{Mathf.RoundToInt(value)}",
-                RelicEffectType.ComboBoost => $"散牌升级为对子",
+                RelicEffectType.ComboBoost => "散牌升级为对子",
                 RelicEffectType.DoubleReward => $"{Mathf.RoundToInt(value * 100)}%概率双倍奖励",
                 RelicEffectType.Revive => $"每关复活{Mathf.RoundToInt(value)}次",
                 _ => $"效果值: {value}"
@@ -357,6 +462,64 @@ namespace Game.UI
                 return color;
             return Color.white;
         }
+
+        private static HeroClass ParseHeroClass(string role)
+        {
+            if (string.IsNullOrEmpty(role)) return HeroClass.Warrior;
+            return role.ToLower() switch
+            {
+                "warrior" or "战士" or "tank" => HeroClass.Warrior,
+                "mage" or "法师" or "support" => HeroClass.Mage,
+                "assassin" or "刺客" or "dps" => HeroClass.Assassin,
+                _ => HeroClass.Warrior
+            };
+        }
+
+        private static string GetDefaultClassColor(HeroClass cls)
+        {
+            return cls switch
+            {
+                HeroClass.Warrior => "#4A90D9",
+                HeroClass.Mage => "#9B59B6",
+                HeroClass.Assassin => "#E74C3C",
+                _ => "#FFFFFF"
+            };
+        }
+
+        private static Color GetDefaultComboColor(DiceCombinationType combo)
+        {
+            return combo switch
+            {
+                DiceCombinationType.ThreeOfAKind => HexToColor("#FFD700"),
+                DiceCombinationType.Straight => HexToColor("#3498DB"),
+                DiceCombinationType.Pair => HexToColor("#2ECC71"),
+                _ => HexToColor("#95A5A6")
+            };
+        }
+
+        private static float GetDefaultGlow(DiceCombinationType combo)
+        {
+            return combo switch
+            {
+                DiceCombinationType.ThreeOfAKind => 1.0f,
+                DiceCombinationType.Straight => 0.8f,
+                DiceCombinationType.Pair => 0.5f,
+                _ => 0.0f
+            };
+        }
+
+        private static Color GetSpecialFaceColor(string faceId)
+        {
+            return faceId switch
+            {
+                "lightning" => HexToColor("#F1C40F"),
+                "shield" => HexToColor("#3498DB"),
+                "heal" => HexToColor("#2ECC71"),
+                "poison" => HexToColor("#9B59B6"),
+                "critical" => HexToColor("#E74C3C"),
+                _ => Color.white
+            };
+        }
     }
 
     // ========== 数据结构 ==========
@@ -367,11 +530,11 @@ namespace Game.UI
     public class HeroDisplayData
     {
         public HeroClass heroClass;
-        public string displayName;     // "铁壁战士"
-        public string className;       // "战士"
-        public string description;     // 角色描述
-        public string icon;            // 图标引用名
-        public Color color;            // 主题色
+        public string displayName;
+        public string className;
+        public string description;
+        public string icon;
+        public Color color;
         public HeroStats stats;
         public int summonCost;
     }
@@ -412,7 +575,6 @@ namespace Game.UI
     }
 
     // ========== 奖励类型图标 ==========
-    // (放在这里让 BattlePanel 和 RoguelikeRewardPanel 都能用)
 
     /// <summary>
     /// 获取奖励类型的图标emoji和主题色
@@ -435,10 +597,10 @@ namespace Game.UI
         {
             return type switch
             {
-                RewardType.NewUnit => new Color(0.3f, 0.8f, 0.4f),       // 绿
-                RewardType.DiceFaceUpgrade => new Color(0.2f, 0.6f, 1f), // 蓝
-                RewardType.StatBoost => new Color(1f, 0.6f, 0.2f),      // 橙
-                RewardType.Relic => new Color(0.8f, 0.4f, 1f),          // 紫
+                RewardType.NewUnit => new Color(0.3f, 0.8f, 0.4f),
+                RewardType.DiceFaceUpgrade => new Color(0.2f, 0.6f, 1f),
+                RewardType.StatBoost => new Color(1f, 0.6f, 0.2f),
+                RewardType.Relic => new Color(0.8f, 0.4f, 1f),
                 _ => Color.white
             };
         }
