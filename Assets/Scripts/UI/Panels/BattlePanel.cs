@@ -453,6 +453,7 @@ namespace Game.UI
 
             // 飘出动画：上浮 + 缩放 + 淡出
             Sequence seq = DOTween.Sequence();
+            seq.SetLink(gameObject);
             seq.Append(rect.DOScale(isCrit ? 1.5f : 1.2f, 0.2f).SetEase(Ease.OutBack));
             seq.Join(rect.DOAnchorPosY(offset.y + 80f, damageNumberDuration).SetEase(Ease.OutCubic));
             seq.Insert(0.4f, text.DOFade(0f, damageNumberDuration - 0.4f));
@@ -731,14 +732,19 @@ namespace Game.UI
                 {
                     // 胜利：从上方滑入 + 金色光晕脉冲
                     resultIcon.anchoredPosition = new Vector2(0, 300f);
-                    resultIcon.DOAnchorPosY(0f, 0.6f).SetEase(Ease.OutBack);
+                    resultIcon.DOAnchorPosY(0f, 0.6f).SetEase(Ease.OutBack)
+                        .SetLink(gameObject);
                     resultIcon.DOScale(Vector3.one * 1.2f, 0.5f).SetEase(Ease.OutBack)
+                        .SetLink(gameObject)
                         .OnComplete(() =>
                         {
-                            resultIcon.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutQuad);
+                            if (resultIcon == null) return; // 闭包null guard
+                            resultIcon.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutQuad)
+                                .SetLink(gameObject);
                             // 持续脉冲
                             resultIcon.DOScale(new Vector3(1.05f, 1.05f, 1f), 0.8f)
-                                .SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine);
+                                .SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine)
+                                .SetLink(gameObject);
                         });
                 }
                 else
@@ -794,10 +800,13 @@ namespace Game.UI
                 resultPopup.anchoredPosition = Vector2.zero;
                 resultPopup.localScale = Vector3.zero;
                 resultPopup.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutBack)
+                    .SetLink(gameObject)
                     .OnComplete(() =>
                     {
+                        if (resultPopup == null) return; // 闭包null guard
                         // 抖动效果
-                        resultPopup.DOShakeAnchorPos(0.3f, 10f, 20, 90f, false, true, ShakeRandomnessMode.Harmonic);
+                        resultPopup.DOShakeAnchorPos(0.3f, 10f, 20, 90f, false, true, ShakeRandomnessMode.Harmonic)
+                            .SetLink(gameObject);
                     });
             }
 
@@ -808,7 +817,8 @@ namespace Game.UI
                 resultConfirmButton.interactable = true;
                 resultConfirmButton.transform.localScale = Vector3.zero;
                 resultConfirmButton.transform.DOScale(Vector3.one, 0.4f)
-                    .SetDelay(won ? 0.8f : 0.5f).SetEase(Ease.OutBack);
+                    .SetDelay(won ? 0.8f : 0.5f).SetEase(Ease.OutBack)
+                    .SetLink(gameObject);
             }
         }
 
@@ -843,6 +853,7 @@ namespace Game.UI
             Color flashColor = new Color(0.5f, 0.1f, 0.1f, 0.95f);
 
             Sequence seq = DOTween.Sequence();
+            seq.SetLink(gameObject);
             for (int i = 0; i < flashCount; i++)
             {
                 seq.Append(resultBg.DOColor(flashColor, flashDuration * 0.5f));
@@ -858,12 +869,13 @@ namespace Game.UI
             if (resultPopup != null)
             {
                 resultPopup.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack)
+                    .SetLink(gameObject)
                     .OnComplete(() =>
                     {
                         if (resultPopup != null)
                             resultPopup.gameObject.SetActive(false);
                         // 推进状态机到Settlement
-                        GameStateMachine.Instance.ChangeState(GameState.Settlement);
+                        GameStateMachine.Instance?.ChangeState(GameState.Settlement);
                     });
             }
             else

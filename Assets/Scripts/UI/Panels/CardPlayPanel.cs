@@ -623,9 +623,12 @@ namespace Game.UI
 
             // 合成区动画
             mergeZone.DOScale(Vector3.one * 1.2f, 0.2f).SetEase(Ease.OutQuad)
+                .SetLink(gameObject)
                 .OnComplete(() =>
                 {
-                    mergeZone.DOScale(Vector3.one, 0.2f).SetEase(Ease.InOutQuad);
+                    if (mergeZone != null)
+                        mergeZone.DOScale(Vector3.one, 0.2f).SetEase(Ease.InOutQuad)
+                            .SetLink(gameObject);
                     DOVirtual.DelayedCall(0.5f, () =>
                     {
                         if (mergeZone != null) mergeZone.gameObject.SetActive(false);

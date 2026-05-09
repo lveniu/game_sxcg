@@ -340,7 +340,7 @@ namespace Game.UI
                     phaseBanner.DOScale(1f, 0.4f).SetEase(Ease.OutBack)
                 );
                 activeTweens.Add(
-                    DOTween.Sequence()
+                    DOTween.Sequence().SetLink(gameObject)
                         .AppendInterval(phaseBannerDuration)
                         .AppendCallback(() =>
                         {
@@ -402,7 +402,7 @@ namespace Game.UI
 
                 // 自动消失
                 activeTweens.Add(
-                    DOTween.Sequence()
+                    DOTween.Sequence().SetLink(gameObject)
                         .AppendInterval(tipDisplayDuration)
                         .AppendCallback(() =>
                         {
@@ -456,7 +456,7 @@ namespace Game.UI
 
             // 自动隐藏
             activeTweens.Add(
-                DOTween.Sequence()
+                DOTween.Sequence().SetLink(gameObject)
                     .AppendInterval(warningDuration)
                     .AppendCallback(() =>
                     {
@@ -494,12 +494,15 @@ namespace Game.UI
             if (bossHealthBarFill != null)
             {
                 activeTweens.Add(
-                    bossHealthBarFill.DOColor(Color.white, 0.2f).SetLoops(3, LoopType.Yoyo).OnComplete(() =>
+                    bossHealthBarFill.DOColor(Color.white, 0.2f).SetLoops(3, LoopType.Yoyo)
+                        .SetLink(gameObject)
+                        .OnComplete(() =>
                     {
                         if (bossHealthBarContainer != null)
                         {
                             activeTweens.Add(
                                 bossHealthBarContainer.DOScale(0f, 0.5f).SetEase(Ease.InBack)
+                                    .SetLink(gameObject)
                             );
                         }
                     })

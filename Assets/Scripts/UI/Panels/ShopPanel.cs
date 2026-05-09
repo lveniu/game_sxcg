@@ -364,8 +364,8 @@ namespace Game.UI
                 if (goldText != null)
                 {
                     goldText.DOColor(Color.red, 0.15f)
-                        .SetLoops(3, LoopType.Yoyo)
-                        .OnComplete(() => goldText.color = new Color(1f, 0.85f, 0.2f));
+                        .SetLoops(3, LoopType.Yoyo).SetLink(gameObject)
+                        .OnComplete(() => { if (goldText != null) goldText.color = new Color(1f, 0.85f, 0.2f); });
                 }
             }
         }
@@ -386,6 +386,7 @@ namespace Game.UI
             if (rectTransform != null)
             {
                 rectTransform.DOAnchorPos(new Vector2(0, -100f), 0.3f).SetEase(Ease.InCubic)
+                    .SetLink(gameObject)
                     .OnComplete(() => Hide());
             }
             else

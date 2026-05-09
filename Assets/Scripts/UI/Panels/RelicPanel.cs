@@ -379,9 +379,10 @@ namespace Game.UI
         {
             if (detailPopup == null) return;
             activeTweens.Add(
-                detailPopup.DOScale(0f, 0.2f).SetEase(Ease.InBack).OnComplete(() =>
+                detailPopup.DOScale(0f, 0.2f).SetEase(Ease.InBack).SetLink(gameObject).OnComplete(() =>
                 {
-                    detailPopup.gameObject.SetActive(false);
+                    if (detailPopup != null)
+                        detailPopup.gameObject.SetActive(false);
                 })
             );
         }
@@ -451,6 +452,7 @@ namespace Game.UI
                 if (slot.rect != null)
                 {
                     var seq = DOTween.Sequence();
+                    seq.SetLink(gameObject);
                     seq.Append(slot.rect.DOScale(1.15f, 0.1f));
                     seq.Append(slot.rect.DOScale(1f, 0.15f));
                     seq.SetEase(Ease.OutQuad);
@@ -462,6 +464,7 @@ namespace Game.UI
                 {
                     var origColor = slot.borderImage.color;
                     var t = DOTween.Sequence();
+                    t.SetLink(gameObject);
                     t.Append(slot.borderImage.DOColor(Color.white, 0.1f));
                     t.Append(slot.borderImage.DOColor(origColor, 0.2f));
                     activeTweens.Add(t);

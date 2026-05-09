@@ -190,6 +190,7 @@ namespace Game.UI
             if (rectTransform != null)
             {
                 rectTransform.DOScale(Vector3.zero, 0.25f).SetEase(Ease.InBack)
+                    .SetLink(gameObject)
                     .OnComplete(() => Hide());
             }
             else

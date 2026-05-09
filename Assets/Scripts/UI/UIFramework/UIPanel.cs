@@ -71,6 +71,10 @@ namespace Game.UI
             });
 
             OnHide();
+
+            // 技术债清理: 统一Kill该GameObject上所有DOTween，一劳永逸防泄漏
+            // 子面板不用再各自DOKill，基类兜底
+            DOTween.Kill(gameObject);
         }
 
         /// <summary>立即隐藏（无动画，用于初始化）</summary>

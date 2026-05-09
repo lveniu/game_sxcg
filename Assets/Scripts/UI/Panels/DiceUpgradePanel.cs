@@ -582,10 +582,11 @@ namespace Game.UI
             if (slot != null && slot.rect != null)
             {
                 activeTweens.Add(
-                    slot.rect.DOScale(1.3f, 0.15f).SetEase(Ease.OutQuad).OnComplete(() =>
+                    slot.rect.DOScale(1.3f, 0.15f).SetEase(Ease.OutQuad).SetLink(gameObject).OnComplete(() =>
                     {
                         if (slot.rect != null)
-                            activeTweens.Add(slot.rect.DOScale(1f, 0.15f).SetEase(Ease.InQuad));
+                            activeTweens.Add(slot.rect.DOScale(1f, 0.15f).SetEase(Ease.InQuad)
+                                .SetLink(gameObject));
                     })
                 );
             }

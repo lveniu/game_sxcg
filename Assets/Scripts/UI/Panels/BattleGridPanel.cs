@@ -544,14 +544,17 @@ namespace Game.UI
             {
                 startBattleButton.interactable = false;
                 startBattleButton.transform.DOScale(Vector3.one * 0.9f, 0.1f)
+                    .SetLink(gameObject)
                     .OnComplete(() =>
                     {
-                        startBattleButton.transform.DOScale(Vector3.one, 0.1f)
-                            .OnComplete(() =>
-                            {
-                                // 进入战斗状态
-                                GameStateMachine.Instance?.NextState();
-                            });
+                        if (startBattleButton != null)
+                            startBattleButton.transform.DOScale(Vector3.one, 0.1f)
+                                .SetLink(gameObject)
+                                .OnComplete(() =>
+                                {
+                                    // 进入战斗状态
+                                    GameStateMachine.Instance?.NextState();
+                                });
                     });
             }
             else
@@ -603,10 +606,12 @@ namespace Game.UI
 
             cellRects[x, y].DOKill();
             cellRects[x, y].DOScale(Vector3.one * 1.15f, 0.1f)
+                .SetLink(gameObject)
                 .OnComplete(() =>
                 {
                     if (cellRects[x, y] != null)
-                        cellRects[x, y].DOScale(Vector3.one, 0.15f).SetEase(Ease.OutQuad);
+                        cellRects[x, y].DOScale(Vector3.one, 0.15f).SetEase(Ease.OutQuad)
+                            .SetLink(gameObject);
                 });
         }
 

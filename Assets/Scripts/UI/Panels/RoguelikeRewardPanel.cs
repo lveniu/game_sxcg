@@ -226,6 +226,7 @@ namespace Game.UI
 
                 // 翻入动画：从背面翻到正面
                 Sequence flipSeq = DOTween.Sequence();
+                flipSeq.SetLink(gameObject);
                 flipSeq.Append(card.rect.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack));
                 flipSeq.Join(card.rect.DOAnchorPosY(0f, 0.4f).SetEase(Ease.OutCubic));
                 // 翻转：先到90度（背面消失），再到0度（正面出现）
@@ -702,6 +703,7 @@ namespace Game.UI
             if (relicDetailPopup != null)
             {
                 relicDetailPopup.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack)
+                    .SetLink(gameObject)
                     .OnComplete(() =>
                     {
                         if (relicDetailPopup != null)
@@ -721,6 +723,7 @@ namespace Game.UI
             if (relicDetailPopup != null)
             {
                 relicDetailPopup.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack)
+                    .SetLink(gameObject)
                     .OnComplete(() =>
                     {
                         if (relicDetailPopup != null)
