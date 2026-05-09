@@ -89,6 +89,17 @@ namespace Game.UI
                 bm.OnBattleStarted += OnBattleStarted;
                 bm.OnBattleEnded += OnBattleEnded;
             }
+
+            // 订阅机制怪系统事件（事件驱动替代Update轮询）
+            var mes = MechanicEnemySystem.Instance;
+            if (mes != null)
+            {
+                mes.OnMechanicTriggered += OnMechanicTriggered;
+                mes.OnBossPhaseChanged += OnBossPhaseChanged;
+                mes.OnMechanicWarning += OnMechanicWarning;
+                mes.OnMinionsSpawned += OnMinionsSpawned;
+                mes.OnBombExploded += OnBombExploded;
+            }
         }
 
         protected override void OnHide()
@@ -98,6 +109,17 @@ namespace Game.UI
             {
                 bm.OnBattleStarted -= OnBattleStarted;
                 bm.OnBattleEnded -= OnBattleEnded;
+            }
+
+            // 取消订阅机制怪系统事件
+            var mes = MechanicEnemySystem.Instance;
+            if (mes != null)
+            {
+                mes.OnMechanicTriggered -= OnMechanicTriggered;
+                mes.OnBossPhaseChanged -= OnBossPhaseChanged;
+                mes.OnMechanicWarning -= OnMechanicWarning;
+                mes.OnMinionsSpawned -= OnMinionsSpawned;
+                mes.OnBombExploded -= OnBombExploded;
             }
 
             KillAllTweens();
@@ -508,6 +530,137 @@ namespace Game.UI
                     })
                 );
             }
+        }
+
+        // ========== 机制怪系统事件回调 ==========
+
+        /// <summary>Boss执行机制时（ShieldSwap/Reflect/Berserk等）</summary>
+        private void OnMechanicTriggered(Hero boss, MechanicType type, string description)
+        {
+            if (boss != currentBoss) return;
+
+            // 更新当前Boss引用（确保同步）
+            currentBoss = boss;
+            isBossActive = true;
+
+            // 显示机制提示
+            ShowMechanicTip($"⚙ {description}");
+
+            // 根据机制类型显示不同的预警
+            switch (type)
+            {
+                case MechanicType.Berserk:
+                    ShowSkillWarning($"⚠ Boss狂暴！攻击力大幅提升！");
+                    break;
+                case MechanicType.StealthAssassin:
+                    ShowSkillWarning($"⚠ Boss隐身！下次攻击将造成双倍伤害！");
+                    break;
+                case MechanicType.CurseSpread:
+                    ShowSkillWarning($"⚠ Boss释放诅咒！全体持续掉血！");
+                    break;
+                case MechanicType.TimeBomb:
+                    ShowSkillWarning($"💣 Boss安放炸弹！倒计时中...");
+                    break;
+                case MechanicType.ElementalShift:
+                    ShowMechanicTip($"🔄 Boss切换了元素属性！");
+                    break;
+            }
+
+            Debug.Log($"[BossHUD] 机制触发: {type} — {description}");
+        }
+
+        /// <summary>Boss阶段切换（66%→33%血量阈值）</summary>
+        private void OnBossPhaseChanged(Hero boss, int newPhase, string tip)
+        {
+            if (boss != currentBoss) return;
+
+            int oldPhase = currentPhase;
+            currentPhase = newPhase;
+            UpdatePhaseText();
+            CreatePhaseIndicators();
+
+            // 阶段横幅动画
+            if (phaseBanner != null && phaseBannerText != null)
+            {
+                phaseBanner.gameObject.SetActive(true);
+                phaseBannerText.text = $"第{newPhase}阶段！{tip}";
+
+                phaseBanner.localScale = new Vector3(3f, 3f, 3f);
+                activeTweens.Add(
+                    phaseBanner.DOScale(1f, 0.4f).SetEase(Ease.OutBack)
+                );
+                activeTweens.Add(
+                    DOTween.Sequence().SetLink(gameObject)
+                        .AppendInterval(phaseBannerDuration)
+                        .AppendCallback(() =>
+                        {
+                            if (phaseBanner != null)
+                                phaseBanner.gameObject.SetActive(false);
+                        })
+                );
+            }
+
+            // 高阶段预警
+            if (newPhase >= 2)
+            {
+                ShowMechanicTip(tip);
+            }
+            if (newPhase >= 3)
+            {
+                ShowSkillWarning($"⚠ 终极阶段！Boss释放全屏技能！");
+            }
+
+            Debug.Log($"[BossHUD] 阶段切换: {oldPhase} → {newPhase} ({tip})");
+        }
+
+        /// <summary>机制预警（如TimeBomb倒计时）</summary>
+        private void OnMechanicWarning(Hero boss, string warning)
+        {
+            if (boss != currentBoss) return;
+            ShowSkillWarning($"⚠ {warning}");
+            Debug.Log($"[BossHUD] 机制预警: {warning}");
+        }
+
+        /// <summary>Boss召唤小怪（SpawnMinions/SplitOnDeath）</summary>
+        private void OnMinionsSpawned(List<Hero> minions)
+        {
+            if (minions == null || minions.Count == 0) return;
+
+            ShowMechanicTip($"👾 Boss召唤了 {minions.Count} 个小怪！");
+
+            // 通知BattlePanel刷新敌方血条（通过BattleManager.enemyUnits自动刷新）
+            var bm = BattleManager.Instance;
+            if (bm != null)
+            {
+                // BattlePanel的RefreshUnitBars()会在Update中自动检测新单位
+                // 这里只需确保BossHUD的Boss引用仍然正确
+                if (currentBoss != null && !currentBoss.IsDead)
+                {
+                    isBossActive = true;
+                }
+            }
+
+            Debug.Log($"[BossHUD] 小怪生成: {minions.Count}个");
+        }
+
+        /// <summary>TimeBomb爆炸</summary>
+        private void OnBombExploded(Hero boss, int totalDamage)
+        {
+            if (boss != currentBoss) return;
+
+            ShowSkillWarning($"💣 炸弹爆炸！全体受到 {totalDamage} 伤害！");
+
+            // 全屏红色闪烁（更强力的预警效果）
+            if (skillWarningFlash != null)
+            {
+                skillWarningFlash.color = new Color(1f, 0.3f, 0f, 0.5f);
+                activeTweens.Add(
+                    skillWarningFlash.DOFade(0f, 0.8f).SetEase(Ease.InQuad)
+                        .SetLoops(2, LoopType.Yoyo)
+                );
+            }
+
+            Debug.Log($"[BossHUD] 炸弹爆炸: {totalDamage}伤害");
         }
 
         #endregion

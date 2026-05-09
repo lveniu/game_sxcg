@@ -195,6 +195,14 @@ namespace Game.UI
                 bm.OnDiceSkillTriggered += OnDiceSkillTriggered;
             }
 
+            // 订阅骰子面效果事件
+            var fee = FaceEffectExecutor.Instance;
+            if (fee != null)
+            {
+                fee.OnFaceEffectTriggered += OnFaceEffectTriggered;
+                fee.OnFaceEffectUpgraded += OnFaceEffectUpgraded;
+            }
+
             // 初始化日志
             logLines.Clear();
             if (logText != null) logText.text = "";
@@ -236,6 +244,14 @@ namespace Game.UI
                 bm.OnBattleEnded -= OnBattleEnded;
                 bm.OnBattleSpeedChanged -= OnBattleSpeedChanged;
                 bm.OnDiceSkillTriggered -= OnDiceSkillTriggered;
+            }
+
+            // 取消骰子面效果事件订阅
+            var fee = FaceEffectExecutor.Instance;
+            if (fee != null)
+            {
+                fee.OnFaceEffectTriggered -= OnFaceEffectTriggered;
+                fee.OnFaceEffectUpgraded -= OnFaceEffectUpgraded;
             }
 
             speedButton?.onClick.RemoveAllListeners();
@@ -996,13 +1012,17 @@ namespace Game.UI
                 bar.rect.gameObject.SetActive(true);
                 bar.hero = hero;
 
-                // 名称 + 职业图标 + 星级
+                // 名称 + 职业图标 + 星级 + 状态标记
                 string classIcon = UIConfigBridge.GetClassIcon(hero.Data.heroClass);
                 string starStr = GetStarString(hero.StarLevel);
+                string statusTag = GetHeroStatusTag(hero);
                 if (bar.nameText != null)
                 {
-                    bar.nameText.text = $"{classIcon}{hero.Data.heroName} {starStr}";
+                    bar.nameText.text = $"{statusTag}{classIcon}{hero.Data.heroName} {starStr}";
                     bar.nameText.color = isPlayer ? PLAYER_COLOR : ENEMY_COLOR;
+                    // 眩晕中名称灰化
+                    if (hero.IsStunned)
+                        bar.nameText.color = new Color(0.5f, 0.5f, 0.5f);
                 }
 
                 // FE-04.1: 属性面板（仅我方显示ConfigLoader数值）
@@ -1307,6 +1327,14 @@ namespace Game.UI
                 bm.OnDiceSkillTriggered -= OnDiceSkillTriggered;
             }
 
+            // 取消面效果事件订阅
+            var fee = FaceEffectExecutor.Instance;
+            if (fee != null)
+            {
+                fee.OnFaceEffectTriggered -= OnFaceEffectTriggered;
+                fee.OnFaceEffectUpgraded -= OnFaceEffectUpgraded;
+            }
+
             base.OnDestroy();
         }
 
@@ -1339,6 +1367,79 @@ namespace Game.UI
                     tween.Kill();
             }
             activeTweens.Clear();
+        }
+
+        // ========== 面效果事件处理 ==========
+
+        /// <summary>
+        /// 获取英雄状态标记（眩晕/破甲图标前缀）
+        /// </summary>
+        private static string GetHeroStatusTag(Hero hero)
+        {
+            if (hero == null) return "";
+            string tag = "";
+            if (hero.IsStunned) tag += "💫";   // 眩晕
+            if (hero.HasArmorBreak) tag += "🛡"; // 破甲
+            return string.IsNullOrEmpty(tag) ? "" : tag + " ";
+        }
+
+        /// <summary>
+        /// 面效果触发时的UI反馈 — Toast通知 + 战斗日志
+        /// </summary>
+        private void OnFaceEffectTriggered(FaceEffectRuntimeDef effectDef, int diceValue, string description)
+        {
+            if (effectDef == null) return;
+
+            // 战斗日志记录
+            string effectIcon = GetFaceEffectIcon(effectDef.effectType);
+            AddLog($"🎲 {effectIcon} 面效果触发: {description}");
+
+            // 面效果Toast通知（在战斗面板顶部短暂显示）
+            ShowFaceEffectToast($"{effectIcon} {effectDef.effectName} — {description}");
+        }
+
+        /// <summary>
+        /// 面效果升级时的UI反馈
+        /// </summary>
+        private void OnFaceEffectUpgraded(int diceIndex, FaceEffectRuntimeDef effectDef, int newLevel)
+        {
+            if (effectDef == null) return;
+
+            AddLog($"⬆ 骰子{diceIndex + 1} {effectDef.effectName} 升级至 Lv{newLevel}");
+            ShowFaceEffectToast($"⬆ {effectDef.effectName} → Lv{newLevel}");
+        }
+
+        /// <summary>
+        /// 面效果Toast通知 — 轻量级浮动提示
+        /// </summary>
+        private void ShowFaceEffectToast(string message)
+        {
+            if (logText == null) return;
+
+            // 利用战斗日志的高亮方式展示（避免创建额外UI元素）
+            // 后续可扩展为独立的Toast组件
+            Debug.Log($"[BattlePanel] 面效果Toast: {message}");
+        }
+
+        /// <summary>
+        /// 根据面效果类型获取图标
+        /// </summary>
+        private static string GetFaceEffectIcon(FaceEffectType type)
+        {
+            return type switch
+            {
+                FaceEffectType.Heal => "💚",
+                FaceEffectType.Shield => "🛡",
+                FaceEffectType.ExtraDamage => "⚔",
+                FaceEffectType.AttackSpeed => "⚡",
+                FaceEffectType.Stun => "💫",
+                FaceEffectType.CritBoost => "🎯",
+                FaceEffectType.ArmorBreak => "💔",
+                FaceEffectType.LifeSteal => "🧛",
+                FaceEffectType.Thorns => "🌵",
+                FaceEffectType.Cleanse => "✨",
+                _ => "🎲"
+            };
         }
     }
 }
