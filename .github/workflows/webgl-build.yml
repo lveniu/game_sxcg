@@ -1,0 +1,157 @@
+name: WebGL Build
+
+on:
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      unity_version:
+        description: 'Unity version'
+        required: false
+        default: '2022.3.20f1'
+      target_branch:
+        description: 'Branch to build from'
+        required: false
+        default: 'dev'
+  # push 到 dev 分支时自动触发
+  push:
+    branches: [ dev ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+
+env:
+  UNITY_VERSION: '2022.3.20f1'
+
+jobs:
+  build:
+    name: Build WebGL
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    
+    steps:
+      # 1. Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      # 2. Cache Unity Library (加速后续构建)
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: |
+            Library
+            Temp
+          key: Library-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-WebGL-
+
+      # 3. Unity License (Personal 免费版)
+      - name: Activate Unity
+        uses: game-ci/unity-request-activation-file@v2
+        id: activation
+        if: ${{ !secrets.UNITY_LICENSE }}
+        
+      # 4. 如果没有 license，提示如何获取
+      - name: Upload Activation File
+        if: ${{ steps.activation.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-activation-file
+          path: ${{ steps.activation.outputs.filePath }}
+          retention-days: 3
+
+      # 5. WebGL 构建
+      - name: Build WebGL
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL
+          unityVersion: ${{ env.UNITY_VERSION }}
+          buildMethod: WebGLBuildPipeline.BuildWebGL
+          customParameters: -profile WebGLProduction
+          buildName: game_sxcg
+
+      # 6. 上传构建产物
+      - name: Upload WebGL Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebGL-Build
+          path: build/WebGL/game_sxcg/
+          retention-days: 30
+          if-no-files-found: error
+
+      # 7. 构建报告
+      - name: Build Report
+        if: always()
+        run: |
+          echo "## Build Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -d "build/WebGL/game_sxcg" ]; then
+            echo "### ✅ Build Success" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            TOTAL_SIZE=$(du -sh build/WebGL/game_sxcg/ | cut -f1)
+            WASM_SIZE=$(find build/WebGL/game_sxcg/ -name "*.wasm" -exec du -sh {} \; | head -1)
+            DATA_SIZE=$(find build/WebGL/game_sxcg/ -name "*.data" -exec du -sh {} \; | head -1)
+            JS_SIZE=$(find build/WebGL/game_sxcg/ -name "*.js" -exec du -sh {} \; | head -1)
+            FRAMEWORK_SIZE=$(find build/WebGL/game_sxcg/ -name "Build" -type d -exec du -sh {} \; | head -1)
+            echo "| Total Size | ${TOTAL_SIZE} |" >> $GITHUB_STEP_SUMMARY
+            echo "| WASM | ${WASM_SIZE:-N/A} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Data | ${DATA_SIZE:-N/A} |" >> $GITHUB_STEP_SUMMARY
+            echo "| JS | ${JS_SIZE:-N/A} |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # 检查是否超过微信4MB限制
+            BUILD_BYTES=$(du -sb build/WebGL/game_sxcg/ | cut -f1)
+            LIMIT_4MB=$((4 * 1024 * 1024))
+            LIMIT_20MB=$((20 * 1024 * 1024))
+            echo "### 微信小游戏包体检查" >> $GITHUB_STEP_SUMMARY
+            if [ "$BUILD_BYTES" -le "$LIMIT_4MB" ]; then
+              echo "✅ 首包 ≤4MB 限制通过" >> $GITHUB_STEP_SUMMARY
+            elif [ "$BUILD_BYTES" -le "$LIMIT_20MB" ]; then
+              echo "⚠️ 超4MB但 ≤20MB，需要分包" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "🔴 超20MB，必须CDN远程加载" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "### ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # 可选：部署到 GitHub Pages（用于测试）
+  deploy-pages:
+    name: Deploy to GitHub Pages (Preview)
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    permissions:
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    
+    steps:
+      - name: Download Build
+        uses: actions/download-artifact@v4
+        with:
+          name: WebGL-Build
+          path: build/
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
