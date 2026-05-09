@@ -1,0 +1,199 @@
+{
+  "_version": "1.0.0",
+  "_description": "肉鸽遗物系统: 遗物定义、效果数值、稀有度",
+  "rarity_weights": {
+    "_description": "遗物出现权重（随关卡动态调整）",
+    "common": {
+      "base_weight": 50,
+      "min_level": 1
+    },
+    "rare": {
+      "base_weight": 35,
+      "min_level": 3
+    },
+    "epic": {
+      "base_weight": 12,
+      "min_level": 6
+    },
+    "legendary": {
+      "base_weight": 3,
+      "min_level": 10
+    }
+  },
+  "relics": [
+    {
+      "id": "iron_shield",
+      "name_cn": "铁壁盾牌",
+      "rarity": "common",
+      "description_cn": "全体防御+15%",
+      "effect_type": "passive_stat",
+      "effect": {
+        "stat": "defense",
+        "modifier_pct": 0.15,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
+      "stackable": false
+    },
+    {
+      "id": "sharp_blade",
+      "name_cn": "锋利之刃",
+      "rarity": "common",
+      "description_cn": "全体攻击+10%",
+      "effect_type": "passive_stat",
+      "effect": {
+        "stat": "attack",
+        "modifier_pct": 0.1,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
+      "stackable": false
+    },
+    {
+      "id": "lucky_coin",
+      "name_cn": "幸运硬币",
+      "rarity": "common",
+      "description_cn": "重摇后骰子结果+1（最大6）",
+      "effect_type": "dice_modify",
+      "effect": {
+        "modify": "add_one_after_reroll",
+        "max_value": 6
+      },
+      "trigger": "on_reroll",
+      "stackable": false
+    },
+    {
+      "id": "speed_boots",
+      "name_cn": "疾风之靴",
+      "rarity": "common",
+      "description_cn": "全体速度+10%",
+      "effect_type": "passive_stat",
+      "effect": {
+        "stat": "speed",
+        "modifier_pct": 0.1,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
+      "stackable": false
+    },
+    {
+      "id": "health_amulet",
+      "name_cn": "生命护符",
+      "rarity": "common",
+      "description_cn": "全体最大血量+15%",
+      "effect_type": "passive_stat",
+      "effect": {
+        "stat": "max_health",
+        "modifier_pct": 0.15,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
+      "stackable": false
+    },
+    {
+      "id": "vampire_fang",
+      "name_cn": "吸血鬼之牙",
+      "rarity": "rare",
+      "description_cn": "全体吸血10%（造成的伤害10%回血）",
+      "effect_type": "on_hit",
+      "effect": {
+        "lifesteal_pct": 0.1,
+        "target": "all_allies"
+      },
+      "trigger": "on_deal_damage",
+      "stackable": false
+    },
+    {
+      "id": "dice_master",
+      "name_cn": "骰子大师",
+      "rarity": "rare",
+      "description_cn": "每关额外+1次重摇",
+      "effect_type": "dice_reroll",
+      "effect": {
+        "extra_rerolls": 1
+      },
+      "trigger": "on_level_start",
+      "stackable": true,
+      "max_stacks": 3
+    },
+    {
+      "id": "crit_glasses",
+      "name_cn": "暴击眼镜",
+      "rarity": "rare",
+      "description_cn": "全体暴击率+10%",
+      "effect_type": "passive_stat",
+      "effect": {
+        "stat": "crit_rate",
+        "modifier_pct": 0.1,
+        "target": "all_allies"
+      },
+      "trigger": "on_acquire",
+      "stackable": false
+    },
+    {
+      "id": "thorns_armor",
+      "name_cn": "荆棘铠甲",
+      "rarity": "rare",
+      "description_cn": "受击时反弹15%伤害给攻击者",
+      "effect_type": "on_hit",
+      "effect": {
+        "thorns_pct": 0.15
+      },
+      "trigger": "on_take_damage",
+      "stackable": false
+    },
+    {
+      "id": "dragon_heart",
+      "name_cn": "龙心",
+      "rarity": "rare",
+      "description_cn": "每回合结束时回复5%最大血量",
+      "effect_type": "on_turn_end",
+      "effect": {
+        "heal_pct": 0.05,
+        "target": "all_allies"
+      },
+      "trigger": "on_turn_end",
+      "stackable": false
+    },
+    {
+      "id": "phoenix_feather",
+      "name_cn": "凤凰羽毛",
+      "rarity": "epic",
+      "description_cn": "首次死亡时复活，恢复50%血量",
+      "effect_type": "on_death",
+      "effect": {
+        "revive_hp_pct": 0.5,
+        "trigger_count": 1
+      },
+      "trigger": "on_death",
+      "stackable": false
+    },
+    {
+      "id": "dice_lord_eye",
+      "name_cn": "骰子领主之眼",
+      "rarity": "epic",
+      "description_cn": "散牌也视为对子效果（最低保底对子）",
+      "effect_type": "dice_combo_upgrade",
+      "effect": {
+        "upgrade_scattered_to": "pair"
+      },
+      "trigger": "on_dice_evaluated",
+      "stackable": false
+    },
+    {
+      "id": "mechanic_breaker",
+      "name_cn": "机制破解器",
+      "rarity": "legendary",
+      "description_cn": "对机制怪额外伤害30%",
+      "effect_type": "on_hit",
+      "effect": {
+        "mechanic_enemy_damage_bonus_pct": 0.3
+      },
+      "trigger": "on_attack_mechanic_enemy",
+      "stackable": false
+    }
+  ],
+  "max_relics_per_run": 10,
+  "max_relic_choices": 3,
+  "_reserved": {}
+}

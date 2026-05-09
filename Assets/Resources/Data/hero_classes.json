@@ -1,0 +1,134 @@
+{
+  "_version": "1.0.0",
+  "_description": "角色职业基础属性、成长率、定位描述",
+  "_note": "小游戏版精简为3职业: Warrior(战士) / Mage(法师) / Assassin(刺客)",
+  "classes": [
+    {
+      "id": "warrior",
+      "name_cn": "战士",
+      "role": "front_line",
+      "description": "高防高血的肉盾，适合前排站位",
+      "base_stats": {
+        "max_health": 150,
+        "attack": 8,
+        "defense": 10,
+        "speed": 6,
+        "crit_rate": 0.02,
+        "crit_damage": 0.5
+      },
+      "growth_per_level": {
+        "max_health": 12,
+        "attack": 1.2,
+        "defense": 1.5,
+        "speed": 0.3,
+        "crit_rate": 0.002,
+        "crit_damage": 0.02
+      },
+      "summon_cost": 2,
+      "position_bonus": {
+        "front": {
+          "defense_multiplier": 1.3,
+          "shield_bonus": 0.3
+        },
+        "middle": {},
+        "back": {
+          "attack_multiplier": 1.1
+        }
+      },
+      "color": "#4A90D9",
+      "icon_ref": "warrior_icon",
+      "_reserved": {}
+    },
+    {
+      "id": "mage",
+      "name_cn": "法师",
+      "role": "back_line",
+      "description": "远程输出型，技能伤害高但血量低",
+      "base_stats": {
+        "max_health": 70,
+        "attack": 12,
+        "defense": 3,
+        "speed": 8,
+        "crit_rate": 0.05,
+        "crit_damage": 0.5
+      },
+      "growth_per_level": {
+        "max_health": 5,
+        "attack": 1.8,
+        "defense": 0.4,
+        "speed": 0.5,
+        "crit_rate": 0.005,
+        "crit_damage": 0.03
+      },
+      "summon_cost": 2,
+      "position_bonus": {
+        "front": {},
+        "middle": {},
+        "back": {
+          "attack_multiplier": 1.2
+        }
+      },
+      "color": "#9B59B6",
+      "icon_ref": "mage_icon",
+      "_reserved": {}
+    },
+    {
+      "id": "assassin",
+      "name_cn": "刺客",
+      "role": "flanker",
+      "description": "高速高暴击的爆发型，低成本高回报",
+      "base_stats": {
+        "max_health": 70,
+        "attack": 16,
+        "defense": 3,
+        "speed": 14,
+        "crit_rate": 0.12,
+        "crit_damage": 0.5
+      },
+      "growth_per_level": {
+        "max_health": 4,
+        "attack": 2.2,
+        "defense": 0.3,
+        "speed": 0.8,
+        "crit_rate": 0.008,
+        "crit_damage": 0.04
+      },
+      "summon_cost": 1,
+      "position_bonus": {
+        "front": {
+          "crit_rate_bonus": 0.05
+        },
+        "middle": {
+          "attack_multiplier": 1.1
+        },
+        "back": {
+          "speed_multiplier": 1.15
+        }
+      },
+      "color": "#E74C3C",
+      "icon_ref": "assassin_icon",
+      "_reserved": {}
+    }
+  ],
+  "star_rating": {
+    "_description": "星级倍率: 通用公式 1 + (star - 1) * 0.6",
+    "1": {
+      "multiplier": 1.0
+    },
+    "2": {
+      "multiplier": 1.5
+    },
+    "3": {
+      "multiplier": 2.2
+    }
+  },
+  "roguelike_boost": {
+    "_description": "肉鸽模式中的属性强化百分比（每次强化叠加）",
+    "max_health_pct": 0.1,
+    "attack_pct": 0.1,
+    "defense_pct": 0.1,
+    "speed_pct": 0.08,
+    "crit_rate_pct": 0.05
+  },
+  "_reserved": {}
+}

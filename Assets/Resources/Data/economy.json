@@ -1,0 +1,160 @@
+{
+  "_version": "1.0.0",
+  "_description": "经济系统: 金币获取与消耗、商店定价、装备价值",
+  "gold_income": {
+    "_description": "金币获取来源（详见drop_tables.json gold_rewards）",
+    "level_clear": "见 drop_tables.json",
+    "event_bonus_range": [
+      10,
+      50
+    ],
+    "boss_kill_bonus": 50
+  },
+  "shop": {
+    "_description": "商店系统（小游戏版简化为随机事件触发）",
+    "trigger": "random_event",
+    "trigger_chance": 0.2,
+    "items": [
+      {
+        "category": "equipment",
+        "price_range": [
+          30,
+          200
+        ],
+        "discount_chance": 0.2,
+        "discount_rate": 0.5
+      },
+      {
+        "category": "reroll_token",
+        "price": 30,
+        "description_cn": "额外重摇1次（本关使用）",
+        "max_purchase_per_shop": 1
+      },
+      {
+        "category": "heal",
+        "price": 20,
+        "heal_pct": 0.3,
+        "description_cn": "全体回复30%血量"
+      }
+    ],
+    "price_scaling": {
+      "_description": "商店价格随关卡微调",
+      "formula": "base_price * (1 + level * 0.02)",
+      "_note": "价格缓慢上涨但金币收入同步增长"
+    },
+    "_reserved": {}
+  },
+  "equipment": {
+    "_description": "装备数据",
+    "slots": [
+      {
+        "id": "weapon",
+        "name_cn": "武器",
+        "primary_stat": "attack",
+        "stat_range": [
+          3,
+          15
+        ]
+      },
+      {
+        "id": "armor",
+        "name_cn": "防具",
+        "primary_stats": [
+          "defense",
+          "max_health"
+        ],
+        "stat_range": [
+          2,
+          10
+        ]
+      },
+      {
+        "id": "accessory",
+        "name_cn": "饰品",
+        "primary_stat": "random",
+        "possible_stats": [
+          "crit_rate",
+          "speed",
+          "crit_damage"
+        ],
+        "stat_range": [
+          1,
+          5
+        ]
+      }
+    ],
+    "rarities": [
+      {
+        "id": "common",
+        "name_cn": "普通",
+        "color": "#FFFFFF",
+        "stat_multiplier": 1.0,
+        "drop_weight": 50,
+        "price_range": [
+          30,
+          60
+        ]
+      },
+      {
+        "id": "uncommon",
+        "name_cn": "优秀",
+        "color": "#4A90D9",
+        "stat_multiplier": 1.3,
+        "drop_weight": 30,
+        "price_range": [
+          60,
+          100
+        ]
+      },
+      {
+        "id": "rare",
+        "name_cn": "稀有",
+        "color": "#9B59B6",
+        "stat_multiplier": 1.7,
+        "drop_weight": 15,
+        "price_range": [
+          100,
+          160
+        ]
+      },
+      {
+        "id": "legendary",
+        "name_cn": "传说",
+        "color": "#F39C12",
+        "stat_multiplier": 2.2,
+        "drop_weight": 5,
+        "price_range": [
+          160,
+          200
+        ]
+      }
+    ],
+    "equip_rules": {
+      "max_per_hero": 1,
+      "replace_rule": "new_replaces_old_no_refund",
+      "_note": "小游戏版每英雄最多1件装备，简化管理"
+    },
+    "_reserved": {}
+  },
+  "summon_cost": {
+    "_description": "英雄召唤消耗（金币）",
+    "warrior": 2,
+    "mage": 2,
+    "assassin": 1,
+    "_note": "刺客低消耗鼓励多召唤"
+  },
+  "run_economy_balance": {
+    "_description": "单局经济收支平衡预估",
+    "avg_gold_per_level": 70,
+    "avg_levels_per_run": 15,
+    "total_gold_per_run_est": 1050,
+    "major_expenses": {
+      "equipment": "约300-500金币 (3-5件)",
+      "shop_heals": "约100-200金币 (3-5次)",
+      "total_expense_est": 500
+    },
+    "surplus_est": 550,
+    "_note": "确保单局经济宽裕，不过度惩罚不消费"
+  },
+  "_reserved": {}
+}

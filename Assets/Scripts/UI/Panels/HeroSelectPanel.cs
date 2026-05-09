@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Events;
 using Game.Core;
 using System.Collections;
 
@@ -8,6 +7,7 @@ namespace Game.UI
 {
     /// <summary>
     /// 英雄选择面板 - 战/法/刺三选一
+    /// 通过 UIConfigBridge 获取数值显示数据
     /// </summary>
     public class HeroSelectPanel : UIPanel
     {
@@ -23,6 +23,8 @@ namespace Game.UI
             public Text atkText;
             public Text defText;
             public Text spdText;
+            public Text critText;         // 暴击率（新增）
+            public Text costText;         // 召唤消耗（新增）
             public Text skillNameText;
             public Text skillDescText;
             public GameObject selectedMark; // 选中勾
@@ -43,24 +45,14 @@ namespace Game.UI
         /// <summary>选中的英雄职业</summary>
         public HeroClass SelectedClass { get; private set; }
 
-        // 英雄数据配置（与面板显示一致，用于运行时创建HeroData）
-        private static readonly string[] heroNames = { "铁壁战士", "奥术法师", "暗影刺客" };
-        private static readonly HeroClass[] heroClasses = { HeroClass.Warrior, HeroClass.Mage, HeroClass.Assassin };
-        private static readonly string[] heroDescs = {
-            "高防高血，近战输出，队伍前排坦克",
-            "远程AOE法术输出，群体伤害专家",
-            "高速爆发，闪避背刺，单体秒杀"
-        };
-        private static readonly int[,] heroStats = {
-            { 150, 12, 15, 8 },   // 战士: HP ATK DEF SPD
-            { 100, 18, 5, 10 },   // 法师
-            { 90, 15, 6, 18 }     // 刺客
-        };
+        // 缓存从UIConfigBridge获取的数据
+        private HeroDisplayData[] heroDisplayData;
 
         protected override void Awake()
         {
             base.Awake();
             allCards = new HeroCard[] { warriorCard, mageCard, assassinCard };
+            heroDisplayData = UIConfigBridge.GetAllHeroDisplayData();
         }
 
         protected override void OnShow()
@@ -70,19 +62,26 @@ namespace Game.UI
             confirmButton.interactable = false;
             tipText.text = "选择你的英雄";
 
-            // 填充英雄数据
-            for (int i = 0; i < allCards.Length; i++)
+            // 通过UIConfigBridge填充英雄数据
+            for (int i = 0; i < allCards.Length && i < heroDisplayData.Length; i++)
             {
                 var card = allCards[i];
-                if (card.nameText) card.nameText.text = heroNames[i];
-                if (card.classText) card.classText.text = ((HeroClass)i).ToString();
-                if (card.hpText) card.hpText.text = $"HP {heroStats[i, 0]}";
-                if (card.atkText) card.atkText.text = $"ATK {heroStats[i, 1]}";
-                if (card.defText) card.defText.text = $"DEF {heroStats[i, 2]}";
-                if (card.spdText) card.spdText.text = $"SPD {heroStats[i, 3]}";
-                if (card.skillDescText) card.skillDescText.text = heroDescs[i];
+                var data = heroDisplayData[i];
+
+                if (card.nameText) card.nameText.text = data.displayName;
+                if (card.classText) card.classText.text = data.className;
+                if (card.hpText) card.hpText.text = $"HP {data.stats.maxHealth}";
+                if (card.atkText) card.atkText.text = $"ATK {data.stats.attack}";
+                if (card.defText) card.defText.text = $"DEF {data.stats.defense}";
+                if (card.spdText) card.spdText.text = $"SPD {data.stats.speed}";
+                if (card.critText) card.critText.text = $"CRT {Mathf.RoundToInt(data.stats.critRate * 100)}%";
+                if (card.costText) card.costText.text = $"消耗 {data.summonCost}";
+                if (card.skillDescText) card.skillDescText.text = data.description;
                 if (card.selectedMark) card.selectedMark.SetActive(false);
                 if (card.border) card.border.color = Color.white;
+
+                // 设置职业主题色到边框（未选中时半透明）
+                if (card.icon) card.icon.color = data.color;
 
                 int idx = i;
                 card.cardButton?.onClick.RemoveAllListeners();
@@ -103,7 +102,7 @@ namespace Game.UI
         private void SelectHero(int index)
         {
             selectedIndex = index;
-            SelectedClass = heroClasses[index];
+            SelectedClass = heroDisplayData[index].heroClass;
             confirmButton.interactable = true;
 
             // 更新选中高亮
@@ -111,26 +110,29 @@ namespace Game.UI
             {
                 bool selected = (i == index);
                 if (allCards[i].selectedMark) allCards[i].selectedMark.SetActive(selected);
-                if (allCards[i].border) allCards[i].border.color = selected ? Color.yellow : Color.white;
+                if (allCards[i].border)
+                    allCards[i].border.color = selected ? heroDisplayData[i].color : Color.white;
             }
 
-            tipText.text = $"已选择: {heroNames[index]}";
+            tipText.text = $"已选择: {heroDisplayData[index].displayName}";
         }
 
         private void OnConfirm()
         {
             if (selectedIndex < 0) return;
 
-            // 1. 创建运行时HeroData（ScriptableObject.CreateInstance）
+            var data = heroDisplayData[selectedIndex];
+
+            // 1. 创建运行时HeroData
             HeroData heroData = ScriptableObject.CreateInstance<HeroData>();
-            heroData.heroName = heroNames[selectedIndex];
-            heroData.heroClass = heroClasses[selectedIndex];
-            heroData.baseHealth = heroStats[selectedIndex, 0];
-            heroData.baseAttack = heroStats[selectedIndex, 1];
-            heroData.baseDefense = heroStats[selectedIndex, 2];
-            heroData.baseSpeed = heroStats[selectedIndex, 3];
-            heroData.baseCritRate = 0.05f;
-            heroData.summonCost = heroClasses[selectedIndex] == HeroClass.Assassin ? 1 : 2;
+            heroData.heroName = data.displayName;
+            heroData.heroClass = data.heroClass;
+            heroData.baseHealth = data.stats.maxHealth;
+            heroData.baseAttack = data.stats.attack;
+            heroData.baseDefense = data.stats.defense;
+            heroData.baseSpeed = data.stats.speed;
+            heroData.baseCritRate = data.stats.critRate;
+            heroData.summonCost = data.summonCost;
 
             // 2. 创建Hero GameObject并初始化
             GameObject heroObj = new GameObject($"Hero_{heroData.heroName}");

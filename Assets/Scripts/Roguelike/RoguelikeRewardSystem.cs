@@ -172,8 +172,8 @@ public class RoguelikeRewardSystem
 
     RewardOption GenerateNewUnitReward(int level, List<Hero> currentHeroes)
     {
-        // 随机选择英雄模板
-        string[] templates = { "坦克", "射手", "刺客", "法师", "战士" };
+        // 随机选择英雄模板（3职业：战士/法师/刺客 + 进化形态）
+        string[] templates = { "战士", "法师", "刺客", "链甲使者", "狂战士", "大法师", "巡游法师", "影舞者" };
         string template = templates[rng.Next(templates.Length)];
 
         // 稀有度随关卡提升
@@ -379,39 +379,39 @@ public class RoguelikeRewardSystem
     {
         relicDatabase = new Dictionary<string, RelicData>
         {
-            // 普通遗物
-            { "relic_iron_shield", new RelicData("relic_iron_shield", "铁盾", 1, RelicRarity.Common,
-                "全体防御+10%", RelicEffectType.DefenseBoost, 0.1f) },
-            { "relic_sharp_blade", new RelicData("relic_sharp_blade", "锋利之刃", 1, RelicRarity.Common,
+            // ===== 普通遗物 (Common) =====
+            { "iron_shield", new RelicData("iron_shield", "铁壁盾牌", 1, RelicRarity.Common,
+                "全体防御+15%", RelicEffectType.DefenseBoost, 0.15f) },
+            { "sharp_blade", new RelicData("sharp_blade", "锋利之刃", 1, RelicRarity.Common,
                 "全体攻击+10%", RelicEffectType.AttackBoost, 0.1f) },
-            { "relic_health_stone", new RelicData("relic_health_stone", "生命之石", 1, RelicRarity.Common,
-                "全体生命+15%", RelicEffectType.HealthBoost, 0.15f) },
-            { "relic_speed_boots", new RelicData("relic_speed_boots", "疾风之靴", 1, RelicRarity.Common,
+            { "lucky_coin", new RelicData("lucky_coin", "幸运硬币", 1, RelicRarity.Common,
+                "重摇后骰子结果+1（最大6）", RelicEffectType.ExtraReroll, 1f) },
+            { "speed_boots", new RelicData("speed_boots", "疾风之靴", 1, RelicRarity.Common,
                 "全体速度+10%", RelicEffectType.SpeedBoost, 0.1f) },
-            { "relic_lucky_coin", new RelicData("relic_lucky_coin", "幸运币", 1, RelicRarity.Common,
-                "全体暴击率+5%", RelicEffectType.CritBoost, 0.05f) },
+            { "health_amulet", new RelicData("health_amulet", "生命护符", 1, RelicRarity.Common,
+                "全体最大血量+15%", RelicEffectType.HealthBoost, 0.15f) },
 
-            // 稀有遗物
-            { "relic_dragon_heart", new RelicData("relic_dragon_heart", "龙心", 2, RelicRarity.Rare,
-                "每场战斗开始时，全体获得最大生命20%的护盾", RelicEffectType.BattleStartShield, 0.2f) },
-            { "relic_vampire_fang", new RelicData("relic_vampire_fang", "吸血鬼之牙", 2, RelicRarity.Rare,
-                "全体获得10%吸血", RelicEffectType.LifeSteal, 0.1f) },
-            { "relic_reroll_crystal", new RelicData("relic_reroll_crystal", "重摇水晶", 2, RelicRarity.Rare,
-                "每关额外获得1次重摇机会", RelicEffectType.ExtraReroll, 1f) },
-            { "relic_poison_dagger", new RelicData("relic_poison_dagger", "淬毒匕首", 2, RelicRarity.Rare,
-                "攻击附带5%最大生命中毒", RelicEffectType.PoisonAttack, 0.05f) },
-            { "relic_thorns_armor", new RelicData("relic_thorns_armor", "荆棘之甲", 2, RelicRarity.Rare,
-                "全体获得10%反伤", RelicEffectType.Thorns, 0.1f) },
+            // ===== 稀有遗物 (Rare) =====
+            { "vampire_fang", new RelicData("vampire_fang", "吸血鬼之牙", 2, RelicRarity.Rare,
+                "全体吸血10%（造成的伤害10%回血）", RelicEffectType.LifeSteal, 0.1f) },
+            { "dice_master", new RelicData("dice_master", "骰子大师", 2, RelicRarity.Rare,
+                "每关额外+1次重摇", RelicEffectType.ExtraReroll, 1f) },
+            { "crit_glasses", new RelicData("crit_glasses", "暴击眼镜", 2, RelicRarity.Rare,
+                "全体暴击率+10%", RelicEffectType.CritBoost, 0.1f) },
+            { "thorns_armor", new RelicData("thorns_armor", "荆棘铠甲", 2, RelicRarity.Rare,
+                "受击时反弹15%伤害给攻击者", RelicEffectType.Thorns, 0.15f) },
+            { "dragon_heart", new RelicData("dragon_heart", "龙心", 2, RelicRarity.Rare,
+                "每回合结束时回复5%最大血量", RelicEffectType.HealthBoost, 0.05f) },
 
-            // 史诗遗物
-            { "relic_phoenix_feather", new RelicData("relic_phoenix_feather", "凤凰羽毛", 3, RelicRarity.Epic,
-                "首次阵亡时自动复活，恢复50%生命（每关一次）", RelicEffectType.Revive, 0.5f) },
-            { "relic_giant_slayer", new RelicData("relic_giant_slayer", "巨人杀手", 3, RelicRarity.Epic,
-                "对生命高于自身的敌人伤害+30%", RelicEffectType.GiantSlayer, 0.3f) },
-            { "relic_dice_lords_eye", new RelicData("relic_dice_lords_eye", "骰子领主之眼", 3, RelicRarity.Epic,
-                "骰子组合效果增强50%", RelicEffectType.ComboBoost, 0.5f) },
-            { "relic_double_reward", new RelicData("relic_double_reward", "贪婪之冠", 3, RelicRarity.Epic,
-                "每3关额外获得一次三选一奖励", RelicEffectType.DoubleReward, 3f) },
+            // ===== 史诗遗物 (Epic) =====
+            { "phoenix_feather", new RelicData("phoenix_feather", "凤凰羽毛", 3, RelicRarity.Epic,
+                "首次死亡时复活，恢复50%血量", RelicEffectType.Revive, 0.5f) },
+            { "dice_lord_eye", new RelicData("dice_lord_eye", "骰子领主之眼", 3, RelicRarity.Epic,
+                "散牌也视为对子效果（最低保底对子）", RelicEffectType.ComboBoost, 1f) },
+
+            // ===== 传说遗物 (Legendary) =====
+            { "mechanic_breaker", new RelicData("mechanic_breaker", "机制破解器", 4, RelicRarity.Legendary,
+                "对机制怪额外伤害30%", RelicEffectType.GiantSlayer, 0.3f) },
         };
     }
 

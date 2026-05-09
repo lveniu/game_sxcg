@@ -658,13 +658,7 @@ namespace Game.UI
 
         private static string GetClassIcon(HeroClass heroClass)
         {
-            return heroClass switch
-            {
-                HeroClass.Warrior => "⚔",
-                HeroClass.Mage => "🔮",
-                HeroClass.Assassin => "🗡",
-                _ => "●"
-            };
+            return UIConfigBridge.GetClassIcon(heroClass);
         }
 
         private static string GetStarString(int starLevel)

@@ -5,9 +5,10 @@ using UnityEngine;
 /// </summary>
 public enum RelicRarity
 {
-    Common,  // 普通
-    Rare,    // 稀有
-    Epic     // 史诗
+    Common,     // 普通
+    Rare,       // 稀有
+    Epic,       // 史诗
+    Legendary   // 传说
 }
 
 /// <summary>
@@ -73,6 +74,7 @@ public class RelicData
             RelicRarity.Common => "白",
             RelicRarity.Rare => "蓝",
             RelicRarity.Epic => "紫",
+            RelicRarity.Legendary => "金",
             _ => "白"
         };
     }

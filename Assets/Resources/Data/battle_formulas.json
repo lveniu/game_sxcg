@@ -1,0 +1,117 @@
+{
+  "_version": "1.0.0",
+  "_description": "战斗系统核心公式: 伤害计算、暴击、站位修正、连携技",
+  "damage_formula": {
+    "base_formula": "MAX(1, ROUND(attacker.attack * skill_multiplier * crit_multiplier) - target.defense)",
+    "variables": {
+      "attacker.attack": "攻击方最终攻击力（含buff/debuff）",
+      "skill_multiplier": "技能倍率（见skills.json）",
+      "crit_multiplier": "暴击时 1.5 + crit_damage, 非暴击 1.0",
+      "target.defense": "防御方最终防御力（含buff/debuff）"
+    },
+    "min_damage": 1,
+    "_note": "减法公式简单直观，攻防差值直接决定伤害量"
+  },
+  "crit_formula": {
+    "check": "random_float < attacker.crit_rate",
+    "crit_multiplier_base": 1.5,
+    "crit_damage_additive": "attacker.crit_damage",
+    "final_crit_multiplier": "1.5 + attacker.crit_damage",
+    "_example": "暴击率12%, 暴击伤害50% → 暴击时 2.0x 伤害"
+  },
+  "heal_formula": {
+    "base_formula": "healer.attack * heal_multiplier",
+    "heal_multiplier_default": 0.5,
+    "_note": "治疗量基于攻击力 * 治疗倍率"
+  },
+  "dodge_formula": {
+    "check": "random_float < target.dodge_rate",
+    "dodge_rate_sources": [
+      "speed_based",
+      "buff_based",
+      "relic_based"
+    ],
+    "speed_dodge_formula": "MAX(0, (target.speed - attacker.speed) * 0.01)",
+    "_note": "速度差每10点 = 10%闪避率"
+  },
+  "thorns_formula": {
+    "base_formula": "damage_received * thorns_rate",
+    "thorns_rate_default": 0.0,
+    "_note": "荆棘反伤，由遗物提供"
+  },
+  "position_modifiers": {
+    "_description": "站位修正系数",
+    "front": {
+      "shield_bonus_pct": 0.3,
+      "damage_taken_modifier": 1.0,
+      "suitable_roles": [
+        "warrior"
+      ]
+    },
+    "middle": {
+      "shield_bonus_pct": 0.0,
+      "damage_taken_modifier": 1.0,
+      "suitable_roles": [
+        "assassin"
+      ]
+    },
+    "back": {
+      "damage_bonus_pct": 0.2,
+      "damage_taken_modifier": 1.1,
+      "suitable_roles": [
+        "mage"
+      ]
+    }
+  },
+  "synergy_system": {
+    "_description": "连携技: 同职业2+单位触发",
+    "synergies": [
+      {
+        "id": "iron_wall",
+        "name_cn": "铁壁阵",
+        "condition": "2+ warrior",
+        "effect": "all_warriors_defense +30%",
+        "defense_bonus_pct": 0.3,
+        "target": "self_class"
+      },
+      {
+        "id": "arcane_fury",
+        "name_cn": "奥术风暴",
+        "condition": "2+ mage",
+        "effect": "all_mages_attack +20%",
+        "attack_bonus_pct": 0.2,
+        "target": "self_class"
+      },
+      {
+        "id": "shadow_raid",
+        "name_cn": "暗影突袭",
+        "condition": "2+ assassin",
+        "effect": "all_assassins_crit_rate +15%",
+        "crit_rate_bonus_pct": 0.15,
+        "target": "self_class"
+      },
+      {
+        "id": "balanced_team",
+        "name_cn": "均衡阵容",
+        "condition": "at least 1 of each class",
+        "effect": "all_allies all_stats +10%",
+        "all_stats_bonus_pct": 0.1,
+        "target": "all_allies"
+      }
+    ],
+    "_reserved": {}
+  },
+  "battle_timing": {
+    "max_battle_time_sec": 20,
+    "battle_tick_interval_sec": 0.3,
+    "speed_options": [
+      1,
+      2,
+      4
+    ],
+    "simulate_battle_max_rounds": 100,
+    "overtime_rule": "compare_remaining_hp_percentage",
+    "_note": "超时按剩余血量百分比判定胜负"
+  },
+  "_reserved": {}
+}

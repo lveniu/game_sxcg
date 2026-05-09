@@ -1,0 +1,295 @@
+{
+  "_version": "1.0.0",
+  "_description": "敌人/怪物基础数据、机制怪定义、难度缩放规则",
+  "scaling": {
+    "_description": "所有敌人属性按难度系数等比缩放",
+    "formula": "base_stat * difficulty_multiplier",
+    "difficulty_multiplier": "见 levels.json",
+    "note": "暴击率不随难度缩放"
+  },
+  "enemy_types": [
+    {
+      "id": "minion",
+      "name_cn": "小怪",
+      "role": "fodder",
+      "base_stats": {
+        "max_health": 60,
+        "attack": 6,
+        "defense": 3,
+        "speed": 5,
+        "crit_rate": 0.0
+      },
+      "skills": [
+        "normal_attack"
+      ],
+      "spawn_weight": 40,
+      "min_level": 1,
+      "_reserved": {}
+    },
+    {
+      "id": "ranger",
+      "name_cn": "弓手",
+      "role": "ranged",
+      "base_stats": {
+        "max_health": 50,
+        "attack": 10,
+        "defense": 2,
+        "speed": 8,
+        "crit_rate": 0.05
+      },
+      "skills": [
+        "normal_attack",
+        "precision_shot"
+      ],
+      "spawn_weight": 25,
+      "min_level": 2,
+      "_reserved": {}
+    },
+    {
+      "id": "brute",
+      "name_cn": "重装兵",
+      "role": "tank",
+      "base_stats": {
+        "max_health": 180,
+        "attack": 10,
+        "defense": 12,
+        "speed": 4,
+        "crit_rate": 0.03
+      },
+      "skills": [
+        "normal_attack",
+        "shield_bash"
+      ],
+      "spawn_weight": 15,
+      "min_level": 3,
+      "_reserved": {}
+    },
+    {
+      "id": "elite",
+      "name_cn": "精英",
+      "role": "elite",
+      "base_stats": {
+        "max_health": 120,
+        "attack": 12,
+        "defense": 6,
+        "speed": 8,
+        "crit_rate": 0.05
+      },
+      "skills": [
+        "normal_attack",
+        "aoe_slash"
+      ],
+      "spawn_weight": 10,
+      "min_level": 3,
+      "_reserved": {}
+    },
+    {
+      "id": "bomber",
+      "name_cn": "自爆怪",
+      "role": "suicide",
+      "base_stats": {
+        "max_health": 40,
+        "attack": 4,
+        "defense": 1,
+        "speed": 8,
+        "crit_rate": 0.0
+      },
+      "skills": [
+        "normal_attack",
+        "death_explosion"
+      ],
+      "death_explosion_damage_pct": 0.2,
+      "spawn_weight": 10,
+      "min_level": 2,
+      "_reserved": {}
+    },
+    {
+      "id": "healer",
+      "name_cn": "治疗兵",
+      "role": "support",
+      "base_stats": {
+        "max_health": 80,
+        "attack": 4,
+        "defense": 4,
+        "speed": 6,
+        "crit_rate": 0.0
+      },
+      "skills": [
+        "normal_attack",
+        "heal_ally"
+      ],
+      "heal_amount_pct": 0.15,
+      "heal_target": "lowest_hp_ally",
+      "spawn_weight": 8,
+      "min_level": 4,
+      "_reserved": {}
+    }
+  ],
+  "boss_types": [
+    {
+      "id": "boss_standard",
+      "name_cn": "普通Boss",
+      "role": "boss",
+      "base_stats": {
+        "max_health": 300,
+        "attack": 15,
+        "defense": 10,
+        "speed": 5,
+        "crit_rate": 0.1
+      },
+      "skills": [
+        "normal_attack",
+        "aoe_slash",
+        "enrage"
+      ],
+      "enrage_trigger": "hp_below_30pct",
+      "enrage_attack_bonus_pct": 0.5,
+      "spawn_level": 5,
+      "_reserved": {}
+    },
+    {
+      "id": "boss_mega",
+      "name_cn": "巨型Boss",
+      "role": "boss",
+      "base_stats": {
+        "max_health": 500,
+        "attack": 20,
+        "defense": 15,
+        "speed": 3,
+        "crit_rate": 0.08
+      },
+      "skills": [
+        "normal_attack",
+        "aoe_slash",
+        "summon_minions"
+      ],
+      "summon_count": 2,
+      "summon_interval_rounds": 3,
+      "spawn_level": 10,
+      "_reserved": {}
+    }
+  ],
+  "mechanic_enemies": {
+    "_description": "10关后出现的机制怪，打破纯数值碾压",
+    "enemies": [
+      {
+        "id": "shield_guard",
+        "name_cn": "护盾守卫",
+        "mechanic": "swap_shield",
+        "mechanic_desc_cn": "每3回合互换护盾（无敌/正常交替）",
+        "base_stats": {
+          "max_health": 200,
+          "attack": 8,
+          "defense": 8,
+          "speed": 5,
+          "crit_rate": 0.0
+        },
+        "mechanic_params": {
+          "shield_duration_rounds": 3,
+          "vulnerable_duration_rounds": 3
+        },
+        "counter_strategy": "high_burst_during_vulnerable",
+        "min_level": 11
+      },
+      {
+        "id": "reflect_puppet",
+        "name_cn": "反伤傀儡",
+        "mechanic": "damage_reflect",
+        "mechanic_desc_cn": "反弹30%受到的伤害",
+        "base_stats": {
+          "max_health": 160,
+          "attack": 10,
+          "defense": 5,
+          "speed": 7,
+          "crit_rate": 0.05
+        },
+        "mechanic_params": {
+          "reflect_pct": 0.3
+        },
+        "counter_strategy": "lifesteal_or_multi_low_damage",
+        "min_level": 12
+      },
+      {
+        "id": "split_mother",
+        "name_cn": "分裂母体",
+        "mechanic": "split_on_death",
+        "mechanic_desc_cn": "死亡时分裂为2个50%属性的副本",
+        "base_stats": {
+          "max_health": 240,
+          "attack": 12,
+          "defense": 6,
+          "speed": 4,
+          "crit_rate": 0.0
+        },
+        "mechanic_params": {
+          "split_count": 2,
+          "split_stat_pct": 0.5,
+          "max_splits": 1
+        },
+        "counter_strategy": "aoe_clear",
+        "min_level": 13
+      },
+      {
+        "id": "berserk_beast",
+        "name_cn": "狂暴巨兽",
+        "mechanic": "enrage_on_hp_threshold",
+        "mechanic_desc_cn": "血量每降25%攻击+50%",
+        "base_stats": {
+          "max_health": 350,
+          "attack": 14,
+          "defense": 8,
+          "speed": 6,
+          "crit_rate": 0.08
+        },
+        "mechanic_params": {
+          "trigger_thresholds_pct": [
+            0.75,
+            0.5,
+            0.25
+          ],
+          "attack_bonus_per_trigger_pct": 0.5
+        },
+        "counter_strategy": "shield_and_control",
+        "min_level": 14
+      },
+      {
+        "id": "summon_lord",
+        "name_cn": "召唤领主",
+        "mechanic": "periodic_summon",
+        "mechanic_desc_cn": "每2回合召唤1个小怪",
+        "base_stats": {
+          "max_health": 280,
+          "attack": 12,
+          "defense": 10,
+          "speed": 5,
+          "crit_rate": 0.05
+        },
+        "mechanic_params": {
+          "summon_interval_rounds": 2,
+          "summon_type": "minion",
+          "max_summons": 3
+        },
+        "counter_strategy": "focus_single_target_boss",
+        "min_level": 15
+      }
+    ],
+    "_note_16_plus": "16关+随机组合2种机制，需要遗物+阵容配合",
+    "_reserved": {}
+  },
+  "enemy_count_formula": {
+    "_description": "每关敌人数量",
+    "formula": "MIN(1 + floor(level / 3), 4)",
+    "level_1_to_2": 1,
+    "level_3_to_5": 2,
+    "level_6_to_8": 3,
+    "level_9_plus": 4,
+    "boss_levels": [
+      5,
+      10,
+      15,
+      20
+    ],
+    "boss_adds_minion_count": 1
+  },
+  "_reserved": {}
+}

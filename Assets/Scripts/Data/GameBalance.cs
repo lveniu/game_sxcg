@@ -34,7 +34,7 @@ public static class GameBalance
         return heroName switch
         {
             // 三大基础职业
-            "战士" => new HeroStatTemplate(110, 10, 8, 6, 0.05f, 2, HeroClass.Warrior),
+            "战士" => new HeroStatTemplate(150, 8, 10, 6, 0.02f, 2, HeroClass.Warrior),
             "法师" => new HeroStatTemplate(70, 12, 3, 8, 0.05f, 2, HeroClass.Mage),
             "刺客" => new HeroStatTemplate(70, 16, 3, 14, 0.12f, 1, HeroClass.Assassin),
             // 进化形态
