@@ -198,6 +198,8 @@ public static class GameBalance
                     "elite" => HeroClass.Mage,
                     "suicide" => HeroClass.Warrior,
                     "support" => HeroClass.Mage,
+                    "assassin" => HeroClass.Assassin,
+                    "mage" => HeroClass.Mage,
                     _ => HeroClass.Warrior
                 };
                 var baseTemplate = new HeroStatTemplate(
@@ -238,10 +240,11 @@ public static class GameBalance
             "重装兵" => new HeroStatTemplate(80, 7, 8, 3, 0f, 0, HeroClass.Warrior),
             "精英" => new HeroStatTemplate(120, 12, 6, 8, 0.05f, 0, HeroClass.Mage),
             "Boss" => new HeroStatTemplate(300, 15, 10, 5, 0.1f, 0, HeroClass.Warrior),
+            "普通Boss" => new HeroStatTemplate(300, 15, 10, 5, 0.1f, 0, HeroClass.Warrior),
             "巨型Boss" => new HeroStatTemplate(500, 20, 15, 4, 0.15f, 0, HeroClass.Warrior),
             "自爆怪" => new HeroStatTemplate(40, 4, 1, 8, 0f, 0, HeroClass.Warrior),
-            "治疗者" => new HeroStatTemplate(50, 5, 2, 4, 0f, 0, HeroClass.Mage),
-            "治疗兵" => new HeroStatTemplate(50, 5, 2, 4, 0f, 0, HeroClass.Mage),
+            "治疗者" => new HeroStatTemplate(50, 5, 2, 4, 0f, 0, HeroClass.Mage),  // 兼容旧名
+            "治疗兵" => new HeroStatTemplate(50, 5, 2, 4, 0f, 0, HeroClass.Mage),  // 对齐 enemies.json
             "护盾怪" => new HeroStatTemplate(80, 5, 8, 4, 0f, 0, HeroClass.Warrior),
             "分裂怪" => new HeroStatTemplate(100, 6, 2, 5, 0f, 0, HeroClass.Warrior),
             "隐身怪" => new HeroStatTemplate(60, 10, 2, 12, 0.1f, 0, HeroClass.Assassin),

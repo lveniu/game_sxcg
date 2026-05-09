@@ -123,6 +123,128 @@
       "spawn_weight": 8,
       "min_level": 4,
       "_reserved": {}
+    },
+    {
+      "id": "shielder",
+      "name_cn": "护盾怪",
+      "role": "tank",
+      "base_stats": {
+        "max_health": 80,
+        "attack": 5,
+        "defense": 8,
+        "speed": 4,
+        "crit_rate": 0.0
+      },
+      "skills": [
+        "normal_attack",
+        "shield_bash"
+      ],
+      "spawn_weight": 10,
+      "min_level": 4,
+      "_reserved": {}
+    },
+    {
+      "id": "splitter",
+      "name_cn": "分裂怪",
+      "role": "fodder",
+      "base_stats": {
+        "max_health": 100,
+        "attack": 6,
+        "defense": 2,
+        "speed": 5,
+        "crit_rate": 0.0
+      },
+      "skills": [
+        "normal_attack"
+      ],
+      "split_on_death": true,
+      "split_count": 2,
+      "split_stat_pct": 0.5,
+      "spawn_weight": 8,
+      "min_level": 5,
+      "_reserved": {}
+    },
+    {
+      "id": "stealth",
+      "name_cn": "隐身怪",
+      "role": "assassin",
+      "base_stats": {
+        "max_health": 60,
+        "attack": 10,
+        "defense": 2,
+        "speed": 12,
+        "crit_rate": 0.1
+      },
+      "skills": [
+        "normal_attack",
+        "backstab"
+      ],
+      "stealth_interval_rounds": 2,
+      "spawn_weight": 8,
+      "min_level": 6,
+      "_reserved": {}
+    },
+    {
+      "id": "curse_mage",
+      "name_cn": "诅咒巫师",
+      "role": "mage",
+      "base_stats": {
+        "max_health": 70,
+        "attack": 8,
+        "defense": 4,
+        "speed": 6,
+        "crit_rate": 0.05
+      },
+      "skills": [
+        "normal_attack",
+        "curse"
+      ],
+      "curse_damage_pct": 0.05,
+      "curse_duration": 3,
+      "spawn_weight": 8,
+      "min_level": 7,
+      "_reserved": {}
+    },
+    {
+      "id": "heavy_knight",
+      "name_cn": "重装骑士",
+      "role": "tank",
+      "base_stats": {
+        "max_health": 180,
+        "attack": 10,
+        "defense": 12,
+        "speed": 4,
+        "crit_rate": 0.03
+      },
+      "skills": [
+        "normal_attack",
+        "shield_bash",
+        "war_cry"
+      ],
+      "spawn_weight": 6,
+      "min_level": 6,
+      "_reserved": {}
+    },
+    {
+      "id": "venom_spider",
+      "name_cn": "毒液蜘蛛",
+      "role": "ranged",
+      "base_stats": {
+        "max_health": 90,
+        "attack": 7,
+        "defense": 5,
+        "speed": 7,
+        "crit_rate": 0.08
+      },
+      "skills": [
+        "normal_attack",
+        "poison_bite"
+      ],
+      "poison_damage_pct": 0.04,
+      "poison_duration": 3,
+      "spawn_weight": 8,
+      "min_level": 5,
+      "_reserved": {}
     }
   ],
   "boss_types": [

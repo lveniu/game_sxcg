@@ -54,14 +54,14 @@ public static class GameData
         {"brute", "重装兵"},
         {"elite", "精英"},
         {"bomber", "自爆怪"},
-        {"healer", "治疗者"},
+        {"healer", "治疗兵"},           // 对齐 enemies.json name_cn
         {"shielder", "护盾怪"},
         {"splitter", "分裂怪"},
         {"stealth", "隐身怪"},
         {"curse_mage", "诅咒巫师"},
         {"heavy_knight", "重装骑士"},
         {"venom_spider", "毒液蜘蛛"},
-        {"boss_standard", "Boss"},
+        {"boss_standard", "普通Boss"},   // 对齐 enemies.json name_cn
         {"boss_mega", "巨型Boss"},
     };
 
