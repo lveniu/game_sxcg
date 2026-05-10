@@ -1,0 +1,73 @@
+{
+  "_version": "1.0.0",
+  "_description": "肉鸽地图路径生成配置",
+  "map_generation": {
+    "total_layers": 15,
+    "min_nodes_per_layer": 2,
+    "max_nodes_per_layer": 4,
+    "boss_interval": 5,
+    "max_connections_per_node": 3,
+    "start_layer_node_count": 1,
+    "fork_layers": [2, 4, 7, 9, 12],
+    "fork_min_paths": 2,
+    "fork_max_paths": 3,
+    "convergence_layers": [4, 9, 14],
+    "convergence_description": "在Boss前一层收敛路径"
+  },
+  "node_weights": {
+    "_description": "节点类型权重（非Boss层），按难度阶段调整",
+    "phase_1": {
+      "_description": "1-5关",
+      "level_range": [1, 5],
+      "weights": {
+        "Battle": 50,
+        "Elite": 5,
+        "Event": 20,
+        "Shop": 10,
+        "Rest": 10,
+        "Treasure": 5
+      }
+    },
+    "phase_2": {
+      "_description": "6-10关",
+      "level_range": [6, 10],
+      "weights": {
+        "Battle": 40,
+        "Elite": 15,
+        "Event": 15,
+        "Shop": 15,
+        "Rest": 10,
+        "Treasure": 5
+      }
+    },
+    "phase_3": {
+      "_description": "11-15关",
+      "level_range": [11, 15],
+      "weights": {
+        "Battle": 35,
+        "Elite": 20,
+        "Event": 10,
+        "Shop": 15,
+        "Rest": 10,
+        "Treasure": 10
+      }
+    }
+  },
+  "difficulty_scaling": {
+    "_description": "难度随层数递增曲线",
+    "enemy_hp_multiplier_formula": "1.0 + layer * 0.15",
+    "enemy_atk_multiplier_formula": "1.0 + layer * 0.12",
+    "elite_bonus_multiplier": 1.5,
+    "boss_bonus_multiplier": 2.0,
+    "rarity_boost_per_layer": 0.02,
+    "_note": "每层提升稀有物品掉率2%"
+  },
+  "special_rules": {
+    "first_shop_guaranteed_layer": 2,
+    "first_elite_guaranteed_layer": 3,
+    "rest_after_boss": true,
+    "min_rest_count": 2,
+    "max_consecutive_battles": 3,
+    "_note": "防止连续出现超过3个战斗节点"
+  }
+}

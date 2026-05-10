@@ -40,6 +40,8 @@ public class Hero : MonoBehaviour
 {
     public HeroData Data { get; private set; }
     public int StarLevel { get; private set; } = 1;
+    public int HeroLevel { get; private set; } = 1;
+    public int CurrentExp { get; private set; } = 0;
     public bool IsDead => CurrentHealth <= 0;
     public bool IsBoss { get; set; } = false;
 
@@ -93,6 +95,9 @@ public class Hero : MonoBehaviour
     public void RecalculateStats()
     {
         float multiplier = GameBalance.GetStarMultiplier(StarLevel);
+        // 等级加成：每级+5%全属性
+        float levelMultiplier = 1f + (HeroLevel - 1) * 0.05f;
+        float combinedMultiplier = multiplier * levelMultiplier;
         int equipHealth = 0, equipAtk = 0, equipDef = 0, equipSpd = 0;
         float equipCrit = 0f;
 
@@ -106,11 +111,11 @@ public class Hero : MonoBehaviour
             equipCrit += item.critRateBonus;
         }
 
-        MaxHealth = Mathf.RoundToInt(Data.baseHealth * multiplier) + equipHealth;
-        Attack = Mathf.RoundToInt(Data.baseAttack * multiplier) + equipAtk;
-        Defense = Mathf.RoundToInt(Data.baseDefense * multiplier) + equipDef;
-        Speed = Mathf.RoundToInt(Data.baseSpeed * multiplier) + equipSpd;
-        CritRate = Mathf.Clamp01(Data.baseCritRate * multiplier + equipCrit);
+        MaxHealth = Mathf.RoundToInt(Data.baseHealth * combinedMultiplier) + equipHealth;
+        Attack = Mathf.RoundToInt(Data.baseAttack * combinedMultiplier) + equipAtk;
+        Defense = Mathf.RoundToInt(Data.baseDefense * combinedMultiplier) + equipDef;
+        Speed = Mathf.RoundToInt(Data.baseSpeed * combinedMultiplier) + equipSpd;
+        CritRate = Mathf.Clamp01(Data.baseCritRate * combinedMultiplier + equipCrit);
 
         // 应用遗物Buff
         ApplyRelicBuffs();
@@ -424,6 +429,21 @@ public class Hero : MonoBehaviour
                 break;
         }
     }
+
+    /// <summary>
+    /// 设置等级并重算属性
+    /// </summary>
+    public void SetLevel(int level) { HeroLevel = level; RecalculateStats(); }
+
+    /// <summary>
+    /// 设置当前经验值
+    /// </summary>
+    public void SetExp(int exp) { CurrentExp = exp; }
+
+    /// <summary>
+    /// 增加经验值
+    /// </summary>
+    public void AddExp(int amount) { CurrentExp += amount; }
 
     void OnDestroy()
     {

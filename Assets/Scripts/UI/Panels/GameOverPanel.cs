@@ -1,11 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
+using DG.Tweening;
 using Game.Core;
+using System.Collections.Generic;
 
 namespace Game.UI
 {
     /// <summary>
-    /// 游戏结束面板
+    /// 游戏结束面板 — 增强版战报统计 + 数字滚动动画
     /// UI元素：
     /// - resultTitle: 阵亡/通关标题Text
     /// - levelReachedText: 到达关卡数
@@ -13,6 +15,12 @@ namespace Game.UI
     /// - killCountText: 击杀数
     /// - restartButton: 再来一局
     /// - shareButton: 分享战绩（可选）
+    /// 
+    /// 程序化创建的统计卡片：
+    /// - battleDurationText: 战斗时长
+    /// - maxWinStreakText: 最高连胜
+    /// - totalDamageText: 伤害总输出
+    /// - mvpHeroText: MVP英雄评选
     /// </summary>
     public class GameOverPanel : UIPanel
     {
@@ -23,6 +31,37 @@ namespace Game.UI
         public Text killCountText;
         public Button restartButton;
         public Button shareButton;
+
+        [Header("统计面板布局")]
+        [Tooltip("统计卡片容器（挂载VerticalLayoutGroup的RectTransform）")]
+        public RectTransform statsContainer;
+
+        [Header("卡片样式")]
+        public Font cardFont;
+        public int cardFontSize = 22;
+        public int cardLabelFontSize = 14;
+        public Color cardBgColor = new Color(0.1f, 0.1f, 0.15f, 0.85f);
+        public Color cardLabelColor = new Color(0.7f, 0.7f, 0.8f, 1f);
+        public Color cardValueColor = Color.white;
+        public Color cardAccentColor = new Color(1f, 0.85f, 0.2f, 1f);
+
+        // 程序化创建的统计Text引用
+        private Text battleDurationText;
+        private Text maxWinStreakText;
+        private Text totalDamageText;
+        private Text mvpHeroText;
+
+        // 动画用Sequence
+        private Sequence cardAnimSequence;
+        private Sequence numberAnimSequence;
+
+        // 统计数据缓存
+        private int statKillCount;
+        private int statRelicCount;
+        private int statMaxWinStreak;
+        private long statTotalDamage;
+        private float statBattleDuration;
+        private string statMvpHeroName;
 
         protected override void OnShow()
         {
@@ -41,6 +80,10 @@ namespace Game.UI
         {
             restartButton?.onClick.RemoveAllListeners();
             shareButton?.onClick.RemoveAllListeners();
+
+            // 清理动画
+            cardAnimSequence?.Kill();
+            numberAnimSequence?.Kill();
         }
 
         private void PopulateStats()
@@ -48,43 +91,361 @@ namespace Game.UI
             var gsm = GameStateMachine.Instance;
             var rgm = RoguelikeGameManager.Instance;
 
-            // Determine win or loss
+            // ── 基础标题 ──────────────────────────────────────
             bool isWin = gsm != null && gsm.IsGameWon;
             if (resultTitle != null)
                 resultTitle.text = isWin ? "🏆 通关！" : "💀 阵亡";
 
-            // Level reached — prefer RoguelikeGameManager's tracked level
+            // ── 关卡 ──────────────────────────────────────────
             int level = rgm != null ? rgm.CurrentLevel : (gsm != null ? gsm.CurrentLevel : 0);
             if (levelReachedText != null)
-                levelReachedText.text = $"到达: {UIConfigBridge.GetLevelTitle(level)}";
+                levelReachedText.text = $"第 {level} 关";
 
-            // Relic count from RoguelikeGameManager
-            int relicCount = 0;
-            if (rgm != null && rgm.RelicSystem != null)
-                relicCount = rgm.RelicSystem.RelicCount;
-            if (relicCountText != null)
-                relicCountText.text = $"收集遗物: {relicCount}";
+            // ── 收集统计数据 ──────────────────────────────────
+            CollectStats(gsm, rgm);
 
-            // Kill count placeholder
-            if (killCountText != null)
-                killCountText.text = "击杀数: --";
+            // ── 确保容器存在 ──────────────────────────────────
+            EnsureStatsContainer();
+
+            // ── 构建统计卡片 ──────────────────────────────────
+            BuildStatCards();
+
+            // ── 播放入场动画 ──────────────────────────────────
+            PlayCardAnimations();
         }
+
+        /// <summary>
+        /// 从各系统收集战斗统计数据，不存在时使用GameStats Mock
+        /// </summary>
+        private void CollectStats(GameStateMachine gsm, RoguelikeGameManager rgm)
+        {
+            // 击杀数：优先RoguelikeGameManager，回退到GameStats
+            statKillCount = GameStats.KillCount;
+            // TODO: 后端 BattleStatsSystem 完成后替换为 rgm.BattleStats.KillCount
+
+            // 遗物数
+            statRelicCount = 0;
+            if (rgm != null && rgm.RelicSystem != null)
+                statRelicCount = rgm.RelicSystem.RelicCount;
+            else
+                statRelicCount = GameStats.RelicCount;
+
+            // 战斗时长
+            statBattleDuration = GameStats.BattleDuration;
+            // TODO: 后端 BattleStatsSystem 完成后替换
+
+            // 最高连胜
+            statMaxWinStreak = GameStats.MaxWinStreak;
+            // TODO: 后端 BattleStatsSystem 完成后替换
+
+            // 伤害总输出
+            statTotalDamage = GameStats.TotalDamageDealt;
+            // TODO: 后端 BattleStatsSystem 完成后替换
+
+            // MVP英雄
+            statMvpHeroName = GameStats.GetMVPHero();
+            // TODO: 后端 BattleStatsSystem 完成后替换为真实伤害统计
+        }
+
+        /// <summary>
+        /// 确保statsContainer存在，如果未在Inspector中赋值则自动创建
+        /// </summary>
+        private void EnsureStatsContainer()
+        {
+            if (statsContainer != null) return;
+
+            // 在resultTitle和按钮之间找一个合适的位置创建容器
+            var go = new GameObject("StatsContainer", typeof(RectTransform));
+            go.transform.SetParent(transform, false);
+
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.05f, 0.25f);
+            rt.anchorMax = new Vector2(0.95f, 0.7f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            // 添加VerticalLayoutGroup用于卡片排列
+            var vlg = go.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = 8f;
+            vlg.padding = new RectOffset(4, 4, 4, 4);
+            vlg.childAlignment = TextAnchor.MiddleCenter;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+
+            // 添加ContentSizeFitter
+            var csf = go.AddComponent<ContentSizeFitter>();
+            csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            statsContainer = rt;
+        }
+
+        /// <summary>
+        /// 构建6个统计卡片（3行x2列），程序化创建所有UI
+        /// </summary>
+        private void BuildStatCards()
+        {
+            // 清理旧卡片
+            for (int i = statsContainer.childCount - 1; i >= 0; i--)
+                Destroy(statsContainer.GetChild(i).gameObject);
+
+            // 卡片数据定义（图标, 标签, 值Text引用, 是否滚动动画）
+            var cardDefs = new[]
+            {
+                ("⚔", "击杀", statKillCount, true),
+                ("🏆", "遗物", statRelicCount, true),
+                ("⏱", "时长", 0, false),       // 时长不滚动
+                ("🔥", "连胜", statMaxWinStreak, true),
+                ("💥", "总伤", 0, true),         // 总伤特殊格式化
+                ("🌟", "MVP", 0, false),          // MVP不滚动
+            };
+
+            for (int row = 0; row < 3; row++)
+            {
+                // 创建行容器
+                var rowGo = new GameObject($"StatRow_{row}", typeof(RectTransform));
+                rowGo.transform.SetParent(statsContainer, false);
+
+                var rowRt = rowGo.GetComponent<RectTransform>();
+                rowRt.anchorMin = new Vector2(0, 1);
+                rowRt.anchorMax = new Vector2(1, 1);
+                rowRt.pivot = new Vector2(0.5f, 1);
+                rowRt.sizeDelta = new Vector2(0, 65f);
+
+                // 水平布局
+                var hlg = rowGo.AddComponent<HorizontalLayoutGroup>();
+                hlg.spacing = 8f;
+                hlg.childControlWidth = true;
+                hlg.childControlHeight = true;
+                hlg.childForceExpandWidth = true;
+                hlg.childForceExpandHeight = true;
+
+                // 初始隐藏（入场动画用）
+                var rowCg = rowGo.AddComponent<CanvasGroup>();
+                rowCg.alpha = 0f;
+                rowRt.anchoredPosition = new Vector2(0, -30f);
+
+                for (int col = 0; col < 2; col++)
+                {
+                    int idx = row * 2 + col;
+                    var def = cardDefs[idx];
+                    CreateStatCard(rowGo, def.Item1, def.Item2, idx, def.Item4);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 创建单个统计卡片（图标+标签+数值）
+        /// </summary>
+        private void CreateStatCard(GameObject parentRow, string icon, string label, int index, bool animateNumber)
+        {
+            var cardGo = new GameObject($"StatCard_{label}", typeof(RectTransform));
+            cardGo.transform.SetParent(parentRow.transform, false);
+
+            var cardRt = cardGo.GetComponent<RectTransform>();
+            cardRt.sizeDelta = Vector2.zero;
+
+            // 背景
+            var bgImage = cardGo.AddComponent<Image>();
+            bgImage.color = cardBgColor;
+            bgImage.raycastTarget = false;
+
+            // 使用LayoutElement控制尺寸
+            var le = cardGo.AddComponent<LayoutElement>();
+            le.minHeight = 58f;
+            le.preferredHeight = 60f;
+            le.flexibleWidth = 1f;
+
+            // 垂直布局：图标+标签 / 数值
+            var innerVlg = cardGo.AddComponent<VerticalLayoutGroup>();
+            innerVlg.spacing = 2f;
+            innerVlg.padding = new RectOffset(6, 6, 6, 6);
+            innerVlg.childAlignment = TextAnchor.MiddleCenter;
+            innerVlg.childControlWidth = true;
+            innerVlg.childControlHeight = true;
+            innerVlg.childForceExpandWidth = true;
+            innerVlg.childForceExpandHeight = false;
+
+            // 标签行（图标 + 标签名）
+            var labelGo = new GameObject("Label", typeof(RectTransform));
+            labelGo.transform.SetParent(cardGo.transform, false);
+            var labelText = labelGo.AddComponent<Text>();
+            labelText.font = cardFont != null ? cardFont : Font.CreateDynamicFontFromOSFont("Arial", cardLabelFontSize);
+            labelText.fontSize = cardLabelFontSize;
+            labelText.alignment = TextAnchor.MiddleCenter;
+            labelText.color = cardLabelColor;
+            labelText.text = $"{icon} {label}";
+            labelText.raycastTarget = false;
+
+            var labelLe = labelGo.AddComponent<LayoutElement>();
+            labelLe.preferredHeight = 20f;
+            labelLe.flexibleWidth = 1f;
+
+            // 数值行
+            var valueGo = new GameObject("Value", typeof(RectTransform));
+            valueGo.transform.SetParent(cardGo.transform, false);
+            var valueText = valueGo.AddComponent<Text>();
+            valueText.font = cardFont != null ? cardFont : Font.CreateDynamicFontFromOSFont("Arial", cardFontSize);
+            valueText.fontSize = cardFontSize;
+            valueText.fontStyle = FontStyle.Bold;
+            valueText.alignment = TextAnchor.MiddleCenter;
+            valueText.color = cardValueColor;
+            valueText.text = animateNumber ? "0" : "";
+            valueText.raycastTarget = false;
+
+            var valueLe = valueGo.AddComponent<LayoutElement>();
+            valueLe.preferredHeight = 28f;
+            valueLe.flexibleWidth = 1f;
+
+            // 根据index存储引用并设置初始值
+            switch (index)
+            {
+                case 0: // 击杀
+                    killCountText = valueText;
+                    break;
+                case 1: // 遗物
+                    relicCountText = valueText;
+                    break;
+                case 2: // 时长 — 直接显示mm:ss，不做动画
+                    battleDurationText = valueText;
+                    valueText.text = FormatDuration(statBattleDuration);
+                    break;
+                case 3: // 连胜
+                    maxWinStreakText = valueText;
+                    break;
+                case 4: // 总伤
+                    totalDamageText = valueText;
+                    break;
+                case 5: // MVP
+                    mvpHeroText = valueText;
+                    valueText.text = statMvpHeroName;
+                    valueText.color = cardAccentColor;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 播放统计卡片的入场动画 + 数字滚动动画
+        /// </summary>
+        private void PlayCardAnimations()
+        {
+            cardAnimSequence?.Kill();
+            numberAnimSequence?.Kill();
+
+            cardAnimSequence = DOTween.Sequence();
+            numberAnimSequence = DOTween.Sequence();
+
+            int rowCount = statsContainer.childCount;
+
+            for (int i = 0; i < rowCount; i++)
+            {
+                var rowTf = statsContainer.GetChild(i);
+                var rowCg = rowTf.GetComponent<CanvasGroup>();
+                var rowRt = rowTf as RectTransform;
+
+                if (rowCg == null || rowRt == null) continue;
+
+                // 每行延迟0.15s飞入
+                float delay = i * 0.15f;
+
+                // 卡片飞入：从下方滑入 + 淡入
+                cardAnimSequence.Insert(delay, rowCg.DOFade(1f, 0.35f).SetEase(Ease.OutQuad));
+                cardAnimSequence.Insert(delay, rowRt.DOAnchorPosY(0f, 0.35f).SetEase(Ease.OutQuad));
+            }
+
+            // 数字滚动动画在最后一张卡片飞入后延迟0.5s开始
+            float numberStartDelay = rowCount * 0.15f + 0.35f + 0.5f;
+
+            // 击杀数滚动（整数）
+            if (killCountText != null && statKillCount > 0)
+            {
+                var textRef = killCountText;
+                int target = statKillCount;
+                numberAnimSequence.Insert(numberStartDelay,
+                    DOVirtual.Float(0f, target, 1.5f, (val) =>
+                    {
+                        textRef.text = Mathf.RoundToInt(val).ToString();
+                    }).SetEase(Ease.OutQuad));
+            }
+
+            // 遗物数滚动（整数）
+            if (relicCountText != null && statRelicCount > 0)
+            {
+                var textRef = relicCountText;
+                int target = statRelicCount;
+                numberAnimSequence.Insert(numberStartDelay,
+                    DOVirtual.Float(0f, target, 1.2f, (val) =>
+                    {
+                        textRef.text = Mathf.RoundToInt(val).ToString();
+                    }).SetEase(Ease.OutQuad));
+            }
+
+            // 连胜滚动（整数）
+            if (maxWinStreakText != null && statMaxWinStreak > 0)
+            {
+                var textRef = maxWinStreakText;
+                int target = statMaxWinStreak;
+                numberAnimSequence.Insert(numberStartDelay,
+                    DOVirtual.Float(0f, target, 1.3f, (val) =>
+                    {
+                        textRef.text = Mathf.RoundToInt(val).ToString();
+                    }).SetEase(Ease.OutQuad));
+            }
+
+            // 总伤害滚动（带千分位逗号）
+            if (totalDamageText != null && statTotalDamage > 0)
+            {
+                var textRef = totalDamageText;
+                long target = statTotalDamage;
+                numberAnimSequence.Insert(numberStartDelay,
+                    DOVirtual.Float(0f, target, 1.8f, (val) =>
+                    {
+                        long rounded = (long)val;
+                        textRef.text = FormatNumberWithCommas(rounded);
+                    }).SetEase(Ease.OutQuad));
+            }
+
+            cardAnimSequence.Play();
+            numberAnimSequence.Play();
+        }
+
+        #region 格式化工具
+
+        /// <summary>
+        /// 格式化战斗时长为 mm:ss
+        /// </summary>
+        private string FormatDuration(float seconds)
+        {
+            int totalSeconds = Mathf.RoundToInt(seconds);
+            int mins = totalSeconds / 60;
+            int secs = totalSeconds % 60;
+            return $"{mins:D2}:{secs:D2}";
+        }
+
+        /// <summary>
+        /// 格式化数字为千分位（如 2,450）
+        /// </summary>
+        private string FormatNumberWithCommas(long number)
+        {
+            return number.ToString("N0");
+        }
+
+        #endregion
 
         private void OnRestartClicked()
         {
+            // 清理动画
+            cardAnimSequence?.Kill();
+            numberAnimSequence?.Kill();
+
             // 重置肉鸽状态
             RoguelikeGameManager.Instance?.StartNewGame();
 
             // 重置状态机的关卡计数
             if (GameStateMachine.Instance != null)
             {
-                // ResetGame会重置CurrentLevel=1, IsGameWon/IsGameLost=false
-                // 然后跳到HeroSelect — 但我们想回主菜单让玩家点击"开始游戏"
-                // 所以先重置数值，再跳转
                 GameStateMachine.Instance.ResetGame();
-                // ResetGame会自动ChangeState(HeroSelect)
-                // 如果想回主菜单，改用以下代码：
-                // GameStateMachine.Instance.ChangeState(GameState.MainMenu);
             }
         }
 
@@ -93,5 +454,84 @@ namespace Game.UI
             // TODO(Phase2-WeChat): 调用微信分享API — 不阻塞Phase1
             Debug.Log("[GameOverPanel] 分享功能待接入微信SDK");
         }
+
+        /// <summary>
+        /// 当面板被销毁时清理DOTween动画
+        /// </summary>
+        protected virtual void OnDestroy()
+        {
+            cardAnimSequence?.Kill();
+            numberAnimSequence?.Kill();
+        }
+    }
+}
+
+/// <summary>
+/// 战斗统计数据辅助类 — Mock数据，后端未就绪时使用
+/// TODO: 后端 BattleStatsSystem 完成后替换整个类
+/// </summary>
+public static class GameStats
+{
+    // ── Mock 数据（后端未就绪） ──────────────────────────
+    // TODO: 替换为真实战斗统计系统
+
+    /// <summary>击杀数</summary>
+    public static int KillCount { get; set; } = 23;
+
+    /// <summary>遗物数（回退用）</summary>
+    public static int RelicCount { get; set; } = 4;
+
+    /// <summary>战斗时长（秒）</summary>
+    public static float BattleDuration { get; set; } = 755f; // 12:35
+
+    /// <summary>最高连胜</summary>
+    public static int MaxWinStreak { get; set; } = 5;
+
+    /// <summary>伤害总输出</summary>
+    public static long TotalDamageDealt { get; set; } = 2450;
+
+    /// <summary>
+    /// 获取MVP英雄名称 — 取伤害最高的英雄
+    /// 当前为Mock实现，返回预设英雄名
+    /// </summary>
+    public static string GetMVPHero()
+    {
+        // TODO: 替换为从真实战斗统计中取伤害最高英雄
+        // 临时从RoguelikeGameManager获取队伍英雄
+        var rgm = RoguelikeGameManager.Instance;
+        if (rgm != null && rgm.PlayerHeroes != null && rgm.PlayerHeroes.Count > 0)
+        {
+            // 简单实现：返回第一个英雄名
+            // 后续改为遍历统计每个英雄的伤害
+            Hero mvp = null;
+            long maxDamage = -1;
+            foreach (var hero in rgm.PlayerHeroes)
+            {
+                // 用攻击力*星级作为简易伤害代理（Mock逻辑）
+                long proxyDamage = (long)hero.Attack * hero.StarLevel;
+                if (proxyDamage > maxDamage)
+                {
+                    maxDamage = proxyDamage;
+                    mvp = hero;
+                }
+            }
+            if (mvp != null)
+                return mvp.Data.heroName;
+        }
+
+        // 回退Mock
+        return "战士";
+    }
+
+    /// <summary>
+    /// 重置所有统计数据（新游戏时调用）
+    /// </summary>
+    public static void Reset()
+    {
+        KillCount = 0;
+        RelicCount = 0;
+        BattleDuration = 0f;
+        MaxWinStreak = 0;
+        TotalDamageDealt = 0;
     }
 }

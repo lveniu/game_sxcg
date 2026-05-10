@@ -69,8 +69,9 @@ public class MapData
 }
 
 /// <summary>
-/// BE-08 肉鸽地图路径系统
+/// BE-08 肉鸽地图路径系统 / BE-11 增强路径生成
 /// 15层地图生成算法，节点连接，路径选择驱动状态机
+/// 支持：JSON配置驱动、路径分叉保证、难度缩放、特殊规则
 /// </summary>
 public class RoguelikeMapSystem
 {
@@ -83,14 +84,14 @@ public class RoguelikeMapSystem
     public event System.Action<MapData> OnMapGenerated;
     public event System.Action<MapNode> OnNodeSelected;
 
-    // ===== 配置（可后续从JSON读取）=====
+    // ===== 配置（从JSON加载，仍可外部覆盖）=====
     public int totalLayers = 15;
     public int minNodesPerLayer = 2;
     public int maxNodesPerLayer = 4;
     public int bossInterval = 5;
     public int maxConnectionsPerNode = 3;
 
-    // 节点类型权重（非Boss层）
+    // 节点类型权重（非Boss层）— 保留作为fallback
     private readonly Dictionary<MapNodeType, float> nodeWeights = new Dictionary<MapNodeType, float>
     {
         { MapNodeType.Battle,   0.40f },
@@ -101,11 +102,53 @@ public class RoguelikeMapSystem
         { MapNodeType.Treasure, 0.05f },
     };
 
+    // ===== BE-11 新增缓存 =====
+    private MapGenerationConfig _mapGenConfig;
+    private List<int> _forkLayers = new List<int>();
+    private List<int> _convergenceLayers = new List<int>();
+    private RoguelikeMapSpecialRulesConfig _specialRules;
+
     public RoguelikeMapSystem()
     {
         if (Instance != null)
             Debug.LogWarning("[RoguelikeMapSystem] 实例已存在，覆盖");
         Instance = this;
+    }
+
+    // ===== 配置加载 =====
+
+    /// <summary>
+    /// 从JSON加载地图生成配置（带fallback）
+    /// </summary>
+    void LoadConfigFromJson()
+    {
+        try
+        {
+            _mapGenConfig = BalanceProvider.GetMapGenerationConfig();
+            if (_mapGenConfig != null)
+            {
+                // 只在第一次或配置改变时更新
+                totalLayers = _mapGenConfig.total_layers;
+                minNodesPerLayer = _mapGenConfig.min_nodes_per_layer;
+                maxNodesPerLayer = _mapGenConfig.max_nodes_per_layer;
+                bossInterval = _mapGenConfig.boss_interval;
+                maxConnectionsPerNode = _mapGenConfig.max_connections_per_node;
+
+                _forkLayers = _mapGenConfig.fork_layers ?? new List<int>();
+                _convergenceLayers = _mapGenConfig.convergence_layers ?? new List<int>();
+
+                Debug.Log($"[RoguelikeMapSystem] JSON配置加载成功: {totalLayers}层, " +
+                    $"分叉层[{string.Join(",", _forkLayers)}], 收敛层[{string.Join(",", _convergenceLayers)}]");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[RoguelikeMapSystem] JSON配置加载失败，使用默认值: {e.Message}");
+            _forkLayers = new List<int> { 2, 4, 7, 9, 12 };
+            _convergenceLayers = new List<int> { 4, 9, 14 };
+        }
+
+        _specialRules = BalanceProvider.GetMapSpecialRules();
     }
 
     // ===== 地图生成 =====
@@ -115,6 +158,9 @@ public class RoguelikeMapSystem
     /// </summary>
     public MapData GenerateMap(int totalLevels = 15)
     {
+        // BE-11: 从JSON加载配置
+        LoadConfigFromJson();
+
         totalLayers = totalLevels;
         CurrentMap = new MapData { totalLayers = totalLayers };
 
@@ -126,6 +172,12 @@ public class RoguelikeMapSystem
 
         // 生成连接
         GenerateConnections();
+
+        // BE-11: 应用路径分叉保证
+        ApplyForkGuarantees();
+
+        // BE-11: 应用特殊规则
+        ApplySpecialRules();
 
         // 建索引
         CurrentMap.BuildIndex();
@@ -163,8 +215,19 @@ public class RoguelikeMapSystem
             return layer;
         }
 
-        // 随机节点数 2-4
-        int nodeCount = Random.Range(minNodesPerLayer, maxNodesPerLayer + 1);
+        // BE-11: 分叉层保证最少节点数
+        int minNodes = minNodesPerLayer;
+        int maxNodes = maxNodesPerLayer;
+        if (_forkLayers.Contains(layerIdx))
+        {
+            int forkMin = _mapGenConfig?.fork_min_paths ?? 2;
+            int forkMax = _mapGenConfig?.fork_max_paths ?? 3;
+            minNodes = Mathf.Max(minNodes, forkMin);
+            maxNodes = Mathf.Max(maxNodes, forkMin);
+        }
+
+        // 随机节点数
+        int nodeCount = Random.Range(minNodes, maxNodes + 1);
 
         for (int i = 0; i < nodeCount; i++)
         {
@@ -196,12 +259,28 @@ public class RoguelikeMapSystem
     }
 
     /// <summary>
-    /// 按权重随机选择节点类型
+    /// 按权重随机选择节点类型（BE-11: 使用JSON配置的阶段权重）
     /// </summary>
     MapNodeType PickNodeType(int layerIdx)
     {
+        // BE-11: 从JSON获取权重
+        var jsonWeights = BalanceProvider.GetNodeWeightsForLayer(layerIdx);
+
+        // 构建权重表
+        var weights = new Dictionary<MapNodeType, float>();
+
+        foreach (var kv in jsonWeights)
+        {
+            MapNodeType? nt = ParseNodeTypeName(kv.Key);
+            if (nt.HasValue)
+                weights[nt.Value] = kv.Value;
+        }
+
+        // 如果JSON权重为空，使用fallback
+        if (weights.Count == 0)
+            weights = new Dictionary<MapNodeType, float>(nodeWeights);
+
         // 前2层不出Elite和Treasure
-        var weights = new Dictionary<MapNodeType, float>(nodeWeights);
         if (layerIdx < 2)
         {
             weights.Remove(MapNodeType.Elite);
@@ -216,6 +295,7 @@ public class RoguelikeMapSystem
 
         // 归一化
         float total = weights.Values.Sum();
+        if (total <= 0) return MapNodeType.Battle;
         float roll = Random.Range(0f, total);
         float cumulative = 0f;
 
@@ -227,6 +307,24 @@ public class RoguelikeMapSystem
         }
 
         return MapNodeType.Battle; // fallback
+    }
+
+    /// <summary>
+    /// 将字符串节点类型名转为枚举
+    /// </summary>
+    MapNodeType? ParseNodeTypeName(string name)
+    {
+        switch (name)
+        {
+            case "Battle": return MapNodeType.Battle;
+            case "Elite": return MapNodeType.Elite;
+            case "Event": return MapNodeType.Event;
+            case "Shop": return MapNodeType.Shop;
+            case "Rest": return MapNodeType.Rest;
+            case "Treasure": return MapNodeType.Treasure;
+            case "Boss": return MapNodeType.Boss;
+            default: return null;
+        }
     }
 
     int CalculateDifficulty(int layer, MapNodeType type)
@@ -328,6 +426,12 @@ public class RoguelikeMapSystem
             to.prevNodeIds.Add(from.nodeId);
     }
 
+    void DisconnectNodes(MapNode from, MapNode to)
+    {
+        from.nextNodeIds.Remove(to.nodeId);
+        to.prevNodeIds.Remove(from.nodeId);
+    }
+
     MapNode FindClosestNode(List<MapNode> layer, int targetIndex, int layerSize)
     {
         // 按index距离排序，优先选连接数少的
@@ -352,6 +456,294 @@ public class RoguelikeMapSystem
     bool IsBossLayer(int layerIdx)
     {
         return (layerIdx + 1) % bossInterval == 0;
+    }
+
+    // ===== BE-11: 路径分叉保证 =====
+
+    /// <summary>
+    /// 确保分叉层有2-3条独立路径，且节点类型有足够多样性
+    /// </summary>
+    void ApplyForkGuarantees()
+    {
+        if (CurrentMap == null || CurrentMap.layers.Count == 0) return;
+
+        foreach (int forkLayerIdx in _forkLayers)
+        {
+            // 分叉层必须在有效范围内且不是Boss层
+            if (forkLayerIdx <= 0 || forkLayerIdx >= totalLayers - 1) continue;
+            if (IsBossLayer(forkLayerIdx)) continue;
+
+            var forkLayer = CurrentMap.layers[forkLayerIdx];
+
+            int forkMin = _mapGenConfig?.fork_min_paths ?? 2;
+            int forkMax = _mapGenConfig?.fork_max_paths ?? 3;
+            int desiredPaths = Random.Range(forkMin, forkMax + 1);
+
+            // 确保该层有足够节点
+            if (forkLayer.Count < desiredPaths)
+            {
+                // 需要添加节点
+                while (forkLayer.Count < desiredPaths)
+                {
+                    int newIdx = forkLayer.Count;
+                    var nodeType = PickNodeType(forkLayerIdx);
+                    var node = CreateNode(forkLayerIdx, newIdx, nodeType);
+                    node.difficulty = CalculateDifficulty(forkLayerIdx, nodeType);
+                    node.previewText = GeneratePreviewText(nodeType, node.difficulty);
+                    forkLayer.Add(node);
+                }
+            }
+
+            // 确保每个分叉节点连接到下一层的不同子集（路径独立性）
+            EnsurePathDiversity(forkLayerIdx, forkLayer);
+
+            Debug.Log($"[RoguelikeMapSystem] 分叉保证: 层{forkLayerIdx + 1}, {forkLayer.Count}条路径");
+        }
+
+        // 收敛层：确保路径在Boss前收敛
+        foreach (int convLayerIdx in _convergenceLayers)
+        {
+            if (convLayerIdx <= 0 || convLayerIdx >= totalLayers - 1) continue;
+            if (IsBossLayer(convLayerIdx)) continue;
+
+            // 收敛层节点数不超过2，连接指向单一目标
+            var convLayer = CurrentMap.layers[convLayerIdx];
+            if (convLayer.Count > 2)
+            {
+                // 保留首尾两个节点
+                while (convLayer.Count > 2)
+                {
+                    int removeIdx = Random.Range(1, convLayer.Count - 1);
+                    var removed = convLayer[removeIdx];
+                    // 清除连接
+                    foreach (var nextId in removed.nextNodeIds.ToList())
+                    {
+                        var nextNode = CurrentMap.layers[convLayerIdx + 1]
+                            .FirstOrDefault(n => n.nodeId == nextId);
+                        if (nextNode != null)
+                            DisconnectNodes(removed, nextNode);
+                    }
+                    foreach (var prevId in removed.prevNodeIds.ToList())
+                    {
+                        var prevNode = CurrentMap.layers[convLayerIdx - 1]
+                            .FirstOrDefault(n => n.nodeId == prevId);
+                        if (prevNode != null)
+                            DisconnectNodes(prevNode, removed);
+                    }
+                    convLayer.RemoveAt(removeIdx);
+                }
+                // 重新编号
+                for (int i = 0; i < convLayer.Count; i++)
+                {
+                    convLayer[i].indexInLayer = i;
+                    convLayer[i].nodeId = $"node_{convLayerIdx}_{i}";
+                }
+            }
+
+            Debug.Log($"[RoguelikeMapSystem] 收敛层: 层{convLayerIdx + 1}, {convLayer.Count}个节点");
+        }
+    }
+
+    /// <summary>
+    /// 确保分叉层中每个节点到下一层有独立路径
+    /// </summary>
+    void EnsurePathDiversity(int forkLayerIdx, List<MapNode> forkLayer)
+    {
+        if (forkLayerIdx >= totalLayers - 1) return;
+        var nextLayer = CurrentMap.layers[forkLayerIdx + 1];
+        if (nextLayer.Count == 0) return;
+
+        // 为每个分叉节点分配至少一个独立的下一层连接目标
+        for (int i = 0; i < forkLayer.Count; i++)
+        {
+            var node = forkLayer[i];
+
+            // 如果该节点没有任何连接到下一层
+            bool hasConnection = node.nextNodeIds.Any(id =>
+            {
+                var n = CurrentMap.layers[forkLayerIdx + 1].FirstOrDefault(nn => nn.nodeId == id);
+                return n != null;
+            });
+
+            if (!hasConnection && nextLayer.Count > 0)
+            {
+                // 分配到最近的下一层节点
+                int targetIdx = Mathf.Min(i, nextLayer.Count - 1);
+                ConnectNodes(node, nextLayer[targetIdx]);
+            }
+        }
+    }
+
+    // ===== BE-11: 特殊规则 =====
+
+    /// <summary>
+    /// 应用特殊规则：商店/精英保底、Boss后休息、最少休息点、连续战斗上限
+    /// </summary>
+    void ApplySpecialRules()
+    {
+        if (CurrentMap == null || CurrentMap.layers.Count == 0) return;
+
+        int firstShopLayer = _specialRules?.first_shop_guaranteed_layer ?? 2;
+        int firstEliteLayer = _specialRules?.first_elite_guaranteed_layer ?? 3;
+        bool restAfterBoss = _specialRules?.rest_after_boss ?? true;
+        int minRestCount = _specialRules?.min_rest_count ?? 2;
+        int maxConsecutive = _specialRules?.max_consecutive_battles ?? 3;
+
+        // 1. 第N层保底商店
+        ApplyGuaranteedNodeType(firstShopLayer - 1, MapNodeType.Shop); // layer is 0-based
+
+        // 2. 第N层保底精英
+        ApplyGuaranteedNodeType(firstEliteLayer - 1, MapNodeType.Elite);
+
+        // 3. Boss后休息点
+        if (restAfterBoss)
+        {
+            for (int i = 0; i < totalLayers - 1; i++)
+            {
+                if (IsBossLayer(i) && i + 1 < totalLayers && !IsBossLayer(i + 1))
+                {
+                    var nextLayer = CurrentMap.layers[i + 1];
+                    bool hasRest = nextLayer.Any(n => n.nodeType == MapNodeType.Rest);
+                    if (!hasRest && nextLayer.Count > 0)
+                    {
+                        // 将第一个非Boss非Rest节点改为Rest
+                        var target = nextLayer.FirstOrDefault(n =>
+                            n.nodeType != MapNodeType.Boss && n.nodeType != MapNodeType.Rest);
+                        if (target != null)
+                        {
+                            target.nodeType = MapNodeType.Rest;
+                            target.previewText = GeneratePreviewText(MapNodeType.Rest, target.difficulty);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. 最少休息点数量
+        int restCount = 0;
+        foreach (var layer in CurrentMap.layers)
+            restCount += layer.Count(n => n.nodeType == MapNodeType.Rest);
+
+        if (restCount < minRestCount)
+        {
+            // 在合适的层添加更多休息点
+            for (int i = 1; i < totalLayers && restCount < minRestCount; i++)
+            {
+                if (IsBossLayer(i)) continue;
+                var layer = CurrentMap.layers[i];
+                // 优先改Battle节点为Rest（避免改已经多样化的层）
+                var battleNode = layer.FirstOrDefault(n => n.nodeType == MapNodeType.Battle);
+                if (battleNode != null && layer.Count > 1)
+                {
+                    battleNode.nodeType = MapNodeType.Rest;
+                    battleNode.previewText = GeneratePreviewText(MapNodeType.Rest, battleNode.difficulty);
+                    restCount++;
+                }
+            }
+        }
+
+        // 5. 最大连续战斗限制
+        int consecutiveBattles = 0;
+        for (int i = 0; i < totalLayers; i++)
+        {
+            var layer = CurrentMap.layers[i];
+            bool layerHasBattle = layer.Any(n => n.nodeType == MapNodeType.Battle || n.nodeType == MapNodeType.Elite);
+
+            if (layerHasBattle)
+            {
+                consecutiveBattles++;
+                if (consecutiveBattles > maxConsecutive)
+                {
+                    // 将该层一个Battle节点改为非战斗类型
+                    var battleNode = layer.FirstOrDefault(n =>
+                        n.nodeType == MapNodeType.Battle || n.nodeType == MapNodeType.Elite);
+                    if (battleNode != null)
+                    {
+                        battleNode.nodeType = Random.value < 0.5f ? MapNodeType.Event : MapNodeType.Rest;
+                        battleNode.previewText = GeneratePreviewText(battleNode.nodeType, battleNode.difficulty);
+                        consecutiveBattles = 0;
+                    }
+                }
+            }
+            else
+            {
+                consecutiveBattles = 0;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 在指定层确保存在某类型的节点
+    /// </summary>
+    void ApplyGuaranteedNodeType(int layerIdx, MapNodeType guaranteedType)
+    {
+        if (layerIdx < 0 || layerIdx >= totalLayers) return;
+        if (IsBossLayer(layerIdx)) return;
+
+        var layer = CurrentMap.layers[layerIdx];
+        bool hasType = layer.Any(n => n.nodeType == guaranteedType);
+
+        if (!hasType && layer.Count > 0)
+        {
+            // 将第一个Battle节点改为目标类型
+            var target = layer.FirstOrDefault(n => n.nodeType == MapNodeType.Battle);
+            if (target != null)
+            {
+                target.nodeType = guaranteedType;
+                target.previewText = GeneratePreviewText(guaranteedType, target.difficulty);
+            }
+        }
+    }
+
+    // ===== BE-11: 难度倍率 =====
+
+    /// <summary>
+    /// 获取指定层的敌人属性倍率
+    /// </summary>
+    public float GetEnemyHpMultiplier(int layer)
+    {
+        return BalanceProvider.GetEnemyHpMultiplier(layer);
+    }
+
+    public float GetEnemyAtkMultiplier(int layer)
+    {
+        return BalanceProvider.GetEnemyAtkMultiplier(layer);
+    }
+
+    /// <summary>
+    /// 获取指定层的完整难度倍率信息
+    /// </summary>
+    public Dictionary<string, float> GetDifficultyMultiplier(int layer)
+    {
+        float hpMult = BalanceProvider.GetEnemyHpMultiplier(layer);
+        float atkMult = BalanceProvider.GetEnemyAtkMultiplier(layer);
+
+        var result = new Dictionary<string, float>
+        {
+            { "hp_multiplier", hpMult },
+            { "atk_multiplier", atkMult },
+            { "rarity_boost", layer * 0.02f }
+        };
+
+        // 精英加成
+        var scaling = BalanceProvider.RoguelikeMapConfig?.difficulty_scaling;
+        if (scaling != null)
+        {
+            result["elite_hp_multiplier"] = hpMult * scaling.elite_bonus_multiplier;
+            result["elite_atk_multiplier"] = atkMult * scaling.elite_bonus_multiplier;
+            result["boss_hp_multiplier"] = hpMult * scaling.boss_bonus_multiplier;
+            result["boss_atk_multiplier"] = atkMult * scaling.boss_bonus_multiplier;
+            result["rarity_boost"] = layer * scaling.rarity_boost_per_layer;
+        }
+        else
+        {
+            result["elite_hp_multiplier"] = hpMult * 1.5f;
+            result["elite_atk_multiplier"] = atkMult * 1.5f;
+            result["boss_hp_multiplier"] = hpMult * 2.0f;
+            result["boss_atk_multiplier"] = atkMult * 2.0f;
+        }
+
+        return result;
     }
 
     // ===== 节点选择 =====

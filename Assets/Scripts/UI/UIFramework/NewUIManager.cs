@@ -48,6 +48,9 @@ namespace Game.UI
         public DiceUpgradePanel diceUpgradePanel;
         public RelicPanel relicPanel;
 
+        [Header("子面板 - 设置")]
+        public SettingsPanel settingsPanel;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -167,6 +170,7 @@ namespace Game.UI
                 "CardDeckEditor" => cardDeckEditorPanel,
                 "DiceUpgrade" => diceUpgradePanel,
                 "Relic" => relicPanel,
+                "Settings" => settingsPanel,
                 _ => null
             };
             if (panel != null) panel.Show();

@@ -169,11 +169,75 @@ public static class GameData
         return card;
     }
 
-    // ========== 英雄数据（三职业：战士/法师/刺客） ==========
+    // ========== 英雄数据（JSON驱动 + fallback） ==========
+
+    /// <summary>
+    /// JSON classId → 中文名/技能/进化形态映射
+    /// </summary>
+    static readonly Dictionary<string, string> HeroIdToNameCn = new Dictionary<string, string>
+    {
+        {"warrior", "战士"},
+        {"mage", "法师"},
+        {"assassin", "刺客"},
+    };
+
+    /// <summary>
+    /// 根据 JSON classId 创建英雄（属性从 hero_classes.json 读取，技能按类型匹配）
+    /// 统一入口，替代 CreateWarriorHero/CreateMageHero/CreateAssassinHero 的硬编码
+    /// </summary>
+    public static HeroData CreateHeroByJsonId(string classId, int level = 1)
+    {
+        if (string.IsNullOrEmpty(classId)) return CreateWarriorHero();
+
+        // 1. 获取中文名
+        string nameCn = HeroIdToNameCn.GetValueOrDefault(classId, classId);
+
+        // 2. 从 hero_classes.json 读取属性（JSON优先，fallback到硬编码）
+        var stats = GameBalance.GetHeroTemplate(classId);
+
+        // 3. 按 classId 匹配技能和进化形态
+        SkillData activeSkill = classId switch
+        {
+            "warrior" => CreateWhirlwindSkill(),
+            "mage" => CreateFireballSkill(),
+            "assassin" => CreateBackstabSkill(),
+            _ => CreateNormalAttack()
+        };
+        HeroData evoForm = classId switch
+        {
+            "warrior" => CreateWarriorEvolved(),
+            "mage" => CreateMageEvolved(),
+            "assassin" => CreateAssassinEvolved(),
+            _ => null
+        };
+        string desc = classId switch
+        {
+            "warrior" => "近战连击型输出",
+            "mage" => "远程AOE法术输出",
+            "assassin" => "高速爆发，闪避背刺",
+            _ => ""
+        };
+
+        // 4. 创建 HeroData
+        var data = ScriptableObject.CreateInstance<HeroData>();
+        data.heroName = nameCn;
+        data.heroClass = stats.HeroClass;
+        data.baseHealth = stats.Health;
+        data.baseAttack = stats.Attack;
+        data.baseDefense = stats.Defense;
+        data.baseSpeed = stats.Speed;
+        data.baseCritRate = stats.CritRate;
+        data.summonCost = stats.SummonCost;
+        data.normalAttack = CreateNormalAttack();
+        data.activeSkill = activeSkill;
+        data.evolutionForm = evoForm;
+        data.description = desc;
+        return data;
+    }
 
     public static HeroData CreateAssassinHero()
     {
-        return CreateHeroFromTemplate("刺客", "刺客", CreateNormalAttack(), CreateBackstabSkill(), CreateAssassinEvolved(), "高速爆发，闪避背刺");
+        return CreateHeroByJsonId("assassin");
     }
 
     // 兼容旧调用 — 转发到三职业版本
@@ -429,12 +493,12 @@ public static class GameData
 
     public static HeroData CreateMageHero()
     {
-        return CreateHeroFromTemplate("法师", "法师", CreateNormalAttack(), CreateFireballSkill(), CreateMageEvolved(), "远程AOE法术输出");
+        return CreateHeroByJsonId("mage");
     }
 
     public static HeroData CreateWarriorHero()
     {
-        return CreateHeroFromTemplate("战士", "战士", CreateNormalAttack(), CreateWhirlwindSkill(), CreateWarriorEvolved(), "近战连击型输出");
+        return CreateHeroByJsonId("warrior");
     }
 
     public static HeroData CreateMageEvolved()
@@ -460,20 +524,29 @@ public static class GameData
     /// <summary>
     /// 根据模板名称创建英雄HeroData（工厂方法路由）
     /// 支持：战士/法师/刺客/链甲使者/狂战士/大法师/巡游法师/影舞者
+    /// 三职业走 JSON 驱动，扩展英雄保留旧方式
     /// </summary>
     public static HeroData CreateHeroDataByTemplateName(string templateName)
     {
+        // 三职业：走 JSON 驱动的 CreateHeroByJsonId
+        string classId = templateName switch
+        {
+            "战士" => "warrior",
+            "法师" => "mage",
+            "刺客" => "assassin",
+            _ => null
+        };
+        if (classId != null) return CreateHeroByJsonId(classId);
+
+        // 扩展英雄：保留旧方式（JSON 里暂无对应条目）
         return templateName switch
         {
-            "战士" => CreateWarriorHero(),
-            "法师" => CreateMageHero(),
-            "刺客" => CreateAssassinHero(),
             "链甲使者" => CreateChainKnightHero(),
             "狂战士" => CreateWarriorEvolved(),
             "大法师" => CreateMageEvolved(),
             "巡游法师" => CreateWanderingMageHero(),
             "影舞者" => CreateAssassinEvolved(),
-            _ => CreateWarriorHero() // 默认fallback
+            _ => CreateHeroByJsonId("warrior") // 默认fallback走JSON
         };
     }
 

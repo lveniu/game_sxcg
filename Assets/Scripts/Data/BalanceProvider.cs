@@ -26,6 +26,8 @@ public static class BalanceProvider
     private static DiceSystemConfig _diceSystem;
     private static MechanicEnemiesFileConfig _mechanicEnemies;
     private static FaceEffectsFileConfig _faceEffects;
+    private static HeroExpFileConfig _heroExpConfig;
+    private static RoguelikeMapFileConfig _roguelikeMap;
 
     // 懒加载属性
     public static HeroClassesConfig HeroClasses => _heroClasses ?? (_heroClasses = ConfigLoader.LoadHeroClasses());
@@ -39,6 +41,8 @@ public static class BalanceProvider
     public static DiceSystemConfig DiceSystem => _diceSystem ?? (_diceSystem = ConfigLoader.LoadDiceSystem());
     public static MechanicEnemiesFileConfig MechanicEnemies => _mechanicEnemies ?? (_mechanicEnemies = ConfigLoader.LoadMechanicEnemies());
     public static FaceEffectsFileConfig FaceEffects => _faceEffects ?? (_faceEffects = ConfigLoader.LoadFaceEffects());
+    public static HeroExpFileConfig HeroExpConfig => _heroExpConfig ?? (_heroExpConfig = ConfigLoader.LoadHeroExpConfig());
+    public static RoguelikeMapFileConfig RoguelikeMapConfig => _roguelikeMap ?? (_roguelikeMap = ConfigLoader.LoadRoguelikeMap());
 
     /// <summary>
     /// 热重载所有配置（策划调数值后调用）
@@ -57,6 +61,8 @@ public static class BalanceProvider
         _diceSystem = null;
         _mechanicEnemies = null;
         _faceEffects = null;
+        _heroExpConfig = null;
+        _roguelikeMap = null;
         GameBalance.ReloadConfigs();
         Debug.Log("[BalanceProvider] 所有配置已重新加载");
     }
@@ -500,6 +506,17 @@ public static class BalanceProvider
         return FaceEffects?.face_effects ?? new List<FaceEffectEntry>();
     }
 
+    // ========== 英雄经验相关 ==========
+
+    /// <summary>每级属性加成百分比（默认5%）</summary>
+    public static float GetLevelStatBonusPct() => HeroExpConfig?.level_stat_bonus_pct ?? 5f;
+
+    /// <summary>被动技能强化阈值列表</summary>
+    public static List<int> GetPassiveSkillThresholds() => HeroExpConfig?.passive_skill_auto_level?.level_thresholds ?? new List<int> {3, 6, 9, 12};
+
+    /// <summary>每个阈值的被动技能加成</summary>
+    public static float GetPassiveSkillBonusPerThreshold() => HeroExpConfig?.passive_skill_auto_level?.bonus_per_threshold ?? 0.1f;
+
     // ========== 星级相关 ==========
 
     /// <summary>星级倍率</summary>
@@ -517,6 +534,146 @@ public static class BalanceProvider
     }
 
     // ========== 工具方法 ==========
+
+    // ========== 肉鸽地图路径相关 ==========
+
+    /// <summary>
+    /// 获取地图生成配置（带fallback默认值）
+    /// </summary>
+    public static MapGenerationConfig GetMapGenerationConfig()
+    {
+        if (RoguelikeMapConfig?.map_generation != null)
+            return RoguelikeMapConfig.map_generation;
+
+        // Fallback: 返回硬编码默认值
+        return new MapGenerationConfig
+        {
+            total_layers = 15,
+            min_nodes_per_layer = 2,
+            max_nodes_per_layer = 4,
+            boss_interval = 5,
+            max_connections_per_node = 3,
+            start_layer_node_count = 1,
+            fork_layers = new List<int> { 2, 4, 7, 9, 12 },
+            fork_min_paths = 2,
+            fork_max_paths = 3,
+            convergence_layers = new List<int> { 4, 9, 14 },
+            convergence_description = "在Boss前一层收敛路径"
+        };
+    }
+
+    /// <summary>
+    /// 获取指定层的阶段权重配置
+    /// </summary>
+    public static RoguelikeMapPhaseWeights GetMapNodeWeights(int layer)
+    {
+        var weights = RoguelikeMapConfig?.node_weights;
+        if (weights == null) return null;
+
+        // layer is 0-based, level_range is 1-based, so compare layer+1
+        int level = layer + 1;
+        if (weights.phase_1?.level_range != null
+            && level >= weights.phase_1.level_range[0]
+            && level <= weights.phase_1.level_range[1])
+            return weights.phase_1;
+        if (weights.phase_2?.level_range != null
+            && level >= weights.phase_2.level_range[0]
+            && level <= weights.phase_2.level_range[1])
+            return weights.phase_2;
+        if (weights.phase_3?.level_range != null
+            && level >= weights.phase_3.level_range[0]
+            && level <= weights.phase_3.level_range[1])
+            return weights.phase_3;
+
+        return weights.phase_1; // fallback
+    }
+
+    /// <summary>
+    /// 获取指定层的节点类型权重字典
+    /// </summary>
+    public static Dictionary<string, int> GetNodeWeightsForLayer(int layer)
+    {
+        var phaseWeights = GetMapNodeWeights(layer);
+        if (phaseWeights?.weights != null)
+            return phaseWeights.weights;
+
+        // Fallback defaults
+        return new Dictionary<string, int>
+        {
+            { "Battle", 40 },
+            { "Elite", 10 },
+            { "Event", 20 },
+            { "Shop", 15 },
+            { "Rest", 10 },
+            { "Treasure", 5 }
+        };
+    }
+
+    /// <summary>
+    /// 获取敌人HP倍率（按层）
+    /// 公式: 1.0 + layer * 0.15
+    /// </summary>
+    public static float GetEnemyHpMultiplier(int layer)
+    {
+        var scaling = RoguelikeMapConfig?.difficulty_scaling;
+        if (scaling != null && !string.IsNullOrEmpty(scaling.enemy_hp_multiplier_formula))
+            return ParseLayerFormula(scaling.enemy_hp_multiplier_formula, layer);
+        return 1.0f + layer * 0.15f;
+    }
+
+    /// <summary>
+    /// 获取敌人ATK倍率（按层）
+    /// 公式: 1.0 + layer * 0.12
+    /// </summary>
+    public static float GetEnemyAtkMultiplier(int layer)
+    {
+        var scaling = RoguelikeMapConfig?.difficulty_scaling;
+        if (scaling != null && !string.IsNullOrEmpty(scaling.enemy_atk_multiplier_formula))
+            return ParseLayerFormula(scaling.enemy_atk_multiplier_formula, layer);
+        return 1.0f + layer * 0.12f;
+    }
+
+    /// <summary>
+    /// 获取特殊规则配置
+    /// </summary>
+    public static RoguelikeMapSpecialRulesConfig GetMapSpecialRules()
+    {
+        return RoguelikeMapConfig?.special_rules;
+    }
+
+    /// <summary>
+    /// 解析 "1.0 + layer * 0.15" 类型的公式
+    /// </summary>
+    private static float ParseLayerFormula(string formula, int layer)
+    {
+        // 支持格式: "1.0 + layer * 0.15"
+        try
+        {
+            var parts = formula.Split('+');
+            float baseVal = float.Parse(parts[0].Trim(), System.Globalization.CultureInfo.InvariantCulture);
+            if (parts.Length < 2) return baseVal;
+
+            var multPart = parts[1].Trim();
+            // 期望 "layer * X" 格式
+            if (multPart.StartsWith("layer"))
+            {
+                var tokens = multPart.Split('*');
+                if (tokens.Length >= 2)
+                {
+                    float coefficient = float.Parse(tokens[tokens.Length - 1].Trim(), System.Globalization.CultureInfo.InvariantCulture);
+                    return baseVal + layer * coefficient;
+                }
+            }
+            return baseVal;
+        }
+        catch
+        {
+            Debug.LogWarning($"[BalanceProvider] 无法解析公式: {formula}, 使用默认值");
+            return 1.0f;
+        }
+    }
+
+    // ========== 工具方法（通用） ==========
 
     /// <summary>关卡ID → 阶段Key</summary>
     private static string GetPhaseKey(int levelId)

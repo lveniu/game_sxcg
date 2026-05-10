@@ -476,13 +476,15 @@ namespace Game.UI
         /// </summary>
         private HeroData ResolveHeroData(string cardName)
         {
-            return cardName switch
+            // 中文名 → JSON classId 映射
+            string classId = cardName switch
             {
-                "战士" => GameData.CreateWarriorHero(),
-                "法师" => GameData.CreateMageHero(),
-                "刺客" => GameData.CreateAssassinHero(),
-                _ => GameData.CreateWarriorHero() // 默认战士
+                "战士" => "warrior",
+                "法师" => "mage",
+                "刺客" => "assassin",
+                _ => "warrior" // 默认战士
             };
+            return GameData.CreateHeroByJsonId(classId);
         }
 
         /// <summary>打出属性卡</summary>

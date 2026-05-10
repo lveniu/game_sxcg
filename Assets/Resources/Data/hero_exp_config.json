@@ -1,0 +1,17 @@
+{
+  "_version": "1.0.0",
+  "_description": "英雄经验系统配置",
+  "level_stat_bonus_pct": 5.0,
+  "level_stat_bonus_description": "每级全属性+5%",
+  "star_upgrade_merge_rule": "same_name_same_star",
+  "passive_skill_auto_level": {
+    "description_cn": "被动技能随等级自动强化",
+    "level_thresholds": [3, 6, 9, 12],
+    "bonus_per_threshold": 0.1
+  },
+  "exp_reward_as_roguelike": {
+    "description_cn": "经验药水作为肉鸽奖励",
+    "exp_values": {"common": 30, "rare": 80, "epic": 200},
+    "weight": 10
+  }
+}

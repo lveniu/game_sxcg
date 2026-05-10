@@ -94,6 +94,12 @@ public static class ConfigLoader
 
     /// <summary>加载骰子面效果配置</summary>
     public static FaceEffectsFileConfig LoadFaceEffects() => Load<FaceEffectsFileConfig>("face_effects");
+
+    /// <summary>加载英雄经验系统配置</summary>
+    public static HeroExpFileConfig LoadHeroExpConfig() => Load<HeroExpFileConfig>("hero_exp_config");
+
+    /// <summary>加载肉鸽地图路径生成配置</summary>
+    public static RoguelikeMapFileConfig LoadRoguelikeMap() => Load<RoguelikeMapFileConfig>("roguelike_map_config");
 }
 
 // =====================================================================
@@ -776,4 +782,101 @@ public class FaceEffectUpgradeConfig
     public List<int> cost_free_levels;
     public int rare_min_level;
     public int epic_min_level;
+}
+
+// ---------- hero_exp_config.json ----------
+
+/// <summary>英雄经验系统配置</summary>
+public class HeroExpFileConfig
+{
+    public string _version;
+    public string _description;
+    public float level_stat_bonus_pct;
+    public string level_stat_bonus_description;
+    public string star_upgrade_merge_rule;
+    public PassiveSkillLevelingConfig passive_skill_auto_level;
+    public ExpRewardConfig exp_reward_as_roguelike;
+}
+
+/// <summary>被动技能自动强化配置</summary>
+public class PassiveSkillLevelingConfig
+{
+    public string description_cn;
+    public List<int> level_thresholds;
+    public float bonus_per_threshold;
+}
+
+/// <summary>经验奖励配置（肉鸽奖励）</summary>
+public class ExpRewardConfig
+{
+    public string description_cn;
+    public Dictionary<string, int> exp_values;
+    public int weight;
+}
+
+// ---------- roguelike_map_config.json ----------
+
+/// <summary>肉鸽地图路径生成配置</summary>
+public class RoguelikeMapFileConfig
+{
+    public string _version;
+    public string _description;
+    public MapGenerationConfig map_generation;
+    public RoguelikeMapNodeWeightsConfig node_weights;
+    public RoguelikeMapDifficultyScalingConfig difficulty_scaling;
+    public RoguelikeMapSpecialRulesConfig special_rules;
+}
+
+/// <summary>地图生成配置</summary>
+public class MapGenerationConfig
+{
+    public int total_layers;
+    public int min_nodes_per_layer;
+    public int max_nodes_per_layer;
+    public int boss_interval;
+    public int max_connections_per_node;
+    public int start_layer_node_count;
+    public List<int> fork_layers;
+    public int fork_min_paths;
+    public int fork_max_paths;
+    public List<int> convergence_layers;
+    public string convergence_description;
+}
+
+/// <summary>节点类型权重配置</summary>
+public class RoguelikeMapNodeWeightsConfig
+{
+    public string _description;
+    public RoguelikeMapPhaseWeights phase_1;
+    public RoguelikeMapPhaseWeights phase_2;
+    public RoguelikeMapPhaseWeights phase_3;
+}
+
+/// <summary>阶段权重</summary>
+public class RoguelikeMapPhaseWeights
+{
+    public string _description;
+    public List<int> level_range;
+    public Dictionary<string, int> weights;
+}
+
+/// <summary>难度缩放配置</summary>
+public class RoguelikeMapDifficultyScalingConfig
+{
+    public string _description;
+    public string enemy_hp_multiplier_formula;
+    public string enemy_atk_multiplier_formula;
+    public float elite_bonus_multiplier;
+    public float boss_bonus_multiplier;
+    public float rarity_boost_per_layer;
+}
+
+/// <summary>特殊规则配置</summary>
+public class RoguelikeMapSpecialRulesConfig
+{
+    public int first_shop_guaranteed_layer;
+    public int first_elite_guaranteed_layer;
+    public bool rest_after_boss;
+    public int min_rest_count;
+    public int max_consecutive_battles;
 }

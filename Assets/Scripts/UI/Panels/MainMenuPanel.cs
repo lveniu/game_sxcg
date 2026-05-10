@@ -188,12 +188,19 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// 设置按钮（预留扩展）— 可打开设置面板或弹窗
+        /// 设置按钮 — 打开设置子面板
         /// </summary>
         private void OnSettingsClicked()
         {
-            // TODO(Phase2-SettingsPanel): 设置面板尚未实现，Phase2补充 — 不阻塞Phase1
-            Debug.Log("[MainMenuPanel] 设置面板尚未实现，Phase2补充");
+            var uiManager = NewUIManager.Instance;
+            if (uiManager != null)
+            {
+                uiManager.ShowSubPanel("Settings");
+            }
+            else
+            {
+                Debug.LogWarning("[MainMenuPanel] NewUIManager实例不存在，无法打开设置面板");
+            }
         }
 
         /// <summary>
