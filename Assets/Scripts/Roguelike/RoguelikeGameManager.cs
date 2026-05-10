@@ -148,7 +148,7 @@ public class RoguelikeGameManager : MonoBehaviour
         }
 
         // 通过GameData工厂方法创建HeroData
-        HeroData heroData = GameData.CreateHeroDataByTemplateName(reward.HeroTemplateName);
+        HeroData heroData = GameData.CreateHeroByJsonId(HeroNameToJsonId(reward.HeroTemplateName));
         if (heroData == null)
         {
             Debug.LogError($"[肉鸽] 无法创建英雄模板: {reward.HeroTemplateName}");
@@ -204,4 +204,20 @@ public class RoguelikeGameManager : MonoBehaviour
     {
         return $"关卡: {CurrentLevel} | 队伍: {PlayerHeroes.Count}人 | 遗物: {RelicSystem.RelicCount}个 | 最远: {MaxLevelReached}关";
     }
+
+    /// <summary>
+    /// 中文名 → JSON classId 映射
+    /// </summary>
+    private static string HeroNameToJsonId(string nameCn) => nameCn switch
+    {
+        "战士" => "warrior",
+        "法师" => "mage",
+        "刺客" => "assassin",
+        "链甲使者" => "chain_knight",
+        "狂战士" => "berserker",
+        "大法师" => "arch_mage",
+        "巡游法师" => "wandering_mage",
+        "影舞者" => "shadow_dancer",
+        _ => "warrior"
+    };
 }
