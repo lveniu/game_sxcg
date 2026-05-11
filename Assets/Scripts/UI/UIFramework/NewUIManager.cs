@@ -51,6 +51,9 @@ namespace Game.UI
         [Header("子面板 - 设置")]
         public SettingsPanel settingsPanel;
 
+        [Header("子面板 - 成就")]
+        public AchievementPanel achievementPanel;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -171,6 +174,7 @@ namespace Game.UI
                 "DiceUpgrade" => diceUpgradePanel,
                 "Relic" => relicPanel,
                 "Settings" => settingsPanel,
+                "Achievement" => achievementPanel,
                 _ => null
             };
             if (panel != null) panel.Show();

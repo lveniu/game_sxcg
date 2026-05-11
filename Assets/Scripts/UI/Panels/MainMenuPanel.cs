@@ -36,6 +36,9 @@ namespace Game.UI
         [Tooltip("设置按钮（可选）")]
         public Button settingsButton;
 
+        [Tooltip("成就按钮（可选）")]
+        public Button achievementButton;
+
         [Tooltip("退出游戏按钮")]
         public Button exitButton;
 
@@ -94,6 +97,7 @@ namespace Game.UI
             var buttonList = new System.Collections.Generic.List<RectTransform>();
             if (startButton != null) buttonList.Add(startButton.GetComponent<RectTransform>());
             if (settingsButton != null) buttonList.Add(settingsButton.GetComponent<RectTransform>());
+            if (achievementButton != null) buttonList.Add(achievementButton.GetComponent<RectTransform>());
             if (exitButton != null) buttonList.Add(exitButton.GetComponent<RectTransform>());
             buttonRects = buttonList.ToArray();
         }
@@ -144,10 +148,12 @@ namespace Game.UI
         {
             startButton?.onClick.RemoveAllListeners();
             settingsButton?.onClick.RemoveAllListeners();
+            achievementButton?.onClick.RemoveAllListeners();
             exitButton?.onClick.RemoveAllListeners();
 
             startButton?.onClick.AddListener(OnStartClicked);
             settingsButton?.onClick.AddListener(OnSettingsClicked);
+            achievementButton?.onClick.AddListener(OnAchievementClicked);
             exitButton?.onClick.AddListener(OnExitClicked);
         }
 
@@ -156,6 +162,7 @@ namespace Game.UI
         {
             startButton?.onClick.RemoveAllListeners();
             settingsButton?.onClick.RemoveAllListeners();
+            achievementButton?.onClick.RemoveAllListeners();
             exitButton?.onClick.RemoveAllListeners();
         }
 
@@ -197,9 +204,17 @@ namespace Game.UI
             {
                 uiManager.ShowSubPanel("Settings");
             }
-            else
+        }
+
+        /// <summary>
+        /// 成就按钮 — 打开成就面板
+        /// </summary>
+        private void OnAchievementClicked()
+        {
+            var uiManager = NewUIManager.Instance;
+            if (uiManager != null)
             {
-                Debug.LogWarning("[MainMenuPanel] NewUIManager实例不存在，无法打开设置面板");
+                uiManager.ShowSubPanel("Achievement");
             }
         }
 

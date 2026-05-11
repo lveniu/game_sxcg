@@ -1,4 +1,4 @@
-// FE-20: 成就面板 — 展示成就列表、进度、领取奖励 | 竖屏720x1280 | 后端BE-17完成后替换Mock
+// FE-20: 成就面板 — 对接后端 AchievementManager 单例 | 竖屏720x1280
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,177 +7,523 @@ using DG.Tweening;
 
 namespace Game.UI
 {
-    // TODO: 后端 BE-17 完成后替换
-    [System.Serializable] public class AchievementData
-    { public string id, name, description, category, iconId, statKey, rewardType; public int tier, targetValue, rewardAmount; public bool isHidden; }
-    [System.Serializable] public class AchievementProgress
-    { public string id; public int currentValue; public bool isUnlocked, isRewardClaimed; public long unlockTimestamp; }
-
-    #region Mock
-    public static class MockAchievementManager
-    {
-        public static event Action<AchievementData> OnAchievementUnlocked;
-        static List<AchievementData> D; static Dictionary<string, AchievementProgress> P;
-        public static List<AchievementData> GetAllAchievements() => D ??= new() {
-            new(){id="first_kill",name="初次击杀",description="完成第一次击杀",category="combat",iconId="sword",tier=1,targetValue=1,statKey="total_kills",rewardType="gold",rewardAmount=50},
-            new(){id="kill_100",name="百人斩",description="累计击杀100个敌人",category="combat",iconId="skull",tier=2,targetValue=100,statKey="total_kills",rewardType="gold",rewardAmount=500},
-            new(){id="triple_master",name="三条大师",description="累计打出10次三条",category="combat",iconId="dice",tier=2,targetValue=10,statKey="triples_count",rewardType="gold",rewardAmount=300},
-            new(){id="relic_collector",name="遗物收藏家",description="单局收集8个遗物",category="collection",iconId="gem",tier=3,targetValue=8,statKey="max_relics_one_run",rewardType="gold",rewardAmount=800},
-            new(){id="speed_demon",name="速通达人",description="600秒内通关",category="special",iconId="clock",tier=3,targetValue=600,statKey="fastest_clear_time",rewardType="gold",rewardAmount=1000,isHidden=true},
-            new(){id="boss_slayer",name="屠龙者",description="累计击杀10个Boss",category="combat",iconId="dragon",tier=3,targetValue=10,statKey="boss_kills",rewardType="gold",rewardAmount=1000},
-            new(){id="streak_5",name="五连胜",description="达成5连胜",category="combat",iconId="fire",tier=2,targetValue=5,statKey="max_win_streak",rewardType="gold",rewardAmount=400},
-            new(){id="straight_flush",name="顺子之王",description="累计打出5次顺子",category="combat",iconId="shield",tier=2,targetValue=5,statKey="straights_count",rewardType="gold",rewardAmount=300},
-            new(){id="perfect_boss",name="完美击杀",description="无伤击杀Boss",category="special",iconId="star",tier=3,targetValue=1,statKey="perfect_boss_kills",rewardType="gold",rewardAmount=1500,isHidden=true},
-            new(){id="all_heroes",name="全英雄精通",description="使用3个不同英雄通关",category="collection",iconId="coin",tier=3,targetValue=3,statKey="unique_hero_clears",rewardType="gold",rewardAmount=2000},
-            new(){id="rich",name="富甲天下",description="单局累计获得2000金币",category="collection",iconId="coin",tier=2,targetValue=2000,statKey="max_gold_earned",rewardType="gold",rewardAmount=500},
-            new(){id="level_20",name="深渊探索者",description="到达第20层",category="exploration",iconId="map",tier=3,targetValue=20,statKey="max_level_reached",rewardType="gold",rewardAmount=1000}
-        };
-        public static Dictionary<string, AchievementProgress> GetAllProgress() => P ??= new() {
-            ["first_kill"]=new(){id="first_kill",currentValue=1,isUnlocked=true,isRewardClaimed=true},
-            ["kill_100"]=new(){id="kill_100",currentValue=47}, ["triple_master"]=new(){id="triple_master",currentValue=3},
-            ["relic_collector"]=new(){id="relic_collector",currentValue=8,isUnlocked=true},
-            ["speed_demon"]=new(){id="speed_demon"}, ["boss_slayer"]=new(){id="boss_slayer",currentValue=7},
-            ["streak_5"]=new(){id="streak_5",currentValue=5,isUnlocked=true},
-            ["straight_flush"]=new(){id="straight_flush",currentValue=2}, ["perfect_boss"]=new(){id="perfect_boss"},
-            ["all_heroes"]=new(){id="all_heroes",currentValue=2}, ["rich"]=new(){id="rich",currentValue=1500},
-            ["level_20"]=new(){id="level_20",currentValue=15}
-        };
-        public static (int total, int unlocked, int claimable) GetSummary() {
-            int u=0,c=0; foreach(var kv in GetAllProgress()) if(kv.Value.isUnlocked){u++;if(!kv.Value.isRewardClaimed)c++;} return (GetAllAchievements().Count,u,c); }
-        public static void SimulateUnlock(string id) {
-            if(GetAllProgress().TryGetValue(id,out var p)&&!p.isUnlocked){p.isUnlocked=true;p.unlockTimestamp=DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var d=D.Find(a=>a.id==id);if(d!=null)OnAchievementUnlocked?.Invoke(d);} }
-        public static void ClaimReward(string id) { if(GetAllProgress().TryGetValue(id,out var p)&&p.isUnlocked&&!p.isRewardClaimed)p.isRewardClaimed=true; }
-    }
-    #endregion
-
     public class AchievementPanel : UIPanel
     {
-        // 颜色常量
-        static Color HC(string h){ColorUtility.TryParseHtmlString(h,out var c);return c;}
-        static readonly Color HDR=HC("#1a1a2e"),CARD=new(.12f,.12f,.18f,.92f);
-        static readonly Color BD_D=HC("#4CAF50"),BD_C=HC("#FFD700"),BD_P=HC("#2196F3"),BD_H=HC("#555555");
-        static readonly Color TA=new(.25f,.55f,.95f),TN=new(.2f,.2f,.25f,.9f),PB=new(.2f,.2f,.25f),PF=new(.2f,.55f,.95f);
-        static readonly Color TB=HC("#CD7F32"),TS=HC("#C0C0C0"),TG=HC("#FFD700");
-        static readonly Dictionary<string,Color> IC=new(){["sword"]=HC("#E64A4A"),["skull"]=HC("#808080"),["dice"]=HC("#E6B82B"),["gem"]=HC("#66B3FF"),
-            ["clock"]=HC("#4DE680"),["dragon"]=HC("#CC33CC"),["fire"]=HC("#FF8019"),["shield"]=HC("#B3B3E6"),["star"]=HC("#FFD933"),["coin"]=HC("#FFCC19"),["map"]=HC("#996633")};
-        static readonly string[] CAT={"all","combat","collection","exploration","special"},CLB={"全部","战斗","收集","探索","特殊"};
-        static Color TC(int t)=>t switch{1=>TB,2=>TS,_=>TG};
-        static string TE(int t)=>t switch{1=>"\U0001F949",2=>"\U0001F948",_=>"\U0001F947"};
-        static Font DF=>Resources.GetBuiltinResource<Font>("Arial.ttf");
+        // ==================== 颜色 & 常量 ====================
+        static Color Hex(string h) { ColorUtility.TryParseHtmlString(h, out var c); return c; }
+        static readonly Color HDR_BG = Hex("#1a1a2e"), CARD_BG = new(.12f, .12f, .18f, .92f);
+        static readonly Color BD_DONE = Hex("#4CAF50"), BD_CLAIM = Hex("#FFD700"), BD_PROG = Hex("#2196F3"), BD_HIDE = Hex("#555555");
+        static readonly Color TAB_ACT = new(.25f, .55f, .95f), TAB_NRM = new(.2f, .2f, .25f, .9f);
+        static readonly Color BAR_BG = new(.2f, .2f, .25f), BAR_FILL = new(.2f, .55f, .95f);
+        static readonly Color RARITY_COMMON = Hex("#FFFFFF"), RARITY_RARE = Hex("#4A9EFF");
+        static readonly Color RARITY_EPIC = Hex("#A855F7"), RARITY_LEGENDARY = Hex("#FFB800");
 
-        Text sTxt; readonly List<Button> tabs=new(); RectTransform lc; string cat="all";
+        static readonly Dictionary<string, Color> ICON_CLR = new()
+        {
+            ["sword"] = Hex("#E64A4A"), ["skull"] = Hex("#808080"), ["dice"] = Hex("#E6B82B"),
+            ["gem"] = Hex("#66B3FF"), ["clock"] = Hex("#4DE680"), ["dragon"] = Hex("#CC33CC"),
+            ["fire"] = Hex("#FF8019"), ["shield"] = Hex("#B3B3E6"), ["star"] = Hex("#FFD933"),
+            ["coin"] = Hex("#FFCC19"), ["map"] = Hex("#996633"), ["trophy"] = Hex("#FFD700"),
+            ["chest"] = Hex("#CD853F"), ["heart"] = Hex("#FF6B6B"), ["lightning"] = Hex("#FFD700"),
+            ["reroll"] = Hex("#4DE680"), ["combo"] = Hex("#FF8019")
+        };
 
-        protected override void Awake(){base.Awake();panelId="Achievement";slideInAnimation=false;Build();}
-        protected override void OnShow(){
-            tabs.ForEach(b=>b.onClick.RemoveAllListeners());
-            for(int i=0;i<CAT.Length;i++){string c=CAT[i];tabs[i].onClick.AddListener(()=>Sel(c));}
-            Sum();cat="all";Hi("all");RL("all");
-            rectTransform.anchoredPosition=new(0,-Screen.height);rectTransform.DOAnchorPosY(0,.4f).SetEase(Ease.OutBack);
-        }
-        protected override void OnHide(){tabs.ForEach(b=>b.onClick.RemoveAllListeners());rectTransform.DOAnchorPosY(-Screen.height,.3f).SetEase(Ease.InBack);DOTween.Kill(gameObject);}
+        // 后端分类: progress / combat / collection / dice / special
+        static readonly string[] CATS = { "all", "progress", "combat", "collection", "dice", "special" };
+        static readonly string[] CAT_LABELS = { "全部", "冒险", "战斗", "收集", "骰子", "特殊" };
 
-        void Build(){
-            var bg=GetComponent<Image>()??gameObject.AddComponent<Image>();bg.color=new(.08f,.08f,.12f,.97f);bg.raycastTarget=true;
-            rectTransform.anchorMin=Vector2.zero;rectTransform.anchorMax=Vector2.one;rectTransform.offsetMin=rectTransform.offsetMax=Vector2.zero;
-            var c=New("Content",transform);var cr=R(c);cr.anchorMin=new(.5f,0);cr.anchorMax=new(.5f,1);cr.pivot=new(.5f,1);cr.sizeDelta=new(640,0);cr.offsetMin=cr.offsetMax=Vector2.zero;
-            float y=0;
-            // 标题栏
-            var h=New("Hdr",c.transform);var hr=R(h);hr.sizeDelta=new(0,64);hr.anchoredPosition=new(0,-y);h.AddComponent<Image>().color=HDR;
-            Tx("T",h,(.05f,0,.8f,1),"🏆 成就",26,Color.white,TA.MiddleLeft,true);
-            var cb=New("X",h.transform);var xr=R(cb);xr.anchorMin=new(.85f,.15f);xr.anchorMax=new(.95f,.85f);xr.offsetMin=xr.offsetMax=Vector2.zero;
-            cb.AddComponent<Image>().color=new(.7f,.7f,.75f);var xBtn=cb.AddComponent<Button>();xBtn.targetGraphic=cb.GetComponent<Image>();
-            var xt=cb.AddComponent<Text>();xt.text="✕";xt.font=DF;xt.fontSize=22;xt.color=Color.white;xt.alignment=TA.MiddleCenter;
-            xBtn.onClick.AddListener(Hide); y+=64;
-            // 摘要
-            var sg=New("Sum",c.transform);var sr=R(sg);sr.sizeDelta=new(0,40);sr.anchoredPosition=new(0,-y);
-            sTxt=sg.AddComponent<Text>();sTxt.font=DF;sTxt.fontSize=16;sTxt.color=new(.85f,.85f,.9f);sTxt.alignment=TA.MiddleCenter; y+=40;
-            // Tab
-            var tg=New("Tabs",c.transform);R(tg).sizeDelta=new(0,44);tg.GetComponent<RectTransform>().anchoredPosition=new(0,-y); tabs.Clear();
-            for(int i=0;i<CAT.Length;i++){var b=New($"Tab_{CAT[i]}",tg.transform);var br=R(b);float w=1f/CAT.Length;
-                br.anchorMin=new(i*w+.01f,.1f);br.anchorMax=new((i+1)*w-.01f,.9f);br.offsetMin=br.offsetMax=Vector2.zero;
-                b.AddComponent<Image>().color=TN;var btn=b.AddComponent<Button>();btn.targetGraphic=b.GetComponent<Image>();
-                var bt=b.AddComponent<Text>();bt.text=CLB[i];bt.font=DF;bt.fontSize=16;bt.color=Color.white;bt.alignment=TA.MiddleCenter;
-                tabs.Add(btn);} y+=44;
-            // 滚动列表
-            var sv=New("SV",c.transform);var svr=R(sv);svr.anchorMin=Vector2.zero;svr.anchorMax=Vector2.one;svr.offsetMin=Vector2.zero;svr.offsetMax=new(0,-y);
-            sv.AddComponent<Image>().color=new(.06f,.06f,.1f);
-            var vp=New("VP",sv.transform);var vpr=R(vp);vpr.anchorMin=Vector2.zero;vpr.anchorMax=Vector2.one;vpr.offsetMin=vpr.offsetMax=Vector2.zero;vp.AddComponent<RectMask2D>();
-            var lg=New("LC",vp.transform);lc=R(lg);lc.anchorMin=new(0,1);lc.anchorMax=new(1,1);lc.pivot=new(.5f,1);lc.offsetMin=lc.offsetMax=Vector2.zero;
-            var s=sv.AddComponent<ScrollRect>();s.content=lc;s.viewport=vpr.GetComponent<RectTransform>();s.horizontal=false;s.vertical=true;s.movementType=ScrollRect.MovementType.Elastic;
-        }
+        static Color RarityColor(string rarity) => rarity?.ToLower() switch
+        {
+            "rare" => RARITY_RARE,
+            "epic" => RARITY_EPIC,
+            "legendary" => RARITY_LEGENDARY,
+            _ => RARITY_COMMON
+        };
 
-        void Sum(){var(t,u,c)=MockAchievementManager.GetSummary();if(sTxt)sTxt.text=$"{u}/{t} 已解锁  ⭐ {c} 待领奖";}
-        void Sel(string c){cat=c;Hi(c);RL(c);}
-        void Hi(string c){for(int i=0;i<CAT.Length;i++){var im=tabs[i].GetComponent<Image>();var tx=tabs[i].GetComponent<Text>();
-            bool a=CAT[i]==c;if(im)im.color=a?TA:TN;if(tx)tx.color=a?Color.white:new(.7f,.7f,.75f);}}
+        static string RarityEmoji(string rarity) => rarity?.ToLower() switch
+        {
+            "rare" => "🔵",
+            "epic" => "🟣",
+            "legendary" => "🟡",
+            _ => "⚪"
+        };
 
-        void RL(string c){
-            for(int i=lc.childCount-1;i>=0;i--)Destroy(lc.GetChild(i).gameObject);
-            var all=MockAchievementManager.GetAllAchievements();var pr=MockAchievementManager.GetAllProgress();
-            var list=new List<(AchievementData d,AchievementProgress p)>();
-            foreach(var d in all){if(c!="all"&&d.category!=c)continue;pr.TryGetValue(d.id,out var p);list.Add((d,p??new(){id=d.id}));}
-            list.Sort((a,b)=>Sc(a).CompareTo(Sc(b)));
-            int Sc((AchievementData d,AchievementProgress p)x)=>x switch{var t when t.p.isUnlocked&&!t.p.isRewardClaimed=>0,var t when !t.p.isUnlocked&&!t.d.isHidden=>1,var t when t.p.isUnlocked&&t.p.isRewardClaimed=>2,_=>3};
-            float y=0;foreach(var(d,p)in list){Card(d,p,y);y+=108;}lc.sizeDelta=new(0,Mathf.Max(y,0));
+        static Font DefFont => Resources.GetBuiltinResource<Font>("Arial.ttf");
+
+        // ==================== 状态 ====================
+        Text summaryText;
+        readonly List<Button> tabButtons = new();
+        RectTransform listContainer;
+        string currentCategory = "all";
+
+        // ==================== 生命周期 ====================
+        protected override void Awake()
+        {
+            base.Awake();
+            panelId = "Achievement";
+            slideInAnimation = false;
+            BuildUI();
         }
 
-        void Card(AchievementData d,AchievementProgress p,float y){
-            bool hide=d.isHidden&&!p.isUnlocked,done=p.isUnlocked&&p.isRewardClaimed,claim=p.isUnlocked&&!p.isRewardClaimed,prog=!p.isUnlocked&&!hide;
-            var g=New($"Card_{d.id}",lc.transform);var rt=R(g);
-            rt.anchorMin=new(.02f,1);rt.anchorMax=new(.98f,1);rt.pivot=new(.5f,1);rt.sizeDelta=new(0,100);rt.anchoredPosition=new(0,-y);
-            g.AddComponent<Image>().color=CARD;
-            var ol=g.AddComponent<Outline>();ol.effectColor=claim?BD_C:done?BD_D:prog?BD_P:BD_H;ol.effectDistance=new(2,-2);
-            if(claim){var s=DOTween.Sequence();s.Append(DOTween.To(()=>ol.effectColor,c=>ol.effectColor=c,new(1f,.84f,0f),.5f));
-                s.Append(DOTween.To(()=>ol.effectColor,c=>ol.effectColor=c,new(.7f,.55f,0f),.5f));s.SetLoops(-1,LoopType.Yoyo).SetTarget(g);}
-            // 图标
-            var ig=New("Ico",g.transform);var ir=R(ig);ir.anchorMin=ir.anchorMax=new(.03f,.2f);ir.pivot=Vector2.zero;ir.sizeDelta=new(60,60);
-            ig.AddComponent<Image>().color=hide?new(.3f,.3f,.35f):IC.GetValueOrDefault(d.iconId,Color.gray);
-            var it=ig.AddComponent<Text>();it.font=DF;it.fontSize=24;it.color=Color.white;it.alignment=TA.MiddleCenter;
-            it.text=hide?"?":d.iconId switch{"sword"=>"⚔","skull"=>"💀","dice"=>"🎲","gem"=>"💎","clock"=>"⏱","dragon"=>"🐉","fire"=>"🔥","shield"=>"🛡","star"=>"⭐","coin"=>"💰","map"=>"🗺",_=>"?"};
-            float L=.17f;
-            Tx("N",g,(L,.6f,.72f,.88f),hide?"???":d.name,17,hide?new(.5f,.5f,.55f):Color.white,TA.MiddleLeft,true);
-            Tx("D",g,(L,.35f,.95f,.58f),hide?"继续探索以解锁此成就":d.description,13,hide?new(.45f,.45f,.5f):new(.7f,.7f,.75f),TA.MiddleLeft);
+        protected override void OnShow()
+        {
+            // Tab 按钮
+            tabButtons.ForEach(b => b.onClick.RemoveAllListeners());
+            for (int i = 0; i < CATS.Length; i++)
+            {
+                string cat = CATS[i];
+                tabButtons[i].onClick.AddListener(() => OnCategorySelected(cat));
+            }
+
+            // 订阅后端事件
+            var am = AchievementManager.Instance;
+            if (am != null)
+            {
+                am.OnAchievementUnlocked += OnAchievementUnlocked;
+                am.OnProgressChanged += OnProgressChanged;
+                am.OnRewardsClaimed += OnRewardsClaimed;
+            }
+
+            RefreshSummary();
+            currentCategory = "all";
+            HighlightTab("all");
+            RefreshList("all");
+
+            // 入场：从底部滑入
+            rectTransform.anchoredPosition = new Vector2(0, -Screen.height);
+            TrackTween(rectTransform.DOAnchorPosY(0, 0.4f).SetEase(Ease.OutBack));
+        }
+
+        protected override void OnHide()
+        {
+            // 取消事件订阅
+            var am = AchievementManager.Instance;
+            if (am != null)
+            {
+                am.OnAchievementUnlocked -= OnAchievementUnlocked;
+                am.OnProgressChanged -= OnProgressChanged;
+                am.OnRewardsClaimed -= OnRewardsClaimed;
+            }
+
+            tabButtons.ForEach(b => b.onClick.RemoveAllListeners());
+            KillAllActiveTweens();
+        }
+
+        // ==================== UI构建 ====================
+        void BuildUI()
+        {
+            var bg = GetComponent<Image>() ?? gameObject.AddComponent<Image>();
+            bg.color = new Color(.08f, .08f, .12f, .97f);
+            bg.raycastTarget = true;
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.offsetMin = rectTransform.offsetMax = Vector2.zero;
+
+            // 居中640宽内容区
+            var content = CreateChild("Content", transform);
+            var cr = content.Rect();
+            cr.anchorMin = new(.5f, 0); cr.anchorMax = new(.5f, 1); cr.pivot = new(.5f, 1);
+            cr.sizeDelta = new(640, 0); cr.offsetMin = cr.offsetMax = Vector2.zero;
+
+            float y = 0;
+            y = BuildHeader(content, y);
+            y = BuildSummary(content, y);
+            y = BuildTabs(content, y);
+            BuildScrollView(content, y);
+        }
+
+        float BuildHeader(GameObject parent, float y)
+        {
+            var (go, rt) = MakeSection("Header", parent, 64, y);
+            go.AddComponent<Image>().color = HDR_BG;
+            MakeText("Title", go, (.05f, 0, .8f, 1), "🏆 成就", 26, Color.white, TextAnchor.MiddleLeft, bold: true);
+            // 关闭按钮
+            var close = CreateChild("CloseBtn", go.transform);
+            var crt = close.Rect(); crt.anchorMin = new(.85f, .15f); crt.anchorMax = new(.95f, .85f);
+            crt.offsetMin = crt.offsetMax = Vector2.zero;
+            close.AddComponent<Image>().color = new(.7f, .7f, .75f);
+            var btn = close.AddComponent<Button>(); btn.targetGraphic = close.GetComponent<Image>();
+            var txt = close.AddComponent<Text>(); txt.text = "✕"; txt.font = DefFont; txt.fontSize = 22;
+            txt.color = Color.white; txt.alignment = TextAnchor.MiddleCenter;
+            btn.onClick.AddListener(Hide);
+            return y + 64;
+        }
+
+        float BuildSummary(GameObject parent, float y)
+        {
+            var (go, _) = MakeSection("Summary", parent, 40, y);
+            summaryText = go.AddComponent<Text>();
+            summaryText.font = DefFont; summaryText.fontSize = 16;
+            summaryText.color = new(.85f, .85f, .9f);
+            summaryText.alignment = TextAnchor.MiddleCenter;
+            return y + 40;
+        }
+
+        float BuildTabs(GameObject parent, float y)
+        {
+            var (go, _) = MakeSection("Tabs", parent, 44, y);
+            tabButtons.Clear();
+            for (int i = 0; i < CATS.Length; i++)
+            {
+                var tab = CreateChild($"Tab_{CATS[i]}", go.transform);
+                var trt = tab.Rect();
+                float w = 1f / CATS.Length;
+                trt.anchorMin = new(i * w + .01f, .1f); trt.anchorMax = new((i + 1) * w - .01f, .9f);
+                trt.offsetMin = trt.offsetMax = Vector2.zero;
+                tab.AddComponent<Image>().color = TAB_NRM;
+                var btn = tab.AddComponent<Button>(); btn.targetGraphic = tab.GetComponent<Image>();
+                var t = tab.AddComponent<Text>(); t.text = CAT_LABELS[i]; t.font = DefFont;
+                t.fontSize = 14; t.color = Color.white; t.alignment = TextAnchor.MiddleCenter;
+                tabButtons.Add(btn);
+            }
+            return y + 44;
+        }
+
+        void BuildScrollView(GameObject parent, float topOffset)
+        {
+            var sv = CreateChild("ScrollView", parent.transform);
+            var srt = sv.Rect(); srt.anchorMin = Vector2.zero; srt.anchorMax = Vector2.one;
+            srt.offsetMin = Vector2.zero; srt.offsetMax = new(0, -topOffset);
+            sv.AddComponent<Image>().color = new(.06f, .06f, .1f);
+
+            var vp = CreateChild("Viewport", sv.transform);
+            var vrt = vp.Rect(); vrt.anchorMin = Vector2.zero; vrt.anchorMax = Vector2.one;
+            vrt.offsetMin = vrt.offsetMax = Vector2.zero;
+            vp.AddComponent<RectMask2D>();
+
+            var lc = CreateChild("ListContent", vp.transform);
+            listContainer = lc.Rect();
+            listContainer.anchorMin = new(0, 1); listContainer.anchorMax = new(1, 1);
+            listContainer.pivot = new(.5f, 1);
+            listContainer.offsetMin = listContainer.offsetMax = Vector2.zero;
+
+            var sr = sv.AddComponent<ScrollRect>();
+            sr.content = listContainer; sr.viewport = vrt;
+            sr.horizontal = false; sr.vertical = true;
+            sr.movementType = ScrollRect.MovementType.Elastic;
+        }
+
+        // ==================== 刷新 ====================
+        void RefreshSummary()
+        {
+            var am = AchievementManager.Instance;
+            if (am == null || summaryText == null) return;
+
+            int total = am.GetTotalCount();
+            int unlocked = am.GetUnlockedCount();
+            int claimable = 0;
+            var allProg = am.GetAllProgress();
+            foreach (var kv in allProg)
+                if (kv.Value.is_unlocked && !kv.Value.rewards_claimed) claimable++;
+
+            summaryText.text = $"{unlocked}/{total} 已解锁  ⭐ {claimable} 待领奖";
+        }
+
+        void RefreshList(string category)
+        {
+            for (int i = listContainer.childCount - 1; i >= 0; i--)
+                Destroy(listContainer.GetChild(i).gameObject);
+
+            var am = AchievementManager.Instance;
+            if (am == null) return;
+
+            var allDefs = am.GetAllDefs();
+            var allProg = am.GetAllProgress();
+            var filtered = new List<(AchievementDef d, AchievementProgress p)>();
+
+            foreach (var d in allDefs)
+            {
+                if (category != "all" && d.category != category) continue;
+                allProg.TryGetValue(d.id, out var p);
+                filtered.Add((d, p ?? new AchievementProgress { achievement_id = d.id }));
+            }
+
+            // 排序：待领奖(0) > 进行中(1) > 已领奖(2) > 隐藏(3)
+            filtered.Sort((a, b) => SortScore(a).CompareTo(SortScore(b)));
+            float y = 0;
+            foreach (var (d, p) in filtered) { CreateCard(d, p, y); y += 108; }
+            listContainer.sizeDelta = new(0, Mathf.Max(y, 0));
+        }
+
+        static int SortScore((AchievementDef d, AchievementProgress p) x)
+        {
+            bool hidden = x.d.is_hidden && !x.p.is_unlocked;
+            bool done = x.p.is_unlocked && x.p.rewards_claimed;
+            bool claimable = x.p.is_unlocked && !x.p.rewards_claimed;
+
+            if (claimable) return 0;
+            if (!x.p.is_unlocked && !hidden) return 1;
+            if (done) return 2;
+            return 3; // 隐藏
+        }
+
+        void OnCategorySelected(string cat) { currentCategory = cat; HighlightTab(cat); RefreshList(cat); }
+
+        void HighlightTab(string cat)
+        {
+            for (int i = 0; i < CATS.Length; i++)
+            {
+                bool active = CATS[i] == cat;
+                var img = tabButtons[i].GetComponent<Image>();
+                var txt = tabButtons[i].GetComponent<Text>();
+                if (img) img.color = active ? TAB_ACT : TAB_NRM;
+                if (txt) txt.color = active ? Color.white : new(.7f, .7f, .75f);
+            }
+        }
+
+        // ==================== 成就卡片 ====================
+        void CreateCard(AchievementDef d, AchievementProgress p, float yPos)
+        {
+            bool hidden = d.is_hidden && !p.is_unlocked;
+            bool done = p.is_unlocked && p.rewards_claimed;
+            bool claimable = p.is_unlocked && !p.rewards_claimed;
+            bool inProgress = !p.is_unlocked && !hidden;
+
+            var go = CreateChild($"Card_{d.id}", listContainer);
+            var rt = go.Rect();
+            rt.anchorMin = new(.02f, 1); rt.anchorMax = new(.98f, 1); rt.pivot = new(.5f, 1);
+            rt.sizeDelta = new(0, 100); rt.anchoredPosition = new(0, -yPos);
+
+            go.AddComponent<Image>().color = CARD_BG;
+
+            // 边框颜色
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = claimable ? BD_CLAIM : done ? BD_DONE : inProgress ? BD_PROG : BD_HIDE;
+            outline.effectDistance = new(2, -2);
+
+            // 金色脉冲（待领奖）
+            if (claimable)
+            {
+                var seq = DOTween.Sequence();
+                seq.Append(DOTween.To(() => outline.effectColor, c => outline.effectColor = c, new Color(1f, .84f, 0f), .5f));
+                seq.Append(DOTween.To(() => outline.effectColor, c => outline.effectColor = c, new Color(.7f, .55f, 0f), .5f));
+                seq.SetLoops(-1, LoopType.Yoyo).SetTarget(go);
+            }
+
+            // 左侧图标色块 60x60
+            var icon = CreateChild("Icon", go.transform);
+            var irt = icon.Rect(); irt.anchorMin = irt.anchorMax = new(.03f, .2f);
+            irt.pivot = Vector2.zero; irt.sizeDelta = new(60, 60);
+            icon.AddComponent<Image>().color = hidden ? new(.3f, .3f, .35f) :
+                ICON_CLR.GetValueOrDefault(d.icon ?? "star", Color.gray);
+            var iconTxt = icon.AddComponent<Text>(); iconTxt.font = DefFont; iconTxt.fontSize = 24;
+            iconTxt.color = Color.white; iconTxt.alignment = TextAnchor.MiddleCenter;
+            iconTxt.text = hidden ? "?" : (d.icon ?? "star") switch
+            {
+                "sword" => "⚔", "skull" => "💀", "dice" => "🎲", "gem" => "💎", "clock" => "⏱",
+                "dragon" => "🐉", "fire" => "🔥", "shield" => "🛡", "star" => "⭐", "coin" => "💰",
+                "map" => "🗺", "trophy" => "🏆", "chest" => "📦", "heart" => "❤", "lightning" => "⚡",
+                "reroll" => "🔄", "combo" => "🎯", _ => "?"
+            };
+
+            const float L = .17f;
+            // 名称
+            MakeText("Name", go, (L, .6f, .72f, .88f), hidden ? "???" : (d.name_cn ?? d.id), 17,
+                hidden ? new(.5f, .5f, .55f) : Color.white, TextAnchor.MiddleLeft, bold: true);
+            // 描述
+            MakeText("Desc", go, (L, .35f, .95f, .58f), hidden ? "继续探索以解锁此成就" : (d.description ?? ""), 13,
+                hidden ? new(.45f, .45f, .5f) : new(.7f, .7f, .75f), TextAnchor.MiddleLeft);
+
             // 进度条
-            var bg=New("Bar",g.transform);var br=R(bg);br.anchorMin=new(L,.08f);br.anchorMax=new(.72f,.3f);br.offsetMin=br.offsetMax=Vector2.zero;bg.AddComponent<Image>().color=PB;
-            var fg=New("Fill",bg.transform);var fr=R(fg);fr.anchorMin=Vector2.zero;fr.pivot=new(0,.5f);fr.offsetMin=fr.offsetMax=Vector2.zero;
-            float fa=p.isUnlocked?1f:hide?0f:Mathf.Clamp01((float)p.currentValue/d.targetValue);fr.anchorMax=new(fa,1f);
-            fg.AddComponent<Image>().color=done?BD_D:claim?BD_C:PF;
-            if(prog&&fa>0){fr.anchorMax=new(0,1f);fr.DOAnchorMax(new(fa,1f),.6f).SetEase(Ease.OutQuad).SetTarget(g);}
-            Tx("P",g,(L,.08f,.72f,.3f),hide?"":p.isUnlocked?"✅ 已完成":$"{Mathf.Min(p.currentValue,d.targetValue)}/{d.targetValue}",12,Color.white,TA.MiddleCenter);
-            // Tier徽章
-            var tBg=New("Tier",g.transform);var tr=R(tBg);tr.anchorMin=new(.8f,.65f);tr.anchorMax=new(.97f,.95f);tr.offsetMin=tr.offsetMax=Vector2.zero;
-            tBg.AddComponent<Image>().color=hide?new(.3f,.3f,.35f):TC(d.tier);
-            var tt=tBg.AddComponent<Text>();tt.font=DF;tt.fontSize=18;tt.color=Color.white;tt.alignment=TA.MiddleCenter;tt.text=hide?"?":TE(d.tier);
-            if(done)Tx("Ok",g,(.75f,.08f,.97f,.55f),"✅ 已完成",13,Color.white,TA.MiddleCenter,bg:new(.3f,.7f,.4f,.9f));
-            if(claim){string cid=d.id;var cg=New("Clm",g.transform);var cr=R(cg);cr.anchorMin=new(.74f,.08f);cr.anchorMax=new(.98f,.55f);cr.offsetMin=cr.offsetMax=Vector2.zero;
-                cg.AddComponent<Image>().color=new(.85f,.65f,.1f);var cb=cg.AddComponent<Button>();cb.targetGraphic=cg.GetComponent<Image>();
-                var ct=cg.AddComponent<Text>();ct.text=$"领取 {d.rewardAmount}💰";ct.font=DF;ct.fontSize=13;ct.color=new(.2f,.1f,0);ct.alignment=TA.MiddleCenter;
-                cb.onClick.AddListener(()=>Claim(cid));}
-            if(prog){var dg=New("Dot",g.transform);var dr=R(dg);dr.anchorMin=dr.anchorMax=new(.74f,.15f);dr.pivot=new(.5f,.5f);dr.sizeDelta=new(12,12);dg.AddComponent<Image>().color=TC(d.tier);}
-            rt.localScale=Vector3.one*.9f;rt.DOScale(Vector3.one,.25f).SetEase(Ease.OutBack).SetTarget(g);
+            var bar = CreateChild("Bar", go.transform);
+            var brt = bar.Rect(); brt.anchorMin = new(L, .08f); brt.anchorMax = new(.72f, .3f);
+            brt.offsetMin = brt.offsetMax = Vector2.zero;
+            bar.AddComponent<Image>().color = BAR_BG;
+
+            var fill = CreateChild("Fill", bar.transform);
+            var frt = fill.Rect(); frt.anchorMin = Vector2.zero; frt.pivot = new(0, .5f);
+            frt.offsetMin = frt.offsetMax = Vector2.zero;
+            float fillAmt = p.is_unlocked ? 1f : hidden ? 0f : Mathf.Clamp01((float)p.current_value / d.target_value);
+            frt.anchorMax = new(fillAmt, 1f);
+            fill.AddComponent<Image>().color = done ? BD_DONE : claimable ? BD_CLAIM : BAR_FILL;
+
+            // 进度条填充动画
+            if (inProgress && fillAmt > 0)
+            {
+                frt.anchorMax = new(0, 1f);
+                TrackTween(frt.DOAnchorMax(new(fillAmt, 1f), .6f).SetEase(Ease.OutQuad).SetTarget(go));
+            }
+
+            // 进度文字
+            string progStr = hidden ? "" : p.is_unlocked ? "✅ 已完成" :
+                $"{Mathf.Min(p.current_value, d.target_value)}/{d.target_value}";
+            MakeText("ProgTxt", go, (L, .08f, .72f, .3f), progStr, 12, Color.white, TextAnchor.MiddleCenter);
+
+            // 稀有度徽章（右上角）
+            var tier = CreateChild("Tier", go.transform);
+            var trt = tier.Rect(); trt.anchorMin = new(.8f, .65f); trt.anchorMax = new(.97f, .95f);
+            trt.offsetMin = trt.offsetMax = Vector2.zero;
+            tier.AddComponent<Image>().color = hidden ? new(.3f, .3f, .35f) : RarityColor(d.rarity);
+            var tierTxt = tier.AddComponent<Text>(); tierTxt.font = DefFont; tierTxt.fontSize = 18;
+            tierTxt.color = Color.white; tierTxt.alignment = TextAnchor.MiddleCenter;
+            tierTxt.text = hidden ? "?" : RarityEmoji(d.rarity);
+
+            // 已完成标记
+            if (done)
+                MakeText("Done", go, (.75f, .08f, .97f, .55f), "✅ 已完成", 13, Color.white,
+                    TextAnchor.MiddleCenter, bg: new(.3f, .7f, .4f, .9f));
+
+            // 领取按钮
+            if (claimable)
+            {
+                string capturedId = d.id;
+                var claimBtn = CreateChild("ClaimBtn", go.transform);
+                var clrt = claimBtn.Rect(); clrt.anchorMin = new(.74f, .08f); clrt.anchorMax = new(.98f, .55f);
+                clrt.offsetMin = clrt.offsetMax = Vector2.zero;
+                claimBtn.AddComponent<Image>().color = new(.85f, .65f, .1f);
+                var cb = claimBtn.AddComponent<Button>(); cb.targetGraphic = claimBtn.GetComponent<Image>();
+
+                // 奖励描述
+                string rewardText = GetRewardDescription(d);
+                var ct = claimBtn.AddComponent<Text>();
+                ct.text = rewardText; ct.font = DefFont; ct.fontSize = 12;
+                ct.color = new(.2f, .1f, 0); ct.alignment = TextAnchor.MiddleCenter;
+                cb.onClick.AddListener(() => OnClaimReward(capturedId));
+            }
+
+            // 稀有度色标（进行中）
+            if (inProgress)
+            {
+                var dot = CreateChild("Dot", go.transform);
+                var drt = dot.Rect(); drt.anchorMin = drt.anchorMax = new(.74f, .15f);
+                drt.pivot = new(.5f, .5f); drt.sizeDelta = new(12, 12);
+                dot.AddComponent<Image>().color = RarityColor(d.rarity);
+            }
+
+            // 入场弹入动画
+            rt.localScale = Vector3.one * .9f;
+            TrackTween(rt.DOScale(Vector3.one, .25f).SetEase(Ease.OutBack).SetTarget(go));
         }
 
-        void Claim(string id){
-            MockAchievementManager.ClaimReward(id);
-            for(int i=0;i<lc.childCount;i++){var ch=lc.GetChild(i);if(ch.name!=$"Card_{id}")continue;
-                var cr=ch as RectTransform;if(cr)cr.DOScale(.92f,.15f).SetEase(Ease.InQuad).OnComplete(()=>cr.DOScale(Vector3.one,.2f).SetEase(Ease.OutBack));
-                var fg=New("GF",ch.gameObject.transform);var fr=R(fg);fr.anchorMin=fr.anchorMax=new(.5f,.5f);fr.pivot=new(.5f,.5f);fr.sizeDelta=new(32,32);
-                fg.AddComponent<Image>().color=BD_C;var ft=fg.AddComponent<Text>();ft.text="💰";ft.font=DF;ft.fontSize=24;ft.alignment=TA.MiddleCenter;ft.raycastTarget=false;
-                fr.anchoredPosition=Vector2.zero;fr.DOAnchorPos(new(0,80),.6f).SetEase(Ease.OutQuad).OnComplete(()=>Destroy(fg));
-                fr.DOScale(1.5f,.6f);fg.GetComponent<Image>().DOFade(0,.6f);break;}
-            DOVirtual.DelayedCall(.7f,()=>{Sum();RL(cat);});
+        /// <summary>生成奖励描述文本</summary>
+        static string GetRewardDescription(AchievementDef d)
+        {
+            if (d.rewards == null || d.rewards.Count == 0) return "领取 🎁";
+            var parts = new List<string>();
+            foreach (var r in d.rewards)
+            {
+                switch (r.type?.ToLower())
+                {
+                    case "gold": parts.Add($"{r.value}💰"); break;
+                    case "relic": parts.Add("🎁遗物"); break;
+                    case "dice_face": parts.Add("🎲面"); break;
+                    default: parts.Add($"🎁x{r.value}"); break;
+                }
+            }
+            return "领取 " + string.Join("+", parts);
         }
 
-        // UI辅助
-        static GameObject New(string n,Transform p){var g=new GameObject(n);g.transform.SetParent(p,false);var r=g.AddComponent<RectTransform>();
-            r.anchorMin=new(0,1);r.anchorMax=new(1,1);r.pivot=new(.5f,1);r.sizeDelta=Vector2.zero;r.anchoredPosition=Vector2.zero;return g;}
-        static RectTransform R(GameObject g)=>g.GetComponent<RectTransform>();
-        static Text Tx(string n,GameObject p,(float,float,float,float)a,string t,int s,Color c,TA al,bool b=false,Color?bg=null){
-            var g=new GameObject(n);g.transform.SetParent(p.transform,false);var r=g.AddComponent<RectTransform>();
-            r.anchorMin=new(a.Item1,a.Item2);r.anchorMax=new(a.Item3,a.Item4);r.offsetMin=r.offsetMax=Vector2.zero;
-            if(bg.HasValue){var im=g.AddComponent<Image>();im.color=bg.Value;}
-            var tx=g.AddComponent<Text>();tx.text=t;tx.font=DF;tx.fontSize=s;tx.color=c;tx.alignment=al;
-            if(b)tx.fontStyle=FontStyle.Bold;return tx;}
+        // ==================== 领取奖励 ====================
+        void OnClaimReward(string id)
+        {
+            var am = AchievementManager.Instance;
+            if (am == null) return;
+
+            var rewards = am.ClaimRewards(id);
+            if (rewards == null) return;
+
+            // 播放卡片动画 + 金币飞出
+            for (int i = 0; i < listContainer.childCount; i++)
+            {
+                var child = listContainer.GetChild(i);
+                if (child.name != $"Card_{id}") continue;
+
+                var cardRt = child as RectTransform;
+                if (cardRt != null)
+                    TrackTween(cardRt.DOScale(.92f, .15f).SetEase(Ease.InQuad)
+                        .OnComplete(() => cardRt.DOScale(Vector3.one, .2f).SetEase(Ease.OutBack)));
+
+                // 金币飞出特效
+                var fly = CreateChild("GoldFly", child);
+                var frt = fly.Rect(); frt.anchorMin = frt.anchorMax = new(.5f, .5f);
+                frt.pivot = new(.5f, .5f); frt.sizeDelta = new(32, 32);
+                var fImg = fly.AddComponent<Image>(); fImg.color = BD_CLAIM;
+                var fTxt = fly.AddComponent<Text>(); fTxt.text = "💰"; fTxt.font = DefFont;
+                fTxt.fontSize = 24; fTxt.alignment = TextAnchor.MiddleCenter; fTxt.raycastTarget = false;
+                frt.anchoredPosition = Vector2.zero;
+                frt.DOAnchorPos(new(0, 80), .6f).SetEase(Ease.OutQuad).OnComplete(() => Destroy(fly));
+                frt.DOScale(1.5f, .6f);
+                fImg.DOFade(0, .6f);
+                break;
+            }
+
+            DOVirtual.DelayedCall(.7f, () => { RefreshSummary(); RefreshList(currentCategory); });
+        }
+
+        // ==================== 事件回调 ====================
+
+        void OnAchievementUnlocked(string achievementId)
+        {
+            Debug.Log($"[AchievementPanel] 成就解锁通知: {achievementId}");
+            RefreshSummary();
+            RefreshList(currentCategory);
+        }
+
+        void OnProgressChanged(string achievementId, int current, int target)
+        {
+            // 进度变化时刷新当前列表（轻量：仅刷新进度文字和进度条）
+            RefreshSummary();
+        }
+
+        void OnRewardsClaimed(string achievementId)
+        {
+            RefreshSummary();
+            RefreshList(currentCategory);
+        }
+
+        // ==================== DOTween 追踪（参考 BattlePanel） ====================
+
+        readonly List<Tween> _activeTweens = new();
+
+        void TrackTween(Tween t)
+        {
+            if (t == null) return;
+            _activeTweens.Add(t);
+            t.OnKill(() => _activeTweens.Remove(t));
+        }
+
+        void KillAllActiveTweens()
+        {
+            foreach (var t in _activeTweens)
+                if (t != null && t.IsActive()) t.Kill();
+            _activeTweens.Clear();
+            DOTween.Kill(gameObject);
+        }
+
+        // ==================== UI辅助方法 ====================
+        static RectTransform Rect(this GameObject go) => go.GetComponent<RectTransform>();
+
+        static GameObject CreateChild(string name, Transform parent)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = new(0, 1); rt.anchorMax = new(1, 1); rt.pivot = new(.5f, 1);
+            rt.sizeDelta = Vector2.zero; rt.anchoredPosition = Vector2.zero;
+            return go;
+        }
+
+        static (GameObject go, RectTransform rt) MakeSection(string name, GameObject parent, float h, float y)
+        {
+            var go = CreateChild(name, parent.transform);
+            var rt = go.Rect(); rt.sizeDelta = new(0, h); rt.anchoredPosition = new(0, -y);
+            return (go, rt);
+        }
+
+        static Text MakeText(string name, GameObject parent, (float, float, float, float) anchors,
+            string text, int size, Color color, TextAnchor align, bool bold = false, Color? bg = null)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = new(anchors.Item1, anchors.Item2);
+            rt.anchorMax = new(anchors.Item3, anchors.Item4);
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            if (bg.HasValue) { var img = go.AddComponent<Image>(); img.color = bg.Value; }
+            var t = go.AddComponent<Text>();
+            t.text = text; t.font = DefFont; t.fontSize = size; t.color = color; t.alignment = align;
+            if (bold) t.fontStyle = FontStyle.Bold;
+            return t;
+        }
     }
 }
