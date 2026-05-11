@@ -693,4 +693,53 @@ public static class BalanceProvider
         if (r == "assassin" || r == "刺客") return HeroClass.Assassin;
         return HeroClass.Warrior;
     }
+
+    // ========== 成就系统相关 ==========
+
+    private static AchievementsConfig _achievements;
+    public static AchievementsConfig Achievements => _achievements ?? (_achievements = ConfigLoader.LoadAchievements());
+
+    /// <summary>获取所有成就定义</summary>
+    public static List<AchievementDef> GetAllAchievements()
+    {
+        return Achievements?.achievements ?? new List<AchievementDef>();
+    }
+
+    /// <summary>获取成就分类列表</summary>
+    public static List<AchievementCategoryEntry> GetAchievementCategories()
+    {
+        return Achievements?.categories ?? new List<AchievementCategoryEntry>();
+    }
+
+    /// <summary>按分类获取成就</summary>
+    public static List<AchievementDef> GetAchievementsByCategory(string categoryId)
+    {
+        var all = Achievements?.achievements;
+        if (all == null) return new List<AchievementDef>();
+        return all.FindAll(a => a.category == categoryId);
+    }
+
+    /// <summary>按ID获取成就定义</summary>
+    public static AchievementDef GetAchievementDef(string achievementId)
+    {
+        var all = Achievements?.achievements;
+        if (all == null) return null;
+        return all.Find(a => a.id == achievementId);
+    }
+
+    /// <summary>获取成就稀有度颜色</summary>
+    public static string GetAchievementRarityColor(string rarity)
+    {
+        if (Achievements?.rarity_display != null && Achievements.rarity_display.TryGetValue(rarity, out var entry))
+            return entry.color;
+        return "#FFFFFF";
+    }
+
+    /// <summary>获取成就稀有度中文名</summary>
+    public static string GetAchievementRarityName(string rarity)
+    {
+        if (Achievements?.rarity_display != null && Achievements.rarity_display.TryGetValue(rarity, out var entry))
+            return entry.name_cn;
+        return "普通";
+    }
 }

@@ -100,6 +100,9 @@ public static class ConfigLoader
 
     /// <summary>加载肉鸽地图路径生成配置</summary>
     public static RoguelikeMapFileConfig LoadRoguelikeMap() => Load<RoguelikeMapFileConfig>("roguelike_map_config");
+
+    /// <summary>加载成就配置</summary>
+    public static AchievementsConfig LoadAchievements() => Load<AchievementsConfig>("achievements");
 }
 
 // =====================================================================
@@ -879,4 +882,33 @@ public class RoguelikeMapSpecialRulesConfig
     public bool rest_after_boss;
     public int min_rest_count;
     public int max_consecutive_battles;
+}
+
+// ---------- achievements.json ----------
+
+/// <summary>成就系统配置</summary>
+public class AchievementsConfig
+{
+    public string _version;
+    public string _description;
+    public List<AchievementCategoryEntry> categories;
+    public List<AchievementDef> achievements;
+    public Dictionary<string, AchievementRarityDisplay> rarity_display;
+}
+
+/// <summary>成就分类</summary>
+public class AchievementCategoryEntry
+{
+    public string id;
+    public string name_cn;
+    public string description;
+}
+
+// AchievementDef 已在 AchievementManager.cs 中定义
+
+/// <summary>成就稀有度显示配置</summary>
+public class AchievementRarityDisplay
+{
+    public string color;
+    public string name_cn;
 }

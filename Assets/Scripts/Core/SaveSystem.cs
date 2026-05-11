@@ -191,6 +191,18 @@ public class SaveSystem : MonoBehaviour
         // 6. 恢复关卡进度
         rgm.SetLevelForLoad(data.currentLevel, data.maxLevelReached);
 
+        // 7. 通知成就系统加载完成
+        var achManager = AchievementManager.Instance;
+        if (achManager != null)
+        {
+            achManager.ResetRunStats();
+            // 恢复单局统计：从存档推断
+            achManager.TrackProgress("relics_in_run", data.relicIds?.Count ?? 0);
+            achManager.TrackProgress("heroes_in_run", data.heroes?.Count ?? 0);
+            achManager.TrackProgress("max_gold_held", data.gold);
+            achManager.TrackProgress("level_reached", data.maxLevelReached);
+        }
+
         OnLoadComplete?.Invoke(data);
         Debug.Log("[SaveSystem] 状态恢复完成");
         return true;

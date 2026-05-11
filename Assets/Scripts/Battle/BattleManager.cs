@@ -137,6 +137,14 @@ public class BattleManager : MonoBehaviour
 
         Debug.Log($"战斗开始！我方{playerUnits.Count}人 vs 敌方{enemyUnits.Count}人 | 骰子: {(diceCombo != null ? diceCombo.Description : "无")}");
 
+        // 成就系统：记录战斗开始状态
+        var achMgr2 = AchievementManager.Instance;
+        if (achMgr2 != null)
+        {
+            int aliveCount = players.Count(h => h != null && h.CurrentHealth > 0);
+            achMgr2.TrackBattleStart(aliveCount);
+        }
+
         OnBattleStarted?.Invoke();
         battleCoroutine = StartCoroutine(BattleLoop());
     }
@@ -403,7 +411,19 @@ public class BattleManager : MonoBehaviour
             FaceEffectExecutor.Instance.ClearBattleEffects();
 
         if (PlayerWon)
+        {
             Debug.Log("战斗胜利！");
+
+            // 成就系统：追踪战斗开始英雄数 → 翻盘检测
+            var achMgr = AchievementManager.Instance;
+            if (achMgr != null)
+            {
+                // Boss击杀判定：通过关卡配置判断
+                var levelCfg = BalanceProvider.GetLevel(GameStateMachine.Instance?.CurrentLevel ?? 1);
+                if (levelCfg != null && levelCfg.allow_boss)
+                    achMgr.TrackBossKill();
+            }
+        }
         else if (allPlayerDead)
             Debug.Log("战斗失败...");
         else

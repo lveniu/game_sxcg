@@ -1,0 +1,459 @@
+{
+  "_version": "1.0.0",
+  "_description": "成就系统配置 — 条件类型/目标值/奖励",
+  "categories": [
+    {
+      "id": "progress",
+      "name_cn": "冒险征程",
+      "description": "关卡推进相关成就"
+    },
+    {
+      "id": "combat",
+      "name_cn": "战斗大师",
+      "description": "战斗相关成就"
+    },
+    {
+      "id": "collection",
+      "name_cn": "收藏家",
+      "description": "收集相关成就"
+    },
+    {
+      "id": "dice",
+      "name_cn": "骰子达人",
+      "description": "骰子组合相关成就"
+    },
+    {
+      "id": "special",
+      "name_cn": "特殊挑战",
+      "description": "特殊/隐藏成就"
+    }
+  ],
+  "achievements": [
+    {
+      "id": "first_victory",
+      "name_cn": "初出茅庐",
+      "description": "通过第1关",
+      "category": "progress",
+      "condition_type": "level_reached",
+      "target_value": 1,
+      "icon": "achievement_first_victory",
+      "rarity": "common",
+      "rewards": [
+        { "type": "gold", "value": 50 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "novice_adventurer",
+      "name_cn": "新手冒险家",
+      "description": "通过第5关",
+      "category": "progress",
+      "condition_type": "level_reached",
+      "target_value": 5,
+      "icon": "achievement_novice",
+      "rarity": "common",
+      "rewards": [
+        { "type": "gold", "value": 100 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "veteran_warrior",
+      "name_cn": "沙场老将",
+      "description": "通过第10关",
+      "category": "progress",
+      "condition_type": "level_reached",
+      "target_value": 10,
+      "icon": "achievement_veteran",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 200 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "legendary_hero",
+      "name_cn": "传奇英雄",
+      "description": "通过第15关",
+      "category": "progress",
+      "condition_type": "level_reached",
+      "target_value": 15,
+      "icon": "achievement_legendary",
+      "rarity": "epic",
+      "rewards": [
+        { "type": "gold", "value": 500 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "infinity_challenger",
+      "name_cn": "无尽挑战者",
+      "description": "通过第20关",
+      "category": "progress",
+      "condition_type": "level_reached",
+      "target_value": 20,
+      "icon": "achievement_infinity",
+      "rarity": "legendary",
+      "rewards": [
+        { "type": "gold", "value": 1000 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "boss_slayer",
+      "name_cn": "猎Boss者",
+      "description": "击败1个Boss",
+      "category": "combat",
+      "condition_type": "boss_kills",
+      "target_value": 1,
+      "icon": "achievement_boss_slayer",
+      "rarity": "common",
+      "rewards": [
+        { "type": "gold", "value": 100 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "boss_nemesis",
+      "name_cn": "Boss克星",
+      "description": "击败5个Boss",
+      "category": "combat",
+      "condition_type": "boss_kills",
+      "target_value": 5,
+      "icon": "achievement_boss_nemesis",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 300 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "boss_dominator",
+      "name_cn": "Boss终结者",
+      "description": "击败10个Boss",
+      "category": "combat",
+      "condition_type": "boss_kills",
+      "target_value": 10,
+      "icon": "achievement_boss_dominator",
+      "rarity": "epic",
+      "rewards": [
+        { "type": "gold", "value": 500 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "total_victories_10",
+      "name_cn": "百战勇士",
+      "description": "累计赢得10场战斗",
+      "category": "combat",
+      "condition_type": "total_battle_wins",
+      "target_value": 10,
+      "icon": "achievement_wars_10",
+      "rarity": "common",
+      "rewards": [
+        { "type": "gold", "value": 80 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "total_victories_50",
+      "name_cn": "身经百战",
+      "description": "累计赢得50场战斗",
+      "category": "combat",
+      "condition_type": "total_battle_wins",
+      "target_value": 50,
+      "icon": "achievement_wars_50",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 200 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "total_victories_100",
+      "name_cn": "千军万马",
+      "description": "累计赢得100场战斗",
+      "category": "combat",
+      "condition_type": "total_battle_wins",
+      "target_value": 100,
+      "icon": "achievement_wars_100",
+      "rarity": "epic",
+      "rewards": [
+        { "type": "gold", "value": 500 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "perfect_victory",
+      "name_cn": "完美胜利",
+      "description": "无伤通过一场战斗",
+      "category": "combat",
+      "condition_type": "perfect_victories",
+      "target_value": 1,
+      "icon": "achievement_perfect",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 200 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "perfect_victory_5",
+      "name_cn": "战无伤损",
+      "description": "累计5次无伤胜利",
+      "category": "combat",
+      "condition_type": "perfect_victories",
+      "target_value": 5,
+      "icon": "achievement_perfect_5",
+      "rarity": "epic",
+      "rewards": [
+        { "type": "gold", "value": 500 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "relic_collector_3",
+      "name_cn": "遗物入门",
+      "description": "单局收集3个遗物",
+      "category": "collection",
+      "condition_type": "relics_in_run",
+      "target_value": 3,
+      "icon": "achievement_relic_3",
+      "rarity": "common",
+      "rewards": [
+        { "type": "gold", "value": 50 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "relic_collector_6",
+      "name_cn": "遗物猎人",
+      "description": "单局收集6个遗物",
+      "category": "collection",
+      "condition_type": "relics_in_run",
+      "target_value": 6,
+      "icon": "achievement_relic_6",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 200 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "relic_collector_10",
+      "name_cn": "遗物大师",
+      "description": "单局收集满10个遗物",
+      "category": "collection",
+      "condition_type": "relics_in_run",
+      "target_value": 10,
+      "icon": "achievement_relic_10",
+      "rarity": "epic",
+      "rewards": [
+        { "type": "gold", "value": 500 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "gold_hoarder",
+      "name_cn": "财迷",
+      "description": "单局累计持有200金币",
+      "category": "collection",
+      "condition_type": "max_gold_held",
+      "target_value": 200,
+      "icon": "achievement_gold_200",
+      "rarity": "common",
+      "rewards": [
+        { "type": "gold", "value": 100 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "gold_mogul",
+      "name_cn": "金主",
+      "description": "单局累计持有500金币",
+      "category": "collection",
+      "condition_type": "max_gold_held",
+      "target_value": 500,
+      "icon": "achievement_gold_500",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 300 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "hero_collector",
+      "name_cn": "英雄招募者",
+      "description": "单局拥有4个英雄",
+      "category": "collection",
+      "condition_type": "heroes_in_run",
+      "target_value": 4,
+      "icon": "achievement_hero_4",
+      "rarity": "common",
+      "rewards": [
+        { "type": "gold", "value": 100 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "hero_army",
+      "name_cn": "军团统帅",
+      "description": "单局拥有6个英雄",
+      "category": "collection",
+      "condition_type": "heroes_in_run",
+      "target_value": 6,
+      "icon": "achievement_hero_6",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 300 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "dice_pair",
+      "name_cn": "对子入门",
+      "description": "触发1次对子组合",
+      "category": "dice",
+      "condition_type": "dice_pair_count",
+      "target_value": 1,
+      "icon": "achievement_pair",
+      "rarity": "common",
+      "rewards": [
+        { "type": "gold", "value": 30 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "dice_straight",
+      "name_cn": "顺子高手",
+      "description": "触发1次顺子组合",
+      "category": "dice",
+      "condition_type": "dice_straight_count",
+      "target_value": 1,
+      "icon": "achievement_straight",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 100 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "dice_triple",
+      "name_cn": "三条大师",
+      "description": "触发1次三条组合",
+      "category": "dice",
+      "condition_type": "dice_triple_count",
+      "target_value": 1,
+      "icon": "achievement_triple",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 150 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "dice_combo_master",
+      "name_cn": "骰子之神",
+      "description": "累计触发20次骰子组合",
+      "category": "dice",
+      "condition_type": "dice_total_combos",
+      "target_value": 20,
+      "icon": "achievement_dice_master",
+      "rarity": "epic",
+      "rewards": [
+        { "type": "gold", "value": 500 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "speed_clear",
+      "name_cn": "闪电战",
+      "description": "5秒内结束一场战斗",
+      "category": "special",
+      "condition_type": "speed_clear",
+      "target_value": 1,
+      "icon": "achievement_speed",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 200 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "reroll_addict",
+      "name_cn": "赌神",
+      "description": "单场战斗重摇5次",
+      "category": "special",
+      "condition_type": "rerolls_in_battle",
+      "target_value": 5,
+      "icon": "achievement_reroll",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 150 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "comeback_king",
+      "name_cn": "绝地翻盘",
+      "description": "在只剩1个英雄时获胜",
+      "category": "special",
+      "condition_type": "comeback_wins",
+      "target_value": 1,
+      "icon": "achievement_comeback",
+      "rarity": "epic",
+      "rewards": [
+        { "type": "gold", "value": 300 }
+      ],
+      "is_hidden": true
+    },
+    {
+      "id": "enemies_slaughtered_100",
+      "name_cn": "百人斩",
+      "description": "累计消灭100个敌人",
+      "category": "combat",
+      "condition_type": "total_enemies_killed",
+      "target_value": 100,
+      "icon": "achievement_kill_100",
+      "rarity": "common",
+      "rewards": [
+        { "type": "gold", "value": 100 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "enemies_slaughtered_500",
+      "name_cn": "五百众击破",
+      "description": "累计消灭500个敌人",
+      "category": "combat",
+      "condition_type": "total_enemies_killed",
+      "target_value": 500,
+      "icon": "achievement_kill_500",
+      "rarity": "rare",
+      "rewards": [
+        { "type": "gold", "value": 300 }
+      ],
+      "is_hidden": false
+    },
+    {
+      "id": "enemies_slaughtered_1000",
+      "name_cn": "千军破",
+      "description": "累计消灭1000个敌人",
+      "category": "combat",
+      "condition_type": "total_enemies_killed",
+      "target_value": 1000,
+      "icon": "achievement_kill_1000",
+      "rarity": "epic",
+      "rewards": [
+        { "type": "gold", "value": 800 }
+      ],
+      "is_hidden": false
+    }
+  ],
+  "rarity_display": {
+    "common": { "color": "#FFFFFF", "name_cn": "普通" },
+    "rare": { "color": "#4A9EFF", "name_cn": "稀有" },
+    "epic": { "color": "#A855F7", "name_cn": "史诗" },
+    "legendary": { "color": "#FFB800", "name_cn": "传说" }
+  }
+}
