@@ -39,6 +39,9 @@ namespace Game.UI
         [Tooltip("成就按钮（可选）")]
         public Button achievementButton;
 
+        [Tooltip("图鉴按钮（可选）")]
+        public Button collectionButton;
+
         [Tooltip("退出游戏按钮")]
         public Button exitButton;
 
@@ -98,6 +101,7 @@ namespace Game.UI
             if (startButton != null) buttonList.Add(startButton.GetComponent<RectTransform>());
             if (settingsButton != null) buttonList.Add(settingsButton.GetComponent<RectTransform>());
             if (achievementButton != null) buttonList.Add(achievementButton.GetComponent<RectTransform>());
+            if (collectionButton != null) buttonList.Add(collectionButton.GetComponent<RectTransform>());
             if (exitButton != null) buttonList.Add(exitButton.GetComponent<RectTransform>());
             buttonRects = buttonList.ToArray();
         }
@@ -149,11 +153,13 @@ namespace Game.UI
             startButton?.onClick.RemoveAllListeners();
             settingsButton?.onClick.RemoveAllListeners();
             achievementButton?.onClick.RemoveAllListeners();
+            collectionButton?.onClick.RemoveAllListeners();
             exitButton?.onClick.RemoveAllListeners();
 
             startButton?.onClick.AddListener(OnStartClicked);
             settingsButton?.onClick.AddListener(OnSettingsClicked);
             achievementButton?.onClick.AddListener(OnAchievementClicked);
+            collectionButton?.onClick.AddListener(OnCollectionClicked);
             exitButton?.onClick.AddListener(OnExitClicked);
         }
 
@@ -163,6 +169,7 @@ namespace Game.UI
             startButton?.onClick.RemoveAllListeners();
             settingsButton?.onClick.RemoveAllListeners();
             achievementButton?.onClick.RemoveAllListeners();
+            collectionButton?.onClick.RemoveAllListeners();
             exitButton?.onClick.RemoveAllListeners();
         }
 
@@ -215,6 +222,18 @@ namespace Game.UI
             if (uiManager != null)
             {
                 uiManager.ShowSubPanel("Achievement");
+            }
+        }
+
+        /// <summary>
+        /// 图鉴按钮 — 打开图鉴面板
+        /// </summary>
+        private void OnCollectionClicked()
+        {
+            var uiManager = NewUIManager.Instance;
+            if (uiManager != null)
+            {
+                uiManager.ShowSubPanel("Collection");
             }
         }
 

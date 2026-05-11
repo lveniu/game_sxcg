@@ -54,6 +54,9 @@ namespace Game.UI
         [Header("子面板 - 成就")]
         public AchievementPanel achievementPanel;
 
+        [Header("子面板 - 图鉴")]
+        public CollectionPanel collectionPanel;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -175,6 +178,7 @@ namespace Game.UI
                 "Relic" => relicPanel,
                 "Settings" => settingsPanel,
                 "Achievement" => achievementPanel,
+                "Collection" => collectionPanel,
                 _ => null
             };
             if (panel != null) panel.Show();
