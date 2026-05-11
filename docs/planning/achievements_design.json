@@ -1,0 +1,371 @@
+{
+  "_version": "1.0",
+  "_description": "成就系统数值配置 — 5个类别，30+成就，由 CTO 策划",
+  "categories": [
+    {"id": "battle", "name_cn": "战斗", "color": "#E74C3C"},
+    {"id": "roguelike", "name_cn": "肉鸽", "color": "#9B59B6"},
+    {"id": "dice", "name_cn": "骰子", "color": "#3498DB"},
+    {"id": "collection", "name_cn": "收集", "color": "#2ECC71"},
+    {"id": "meta", "name_cn": "隐藏", "color": "#F39C12"}
+  ],
+  "achievements": [
+    {
+      "id": "first_win",
+      "name_cn": "初出茅庐",
+      "description_cn": "赢得第一场战斗",
+      "category": "battle",
+      "condition_type": "win_battle",
+      "condition_target": 1,
+      "is_secret": false,
+      "icon_ref": "achievement_first_win",
+      "rewards": [{"type": "gold", "amount": 50}]
+    },
+    {
+      "id": "veteran_10",
+      "name_cn": "身经百战",
+      "description_cn": "累计赢得{0}场战斗",
+      "category": "battle",
+      "condition_type": "win_battle",
+      "condition_target": 10,
+      "is_secret": false,
+      "icon_ref": "achievement_veteran",
+      "rewards": [{"type": "gold", "amount": 200}]
+    },
+    {
+      "id": "veteran_50",
+      "name_cn": "战争机器",
+      "description_cn": "累计赢得{0}场战斗",
+      "category": "battle",
+      "condition_type": "win_battle",
+      "condition_target": 50,
+      "is_secret": false,
+      "icon_ref": "achievement_war_machine",
+      "rewards": [{"type": "gold", "amount": 500}]
+    },
+    {
+      "id": "boss_slayer_1",
+      "name_cn": "弑君者",
+      "description_cn": "击杀第一个Boss",
+      "category": "battle",
+      "condition_type": "kill_boss",
+      "condition_target": 1,
+      "is_secret": false,
+      "icon_ref": "achievement_boss_slayer",
+      "rewards": [{"type": "gold", "amount": 100}]
+    },
+    {
+      "id": "boss_slayer_5",
+      "name_cn": "屠龙勇士",
+      "description_cn": "累计击杀{0}个Boss",
+      "category": "battle",
+      "condition_type": "kill_boss",
+      "condition_target": 5,
+      "is_secret": false,
+      "icon_ref": "achievement_dragon_slayer",
+      "rewards": [{"type": "gold", "amount": 300}]
+    },
+    {
+      "id": "boss_slayer_20",
+      "name_cn": "魔王猎人",
+      "description_cn": "累计击杀{0}个Boss",
+      "category": "battle",
+      "condition_type": "kill_boss",
+      "condition_target": 20,
+      "is_secret": false,
+      "icon_ref": "achievement_demon_hunter",
+      "rewards": [{"type": "gold", "amount": 800}]
+    },
+    {
+      "id": "speed_demon",
+      "name_cn": "闪电战",
+      "description_cn": "在{0}秒内赢得一场战斗",
+      "category": "battle",
+      "condition_type": "speed_clear",
+      "condition_target": 15,
+      "is_secret": false,
+      "icon_ref": "achievement_speed",
+      "rewards": [{"type": "gold", "amount": 150}]
+    },
+    {
+      "id": "no_damage_3",
+      "name_cn": "铜墙铁壁",
+      "description_cn": "连续{0}关零伤通关",
+      "category": "battle",
+      "condition_type": "no_damage_run",
+      "condition_target": 3,
+      "is_secret": true,
+      "icon_ref": "achievement_iron_wall",
+      "rewards": [{"type": "gold", "amount": 500}]
+    },
+    {
+      "id": "mage_master",
+      "name_cn": "奥术大师",
+      "description_cn": "使用法师累计赢得{0}场战斗",
+      "category": "battle",
+      "condition_type": "hero_class_win",
+      "condition_target": 10,
+      "is_secret": false,
+      "icon_ref": "achievement_mage",
+      "rewards": [{"type": "gold", "amount": 200}]
+    },
+    {
+      "id": "assassin_master",
+      "name_cn": "暗影之主",
+      "description_cn": "使用刺客累计赢得{0}场战斗",
+      "category": "battle",
+      "condition_type": "hero_class_win",
+      "condition_target": 10,
+      "is_secret": false,
+      "icon_ref": "achievement_assassin",
+      "rewards": [{"type": "gold", "amount": 200}]
+    },
+    {
+      "id": "warrior_master",
+      "name_cn": "钢铁意志",
+      "description_cn": "使用战士累计赢得{0}场战斗",
+      "category": "battle",
+      "condition_type": "hero_class_win",
+      "condition_target": 10,
+      "is_secret": false,
+      "icon_ref": "achievement_warrior",
+      "rewards": [{"type": "gold", "amount": 200}]
+    },
+    {
+      "id": "reach_level_5",
+      "name_cn": "初探深渊",
+      "description_cn": "通关第{0}关",
+      "category": "roguelike",
+      "condition_type": "reach_level",
+      "condition_target": 5,
+      "is_secret": false,
+      "icon_ref": "achievement_level5",
+      "rewards": [{"type": "gold", "amount": 100}]
+    },
+    {
+      "id": "reach_level_10",
+      "name_cn": "半程旅人",
+      "description_cn": "通关第{0}关",
+      "category": "roguelike",
+      "condition_type": "reach_level",
+      "condition_target": 10,
+      "is_secret": false,
+      "icon_ref": "achievement_level10",
+      "rewards": [{"type": "gold", "amount": 300}]
+    },
+    {
+      "id": "reach_level_15",
+      "name_cn": "深渊行者",
+      "description_cn": "通关第{0}关",
+      "category": "roguelike",
+      "condition_type": "reach_level",
+      "condition_target": 15,
+      "is_secret": false,
+      "icon_ref": "achievement_level15",
+      "rewards": [{"type": "gold", "amount": 500}]
+    },
+    {
+      "id": "reach_level_20",
+      "name_cn": "传说缔造者",
+      "description_cn": "通关第{0}关",
+      "category": "roguelike",
+      "condition_type": "reach_level",
+      "condition_target": 20,
+      "is_secret": false,
+      "icon_ref": "achievement_level20",
+      "rewards": [{"type": "gold", "amount": 1000}]
+    },
+    {
+      "id": "play_runs_10",
+      "name_cn": "轮回之人",
+      "description_cn": "完成{0}局肉鸽",
+      "category": "roguelike",
+      "condition_type": "play_runs",
+      "condition_target": 10,
+      "is_secret": false,
+      "icon_ref": "achievement_runs10",
+      "rewards": [{"type": "gold", "amount": 100}]
+    },
+    {
+      "id": "play_runs_50",
+      "name_cn": "永恒轮回",
+      "description_cn": "完成{0}局肉鸽",
+      "category": "roguelike",
+      "condition_type": "play_runs",
+      "condition_target": 50,
+      "is_secret": false,
+      "icon_ref": "achievement_runs50",
+      "rewards": [{"type": "gold", "amount": 500}]
+    },
+    {
+      "id": "gold_earned_500",
+      "name_cn": "小有积蓄",
+      "description_cn": "累计获得{0}金币",
+      "category": "roguelike",
+      "condition_type": "gold_earned",
+      "condition_target": 500,
+      "is_secret": false,
+      "icon_ref": "achievement_gold500",
+      "rewards": [{"type": "gold", "amount": 50}]
+    },
+    {
+      "id": "gold_earned_5000",
+      "name_cn": "富甲一方",
+      "description_cn": "累计获得{0}金币",
+      "category": "roguelike",
+      "condition_type": "gold_earned",
+      "condition_target": 5000,
+      "is_secret": false,
+      "icon_ref": "achievement_gold5k",
+      "rewards": [{"type": "gold", "amount": 200}]
+    },
+    {
+      "id": "combo_triple_1",
+      "name_cn": "三连初体验",
+      "description_cn": "第一次触发「三条」组合",
+      "category": "dice",
+      "condition_type": "dice_combo",
+      "condition_target": 1,
+      "is_secret": false,
+      "icon_ref": "achievement_triple",
+      "rewards": [{"type": "gold", "amount": 50}]
+    },
+    {
+      "id": "combo_triple_10",
+      "name_cn": "三连达人",
+      "description_cn": "累计触发「三条」{0}次",
+      "category": "dice",
+      "condition_type": "dice_combo",
+      "condition_target": 10,
+      "is_secret": false,
+      "icon_ref": "achievement_triple_master",
+      "rewards": [{"type": "gold", "amount": 300}]
+    },
+    {
+      "id": "combo_straight_1",
+      "name_cn": "顺子高手",
+      "description_cn": "第一次触发「顺子」组合",
+      "category": "dice",
+      "condition_type": "dice_combo",
+      "condition_target": 1,
+      "is_secret": false,
+      "icon_ref": "achievement_straight",
+      "rewards": [{"type": "gold", "amount": 50}]
+    },
+    {
+      "id": "dice_sum_15",
+      "name_cn": "骰神降临",
+      "description_cn": "骰子总和达到{0}点",
+      "category": "dice",
+      "condition_type": "dice_sum_high",
+      "condition_target": 15,
+      "is_secret": false,
+      "icon_ref": "achievement_dice_god",
+      "rewards": [{"type": "gold", "amount": 200}]
+    },
+    {
+      "id": "dice_sum_18",
+      "name_cn": "天选之人",
+      "description_cn": "骰子总和达到{0}点（满点！）",
+      "category": "dice",
+      "condition_type": "dice_sum_high",
+      "condition_target": 18,
+      "is_secret": true,
+      "icon_ref": "achievement_max_roll",
+      "rewards": [{"type": "gold", "amount": 500}]
+    },
+    {
+      "id": "reroll_20",
+      "name_cn": "再试一次",
+      "description_cn": "累计使用重摇{0}次",
+      "category": "dice",
+      "condition_type": "use_reroll",
+      "condition_target": 20,
+      "is_secret": false,
+      "icon_ref": "achievement_reroll",
+      "rewards": [{"type": "gold", "amount": 100}]
+    },
+    {
+      "id": "reroll_100",
+      "name_cn": "永不放弃",
+      "description_cn": "累计使用重摇{0}次",
+      "category": "dice",
+      "condition_type": "use_reroll",
+      "condition_target": 100,
+      "is_secret": false,
+      "icon_ref": "achievement_reroll_master",
+      "rewards": [{"type": "gold", "amount": 300}]
+    },
+    {
+      "id": "collect_relic_5",
+      "name_cn": "收藏家",
+      "description_cn": "累计收集{0}个不同遗物",
+      "category": "collection",
+      "condition_type": "collect_relic",
+      "condition_target": 5,
+      "is_secret": false,
+      "icon_ref": "achievement_collector",
+      "rewards": [{"type": "gold", "amount": 150}]
+    },
+    {
+      "id": "collect_relic_15",
+      "name_cn": "博物馆馆长",
+      "description_cn": "累计收集{0}个不同遗物",
+      "category": "collection",
+      "condition_type": "collect_relic",
+      "condition_target": 15,
+      "is_secret": false,
+      "icon_ref": "achievement_museum",
+      "rewards": [{"type": "gold", "amount": 500}]
+    },
+    {
+      "id": "hero_star3_1",
+      "name_cn": "三星觉醒",
+      "description_cn": "第一个英雄升至{0}星",
+      "category": "collection",
+      "condition_type": "hero_star_3",
+      "condition_target": 1,
+      "is_secret": false,
+      "icon_ref": "achievement_star3",
+      "rewards": [{"type": "gold", "amount": 200}]
+    },
+    {
+      "id": "hero_star3_3",
+      "name_cn": "全员三星",
+      "description_cn": "拥有{0}个三星英雄",
+      "category": "collection",
+      "condition_type": "hero_star_3",
+      "condition_target": 3,
+      "is_secret": true,
+      "icon_ref": "achievement_all_star",
+      "rewards": [{"type": "gold", "amount": 1000}]
+    },
+    {
+      "id": "all_classes_win",
+      "name_cn": "全能战神",
+      "description_cn": "每个职业都赢得10场战斗",
+      "category": "meta",
+      "condition_type": "all_classes_win",
+      "condition_target": 10,
+      "is_secret": true,
+      "icon_ref": "achievement_all_master",
+      "rewards": [{"type": "gold", "amount": 2000}]
+    },
+    {
+      "id": "speedrun_level10",
+      "name_cn": "速通达人",
+      "description_cn": "在30分钟内通关前10关",
+      "category": "meta",
+      "condition_type": "speedrun",
+      "condition_target": 10,
+      "is_secret": true,
+      "icon_ref": "achievement_speedrun",
+      "rewards": [{"type": "gold", "amount": 1500}]
+    }
+  ],
+  "toast_settings": {
+    "display_duration_sec": 2.5,
+    "queue_max": 5,
+    "animation_in_duration": 0.4,
+    "animation_out_duration": 0.3
+  }
+}
