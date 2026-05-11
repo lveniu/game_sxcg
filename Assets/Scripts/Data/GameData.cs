@@ -763,6 +763,66 @@ public static class GameData
     {
         return CreateCard("护盾共振", CardType.Battle, CardRarity.Gold, CardEffectId.ShieldResonance, 2, "给全体友方施加30%生命值护盾，三条时60%", 30, DiceCombinationType.ThreeOfAKind, 2f);
     }
+
+    // ========== 存档支持：按名称/ID查找数据 ==========
+
+    /// <summary>根据装备名创建EquipmentData（用于存档恢复）</summary>
+    public static EquipmentData CreateEquipmentByName(string equipName)
+    {
+        // 尝试从Resources加载
+        var allEquips = Resources.LoadAll<EquipmentData>("Equipment");
+        foreach (var eq in allEquips)
+        {
+            if (eq.equipmentName == equipName) return Object.Instantiate(eq);
+        }
+        // fallback: 创建基础装备
+        var data = ScriptableObject.CreateInstance<EquipmentData>();
+        data.equipmentName = equipName;
+        return data;
+    }
+
+    /// <summary>根据卡牌名查找CardData</summary>
+    public static CardData GetCardDataByName(string cardName)
+    {
+        // 先尝试从Resources加载
+        var allCards = Resources.LoadAll<CardData>("Cards");
+        foreach (var c in allCards)
+        {
+            if (c.cardName == cardName) return c;
+        }
+        // fallback: 通过已知卡牌工厂方法匹配
+        var candidates = CreateRewardCards();
+        foreach (var c in candidates)
+        {
+            if (c?.Data != null && c.Data.cardName == cardName) return c.Data;
+        }
+        // 再检查初始卡组
+        var starterDeck = CreateStartingDeck();
+        foreach (var c in starterDeck)
+        {
+            if (c?.Data != null && c.Data.cardName == cardName) return c.Data;
+        }
+        return null;
+    }
+
+    /// <summary>根据遗物ID查找RelicData</summary>
+    public static RelicData GetRelicDataById(string relicId)
+    {
+        // 尝试从Resources加载
+        var allRelics = Resources.LoadAll<RelicData>("Relics");
+        foreach (var r in allRelics)
+        {
+            if (r.relicId == relicId) return r;
+        }
+        // fallback: 通过奖励系统查找
+        var rewardSystem = RoguelikeGameManager.Instance?.RewardSystem;
+        if (rewardSystem != null)
+        {
+            var data = rewardSystem.GetRelicData(relicId);
+            if (data != null) return data;
+        }
+        return null;
+    }
 }
 
 

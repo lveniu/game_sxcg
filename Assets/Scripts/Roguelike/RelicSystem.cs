@@ -211,6 +211,11 @@ public class RelicSystem
     }
 
     /// <summary>
+    /// 清除所有遗物（存档恢复用）
+    /// </summary>
+    public void ClearRelicsForLoad() { OwnedRelics.Clear(); }
+
+    /// <summary>
     /// 获取遗物数量
     /// </summary>
     public int RelicCount => OwnedRelics.Count;

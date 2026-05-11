@@ -160,4 +160,9 @@ public class PlayerInventory : MonoBehaviour
             sorted.Sort((a, b) => GetEquipmentPower(a) - GetEquipmentPower(b));
         return sorted;
     }
+
+    // ===== 存档支持 =====
+    public void ForceSetGold(int amount) { Gold = amount; OnInventoryChanged?.Invoke(); }
+    public void ClearEquipmentsForLoad() { Equipments.Clear(); OnInventoryChanged?.Invoke(); }
+    public void ClearCardsForLoad() { Cards.Clear(); OnInventoryChanged?.Invoke(); }
 }

@@ -445,6 +445,11 @@ public class Hero : MonoBehaviour
     /// </summary>
     public void AddExp(int amount) { CurrentExp += amount; }
 
+    /// <summary>
+    /// 设置当前生命值（用于存档恢复）
+    /// </summary>
+    public void SetCurrentHealth(int health) { CurrentHealth = Mathf.Clamp(health, 0, MaxHealth); }
+
     void OnDestroy()
     {
         // 清理

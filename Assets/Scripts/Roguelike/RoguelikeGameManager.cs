@@ -55,6 +55,10 @@ public class RoguelikeGameManager : MonoBehaviour
         DiceRoller = new DiceRoller(3);
         LevelGenerator = new LevelGenerator();
 
+        // 清除旧存档
+        if (SaveSystem.Instance != null)
+            SaveSystem.Instance.DeleteSave();
+
         OnNewGameStarted?.Invoke();
         Debug.Log("[肉鸽] 新游戏开始！");
     }
@@ -83,6 +87,10 @@ public class RoguelikeGameManager : MonoBehaviour
         if (RelicSystem != null) RelicSystem.ResetForNewLevel();
         OnLevelStarted?.Invoke(CurrentLevel);
         Debug.Log($"[肉鸽] 进入第 {CurrentLevel} 关");
+
+        // 自动存档
+        if (SaveSystem.Instance != null)
+            SaveSystem.Instance.Save();
     }
 
     /// <summary>
@@ -220,4 +228,10 @@ public class RoguelikeGameManager : MonoBehaviour
         "影舞者" => "shadow_dancer",
         _ => "warrior"
     };
+
+    // ===== 存档支持 =====
+    public void ClearHeroesForLoad() { PlayerHeroes.Clear(); SelectedHero = null; }
+    public void AddHeroForLoad(Hero hero) { PlayerHeroes.Add(hero); }
+    public void SetSelectedHero(Hero hero) { SelectedHero = hero; }
+    public void SetLevelForLoad(int current, int maxReached) { CurrentLevel = current; MaxLevelReached = maxReached; }
 }
