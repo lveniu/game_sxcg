@@ -47,6 +47,13 @@ public class PlayerInventory : MonoBehaviour
     {
         Gold += amount;
         Debug.Log($"金币 +{amount} 当前: {Gold}");
+
+        // 成就系统：追踪金币获取 → max_gold_held 类成就
+        var achMgr = AchievementManager.Instance;
+        if (achMgr != null && amount > 0)
+        {
+            achMgr.TrackProgress("max_gold_held", Gold);
+        }
     }
 
     public bool SpendGold(int amount)

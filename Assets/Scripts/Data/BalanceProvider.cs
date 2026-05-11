@@ -371,6 +371,60 @@ public static class BalanceProvider
     /// <summary>重摇费用递增</summary>
     public static int GetRerollCostIncrement() => Economy?.settings?.reroll_cost_increment ?? 1;
 
+    // ========== 商店相关 ==========
+
+    /// <summary>装备商品配置（economy.json shop.items 中 category=="equipment" 的条目）</summary>
+    public static EconomyShopItemConfig GetShopEquipmentConfig()
+    {
+        var items = Economy?.shop?.items;
+        if (items == null) return null;
+        return items.Find(i => i.category == "equipment");
+    }
+
+    /// <summary>商店折扣概率（0~1），fallback 0.2</summary>
+    public static float GetShopDiscountChance()
+    {
+        var equipConfig = GetShopEquipmentConfig();
+        if (equipConfig != null && equipConfig.discount_chance > 0)
+            return equipConfig.discount_chance;
+        return 0.2f;
+    }
+
+    /// <summary>商店折扣率（0~1），fallback 0.7</summary>
+    public static float GetShopDiscountRate()
+    {
+        var equipConfig = GetShopEquipmentConfig();
+        if (equipConfig != null && equipConfig.discount_rate > 0)
+            return equipConfig.discount_rate;
+        return 0.7f;
+    }
+
+    /// <summary>按品质获取卡牌价格（取 price_by_rarity 的中间值），fallback basePrice * (rarity+1)</summary>
+    public static int GetCardPriceByRarity(int rarityIndex, int fallbackBasePrice)
+    {
+        var equipConfig = GetShopEquipmentConfig();
+        var priceByRarity = equipConfig?.price_by_rarity;
+        if (priceByRarity != null)
+        {
+            string[] rarityKeys = { "common", "uncommon", "rare", "legendary" };
+            if (rarityIndex >= 0 && rarityIndex < rarityKeys.Length)
+            {
+                string key = rarityKeys[rarityIndex];
+                if (priceByRarity.TryGetValue(key, out int[] range) && range != null && range.Length >= 2)
+                {
+                    return (range[0] + range[1]) / 2;
+                }
+            }
+        }
+        return fallbackBasePrice * (rarityIndex + 1);
+    }
+
+    /// <summary>获取装备品质掉落权重列表，fallback null</summary>
+    public static List<EconomyEquipRarityConfig> GetEquipmentRarities()
+    {
+        return Economy?.equipment?.rarities ?? new List<EconomyEquipRarityConfig>();
+    }
+
     // ========== 遗物相关 ==========
 
     /// <summary>

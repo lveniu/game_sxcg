@@ -607,6 +607,11 @@ public class DiceCombinationEntry
 public class EconomyConfig
 {
     public string _version;
+    public string _description;
+    public EconomyGoldIncomeConfig gold_income;
+    public EconomyShopConfig shop;
+    public EconomyEquipmentConfig equipment;
+    public JObject run_economy_balance;
     public EconomySettings settings;
 }
 
@@ -619,6 +624,60 @@ public class EconomySettings
     public int reroll_cost_increment;
 }
 
+public class EconomyGoldIncomeConfig
+{
+    public string formula;
+    public int boss_kill_bonus;
+    public int[] event_bonus_range;
+}
+
+public class EconomyShopConfig
+{
+    public string trigger;
+    public float trigger_chance;
+    public List<EconomyShopItemConfig> items;
+}
+
+public class EconomyShopItemConfig
+{
+    public string category;
+    public string price_formula;
+    public Dictionary<string, int[]> price_by_rarity;
+    public float discount_chance;
+    public float discount_rate;
+    public int price;
+    public float heal_pct;
+    public string description_cn;
+    public int max_purchase_per_shop;
+}
+
+public class EconomyEquipmentConfig
+{
+    public List<EconomyEquipSlotConfig> slots;
+    public List<EconomyEquipRarityConfig> rarities;
+    public JObject equip_rules;
+}
+
+public class EconomyEquipSlotConfig
+{
+    public string id;
+    public string name_cn;
+    public string primary_stat;
+    public int[] stat_range;
+    public float secondary_stat_chance;
+    public List<string> secondary_stat_pool;
+    public float[] secondary_stat_range;
+}
+
+public class EconomyEquipRarityConfig
+{
+    public string id;
+    public string name_cn;
+    public string color;
+    public float stat_multiplier;
+    public int drop_weight;
+    public int[] price_range;
+}
 // ---------- drop_tables.json ----------
 
 /// <summary>掉落表配置</summary>

@@ -37,6 +37,13 @@ public class RelicSystem
         OwnedRelics.Add(instance);
         OnRelicAcquired?.Invoke(instance);
         Debug.Log($"[遗物系统] 获得遗物: {data.relicName} - {data.description}");
+
+        // 成就系统：追踪遗物收集 → relics_in_run 类成就
+        var achMgr = AchievementManager.Instance;
+        if (achMgr != null)
+        {
+            achMgr.TrackProgress("relics_in_run", OwnedRelics.Count);
+        }
     }
 
     /// <summary>
@@ -48,6 +55,13 @@ public class RelicSystem
         var instance = new RelicInstance(data);
         OwnedRelics.Add(instance);
         OnRelicAcquired?.Invoke(instance);
+
+        // 成就系统：追踪遗物收集 → relics_in_run 类成就
+        var achMgr = AchievementManager.Instance;
+        if (achMgr != null)
+        {
+            achMgr.TrackProgress("relics_in_run", OwnedRelics.Count);
+        }
     }
 
     /// <summary>

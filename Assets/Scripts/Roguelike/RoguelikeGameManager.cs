@@ -88,6 +88,13 @@ public class RoguelikeGameManager : MonoBehaviour
         OnLevelStarted?.Invoke(CurrentLevel);
         Debug.Log($"[肉鸽] 进入第 {CurrentLevel} 关");
 
+        // 成就系统：追踪关卡到达 → level_reached 类成就
+        var achMgr = AchievementManager.Instance;
+        if (achMgr != null)
+        {
+            achMgr.TrackProgress("level_reached", CurrentLevel);
+        }
+
         // 自动存档
         if (SaveSystem.Instance != null)
             SaveSystem.Instance.Save();
@@ -182,6 +189,13 @@ public class RoguelikeGameManager : MonoBehaviour
         {
             PlayerHeroes.Add(hero);
             Debug.Log($"[肉鸽] {hero.Data.heroName} 加入队伍！当前队伍: {PlayerHeroes.Count}人");
+
+            // 成就系统：追踪英雄培养 → heroes_in_run 类成就
+            var achMgr = AchievementManager.Instance;
+            if (achMgr != null)
+            {
+                achMgr.TrackProgress("heroes_in_run", PlayerHeroes.Count);
+            }
         }
     }
 

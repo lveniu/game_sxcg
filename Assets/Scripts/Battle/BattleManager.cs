@@ -390,6 +390,20 @@ public class BattleManager : MonoBehaviour
             }
         }
 
+        // 成就系统：追踪敌人击杀数（计算本tick死亡敌方单位）
+        int enemiesKilledThisTick = enemyUnits.Count(u => u != null && u.IsDead);
+        if (enemiesKilledThisTick > 0)
+        {
+            var achMgr = AchievementManager.Instance;
+            if (achMgr != null)
+            {
+                for (int i = 0; i < enemiesKilledThisTick; i++)
+                    achMgr.TrackEnemyKill();
+                // 立即推送累计击杀数到成就进度
+                achMgr.TrackProgress("total_enemies_killed", achMgr.GetTotalEnemiesKilled());
+            }
+        }
+
         // 移除确认死亡的单位（复活失败的）
         playerUnits.RemoveAll(u => u == null || u.IsDead);
         enemyUnits.RemoveAll(u => u == null || u.IsDead);

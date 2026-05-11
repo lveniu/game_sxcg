@@ -1,163 +1,186 @@
 {
-  "_version": "1.0.0",
+  "_version": "1.1.0",
   "_description": "成就系统: 12条成就配置 — 战斗/收集/探索/特殊",
-  "items": [
+  "categories": [
+    { "id": "combat", "name_cn": "战斗", "description": "战场荣耀" },
+    { "id": "collection", "name_cn": "收集", "description": "收藏之路" },
+    { "id": "exploration", "name_cn": "探索", "description": "勇闯深渊" },
+    { "id": "special", "name_cn": "特殊", "description": "隐藏成就" }
+  ],
+  "achievements": [
     {
       "id": "first_kill",
-      "name": "初次击杀",
+      "name_cn": "初次击杀",
       "description": "击败第一个敌人",
       "category": "combat",
-      "iconId": "sword",
-      "tier": 1,
-      "targetValue": 1,
-      "statKey": "total_kills",
-      "rewardType": "gold",
-      "rewardAmount": 50,
-      "isHidden": false
+      "condition_type": "total_enemies_killed",
+      "target_value": 1,
+      "icon": "sword",
+      "rarity": "Common",
+      "rewards": [
+        { "type": "gold", "value": 50 }
+      ],
+      "is_hidden": false
     },
     {
       "id": "kill_100",
-      "name": "百人斩",
+      "name_cn": "百人斩",
       "description": "累计击杀100个敌人",
       "category": "combat",
-      "iconId": "skull",
-      "tier": 2,
-      "targetValue": 100,
-      "statKey": "total_kills",
-      "rewardType": "gold",
-      "rewardAmount": 500,
-      "isHidden": false
+      "condition_type": "total_enemies_killed",
+      "target_value": 100,
+      "icon": "skull",
+      "rarity": "Rare",
+      "rewards": [
+        { "type": "gold", "value": 500 }
+      ],
+      "is_hidden": false
     },
     {
       "id": "triple_master",
-      "name": "三条大师",
+      "name_cn": "三条大师",
       "description": "累计掷出10次三条",
       "category": "combat",
-      "iconId": "dice",
-      "tier": 2,
-      "targetValue": 10,
-      "statKey": "triples_count",
-      "rewardType": "gold",
-      "rewardAmount": 300,
-      "isHidden": false
+      "condition_type": "dice_triple_count",
+      "target_value": 10,
+      "icon": "dice",
+      "rarity": "Rare",
+      "rewards": [
+        { "type": "gold", "value": 300 }
+      ],
+      "is_hidden": false
     },
     {
       "id": "relic_collector",
-      "name": "遗物收藏家",
+      "name_cn": "遗物收藏家",
       "description": "单局收集8件遗物",
       "category": "collection",
-      "iconId": "gem",
-      "tier": 3,
-      "targetValue": 8,
-      "statKey": "max_relics_one_run",
-      "rewardType": "gold",
-      "rewardAmount": 800,
-      "isHidden": false
+      "condition_type": "relics_in_run",
+      "target_value": 8,
+      "icon": "gem",
+      "rarity": "Epic",
+      "rewards": [
+        { "type": "gold", "value": 800 }
+      ],
+      "is_hidden": false
     },
     {
       "id": "speed_demon",
-      "name": "速通达人",
+      "name_cn": "速通达人",
       "description": "在10分钟内通关",
       "category": "special",
-      "iconId": "clock",
-      "tier": 3,
-      "targetValue": 600,
-      "statKey": "fastest_clear_time",
-      "rewardType": "gold",
-      "rewardAmount": 1000,
-      "isHidden": true
+      "condition_type": "speed_clear",
+      "target_value": 1,
+      "icon": "clock",
+      "rarity": "Epic",
+      "rewards": [
+        { "type": "gold", "value": 1000 }
+      ],
+      "is_hidden": true
     },
     {
       "id": "boss_slayer",
-      "name": "屠龙者",
+      "name_cn": "屠龙者",
       "description": "击败10个Boss",
       "category": "combat",
-      "iconId": "dragon",
-      "tier": 3,
-      "targetValue": 10,
-      "statKey": "boss_kills",
-      "rewardType": "gold",
-      "rewardAmount": 1000,
-      "isHidden": false
+      "condition_type": "boss_kills",
+      "target_value": 10,
+      "icon": "dragon",
+      "rarity": "Epic",
+      "rewards": [
+        { "type": "gold", "value": 1000 }
+      ],
+      "is_hidden": false
     },
     {
       "id": "streak_5",
-      "name": "五连胜",
+      "name_cn": "五连胜",
       "description": "连续胜利5场",
       "category": "combat",
-      "iconId": "fire",
-      "tier": 2,
-      "targetValue": 5,
-      "statKey": "max_win_streak",
-      "rewardType": "gold",
-      "rewardAmount": 400,
-      "isHidden": false
+      "condition_type": "total_battle_wins",
+      "target_value": 5,
+      "icon": "fire",
+      "rarity": "Rare",
+      "rewards": [
+        { "type": "gold", "value": 400 }
+      ],
+      "is_hidden": false
     },
     {
       "id": "straight_flush",
-      "name": "顺子之王",
+      "name_cn": "顺子之王",
       "description": "累计掷出5次顺子",
       "category": "combat",
-      "iconId": "dice",
-      "tier": 2,
-      "targetValue": 5,
-      "statKey": "straights_count",
-      "rewardType": "gold",
-      "rewardAmount": 300,
-      "isHidden": false
+      "condition_type": "dice_straight_count",
+      "target_value": 5,
+      "icon": "dice",
+      "rarity": "Rare",
+      "rewards": [
+        { "type": "gold", "value": 300 }
+      ],
+      "is_hidden": false
     },
     {
       "id": "perfect_boss",
-      "name": "完美击杀",
+      "name_cn": "完美击杀",
       "description": "无伤击败Boss",
       "category": "special",
-      "iconId": "shield",
-      "tier": 3,
-      "targetValue": 1,
-      "statKey": "perfect_boss_kills",
-      "rewardType": "gold",
-      "rewardAmount": 1500,
-      "isHidden": true
+      "condition_type": "perfect_victories",
+      "target_value": 1,
+      "icon": "shield",
+      "rarity": "Epic",
+      "rewards": [
+        { "type": "gold", "value": 1500 }
+      ],
+      "is_hidden": true
     },
     {
       "id": "all_heroes",
-      "name": "全英雄精通",
+      "name_cn": "全英雄精通",
       "description": "使用全部3个职业通关",
       "category": "collection",
-      "iconId": "star",
-      "tier": 3,
-      "targetValue": 3,
-      "statKey": "unique_hero_clears",
-      "rewardType": "gold",
-      "rewardAmount": 2000,
-      "isHidden": false
+      "condition_type": "heroes_in_run",
+      "target_value": 3,
+      "icon": "star",
+      "rarity": "Epic",
+      "rewards": [
+        { "type": "gold", "value": 2000 }
+      ],
+      "is_hidden": false
     },
     {
       "id": "rich",
-      "name": "富甲天下",
+      "name_cn": "富甲天下",
       "description": "单局累计获得2000金币",
       "category": "collection",
-      "iconId": "coin",
-      "tier": 2,
-      "targetValue": 2000,
-      "statKey": "max_gold_earned",
-      "rewardType": "gold",
-      "rewardAmount": 500,
-      "isHidden": false
+      "condition_type": "max_gold_held",
+      "target_value": 2000,
+      "icon": "coin",
+      "rarity": "Rare",
+      "rewards": [
+        { "type": "gold", "value": 500 }
+      ],
+      "is_hidden": false
     },
     {
       "id": "level_20",
-      "name": "深渊探索者",
+      "name_cn": "深渊探索者",
       "description": "到达第20关",
       "category": "exploration",
-      "iconId": "map",
-      "tier": 3,
-      "targetValue": 20,
-      "statKey": "max_level_reached",
-      "rewardType": "gold",
-      "rewardAmount": 1000,
-      "isHidden": false
+      "condition_type": "level_reached",
+      "target_value": 20,
+      "icon": "map",
+      "rarity": "Epic",
+      "rewards": [
+        { "type": "gold", "value": 1000 }
+      ],
+      "is_hidden": false
     }
   ],
-  "_reserved": {}
+  "rarity_display": {
+    "Common": { "color": "#C0C0C0", "name_cn": "普通" },
+    "Rare":   { "color": "#4A9EFF", "name_cn": "稀有" },
+    "Epic":   { "color": "#A855F7", "name_cn": "史诗" },
+    "Legendary": { "color": "#FF8C00", "name_cn": "传说" }
+  }
 }

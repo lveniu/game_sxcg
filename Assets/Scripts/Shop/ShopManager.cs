@@ -3,14 +3,15 @@ using UnityEngine;
 
 /// <summary>
 /// 商店管理器 — 战关间购买装备和卡牌
+/// 数值从 BalanceProvider（economy.json / drop_tables.json）读取
 /// </summary>
 public class ShopManager : MonoBehaviour
 {
     public static ShopManager Instance { get; private set; }
 
-    [Header("商店配置")]
-    public int baseCardPrice = 40;
-    public int discountChance = 20; // 20%概率折扣
+    [Header("商店配置（fallback 默认值，实际从 JSON 读取）")]
+    public int baseCardPriceFallback = 40;
+    public int discountChanceFallback = 20; // 20%概率折扣
 
     public List<ShopItem> CurrentItems { get; private set; } = new();
 
@@ -25,11 +26,35 @@ public class ShopManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 从 JSON 获取基础卡牌价格，fallback 到 baseCardPriceFallback
+    /// </summary>
+    private int BaseCardPrice => BalanceProvider.GetCardPriceByRarity(0, baseCardPriceFallback) / 1; // common 品质基础价
+
+    /// <summary>
+    /// 从 JSON 获取折扣概率（百分比），fallback 到 discountChanceFallback
+    /// </summary>
+    private int DiscountChancePercent
+    {
+        get
+        {
+            float chance = BalanceProvider.GetShopDiscountChance();
+            return Mathf.RoundToInt(chance * 100f);
+        }
+    }
+
+    /// <summary>
+    /// 从 JSON 获取折扣率（0~1），fallback 到 0.7
+    /// </summary>
+    private float DiscountRate => BalanceProvider.GetShopDiscountRate();
+
+    /// <summary>
     /// 生成商店商品
     /// </summary>
     public void GenerateShop(int levelId)
     {
         CurrentItems.Clear();
+
+        int discountPct = DiscountChancePercent;
 
         // 装备商品
         var equipments = EquipmentManager.GenerateShopItems(levelId);
@@ -40,28 +65,29 @@ public class ShopManager : MonoBehaviour
                 type = ShopItemType.Equipment,
                 equipment = equip,
                 price = equip.GetPrice(),
-                isDiscounted = Random.Range(0, 100) < discountChance
+                isDiscounted = Random.Range(0, 100) < discountPct
             });
         }
 
-        // 卡牌商品
+        // 卡牌商品 — 价格从 economy.json price_by_rarity 读取
         int cardCount = 2 + (levelId / 5);
         var rewardCards = GameData.CreateRewardCards();
         for (int i = 0; i < cardCount && i < rewardCards.Count; i++)
         {
             int idx = Random.Range(0, rewardCards.Count);
             var card = rewardCards[idx];
-            int price = baseCardPrice * (int)(card.Data.rarity + 1);
+            int rarityIdx = (int)(card.Data.rarity);
+            int price = BalanceProvider.GetCardPriceByRarity(rarityIdx, baseCardPriceFallback);
             CurrentItems.Add(new ShopItem
             {
                 type = ShopItemType.Card,
                 card = card,
                 price = price,
-                isDiscounted = Random.Range(0, 100) < discountChance
+                isDiscounted = Random.Range(0, 100) < discountPct
             });
         }
 
-        Debug.Log($"商店刷新，共{CurrentItems.Count}件商品");
+        Debug.Log($"商店刷新，共{CurrentItems.Count}件商品（折扣率={DiscountRate}，折扣概率={discountPct}%）");
     }
 
     /// <summary>
@@ -73,7 +99,7 @@ public class ShopManager : MonoBehaviour
         var item = CurrentItems[itemIndex];
         if (item.isSold) return false;
 
-        int finalPrice = item.isDiscounted ? Mathf.RoundToInt(item.price * 0.7f) : item.price;
+        int finalPrice = item.isDiscounted ? Mathf.RoundToInt(item.price * DiscountRate) : item.price;
         if (inventory.Gold < finalPrice) return false;
 
         inventory.SpendGold(finalPrice);
