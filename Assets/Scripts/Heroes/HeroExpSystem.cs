@@ -224,6 +224,10 @@ public class HeroExpSystem
             hero.SetLevel(oldLevel + 1);
 
             OnHeroLevelUp?.Invoke(hero, oldLevel, hero.HeroLevel);
+
+            // 战斗特效：升级光柱
+            BattleEffectManager.PlayLevelUp(hero.transform.position);
+
             Debug.Log($"[HeroExpSystem] {hero.Data.heroName} 升级! Lv{oldLevel} → Lv{hero.HeroLevel}");
 
             // 更新下一级经验需求

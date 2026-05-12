@@ -243,6 +243,13 @@ public class Hero : MonoBehaviour
 
         // 伤害飘字
         DamagePopup.Instance?.ShowDamage(transform.position, actual);
+
+        // 战斗特效：受击
+        bool isCrit = actual > (attacker != null ? attacker.BattleAttack : 0);
+        if (isCrit && attacker != null)
+            BattleEffectManager.PlayCrit(transform.position);
+        else
+            BattleEffectManager.PlayHit(transform.position);
     }
 
     /// <summary>
@@ -254,6 +261,9 @@ public class Hero : MonoBehaviour
 
         // 治疗飘字
         DamagePopup.Instance?.ShowHeal(transform.position, amount);
+
+        // 战斗特效：治疗
+        BattleEffectManager.PlayHeal(transform.position);
     }
 
     /// <summary>
@@ -275,6 +285,9 @@ public class Hero : MonoBehaviour
     {
         // MVP简化：护盾转化为临时生命
         CurrentHealth = Mathf.Min(MaxHealth + shieldAmount, CurrentHealth + shieldAmount);
+
+        // 战斗特效：护盾
+        BattleEffectManager.PlayShield(transform.position);
     }
 
     /// <summary>

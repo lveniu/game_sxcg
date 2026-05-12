@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 
 /// <summary>
 /// 战斗管理器 — 管理自走棋自动战斗流程
@@ -58,6 +59,15 @@ public class BattleManager : MonoBehaviour
             new MechanicEnemySystem();
         if (FaceEffectExecutor.Instance == null)
             new FaceEffectExecutor();
+
+        // 初始化战斗特效系统
+        if (BattleEffectManager.Instance == null)
+        {
+            var effectGo = new GameObject("[BattleEffectManager]");
+            effectGo.transform.SetParent(transform);
+            effectGo.AddComponent<BattleEffectManager>();
+        }
+        BattleEffectManager.Instance?.Initialize();
     }
 
     /// <summary>
@@ -147,6 +157,9 @@ public class BattleManager : MonoBehaviour
 
         OnBattleStarted?.Invoke();
         battleCoroutine = StartCoroutine(BattleLoop());
+
+        // 通知特效系统战斗开始
+        BattleEffectManager.Instance?.OnBattleStart();
     }
 
     /// <summary>
@@ -405,6 +418,18 @@ public class BattleManager : MonoBehaviour
         }
 
         // 移除确认死亡的单位（复活失败的）
+        // 先为死亡单位播放死亡特效
+        foreach (var u in playerUnits)
+        {
+            if (u != null && u.IsDead)
+                BattleEffectManager.PlayDeath(u.transform.position);
+        }
+        foreach (var u in enemyUnits)
+        {
+            if (u != null && u.IsDead)
+                BattleEffectManager.PlayDeath(u.transform.position);
+        }
+
         playerUnits.RemoveAll(u => u == null || u.IsDead);
         enemyUnits.RemoveAll(u => u == null || u.IsDead);
     }
@@ -415,6 +440,9 @@ public class BattleManager : MonoBehaviour
         bool allPlayerDead = playerUnits.TrueForAll(u => u == null || u.IsDead);
 
         PlayerWon = allEnemyDead && !allPlayerDead;
+
+        // 通知特效系统战斗结束
+        BattleEffectManager.Instance?.OnBattleEnd();
 
         // 清理机制怪战斗状态
         if (MechanicEnemySystem.Instance != null)
