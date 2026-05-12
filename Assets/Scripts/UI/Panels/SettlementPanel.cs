@@ -169,8 +169,158 @@ namespace Game.UI
             if (equipmentArea != null)
                 equipmentArea.gameObject.SetActive(false);
 
-            // TODO(Phase2-LootSystem): 对接后端装备掉落系统 — 不阻塞Phase1
-            // if (won) { var drop = LootSystem.GetLevelDrop(level); ... }
+            if (!won) return;
+
+            var gsm = GameStateMachine.Instance;
+            if (gsm == null) return;
+            int level = gsm.CurrentLevel;
+
+            var lootSystem = LootSystem.Instance;
+            if (lootSystem == null)
+            {
+                Debug.LogWarning("[SettlementPanel] LootSystem实例不存在，跳过装备掉落");
+                return;
+            }
+
+            // 检查本关是否掉落装备
+            if (!lootSystem.ShouldDropEquipment(level)) return;
+
+            // 生成掉落列表（3选1）
+            var drops = lootSystem.GenerateLootDrops(level, 3);
+            if (drops == null || drops.Count == 0) return;
+
+            // 展示装备掉落区域
+            if (equipmentArea != null)
+            {
+                equipmentArea.gameObject.SetActive(true);
+
+                // 构建掉落装备展示文本
+                if (equipmentText != null)
+                {
+                    var lines = new System.Text.StringBuilder();
+                    lines.AppendLine("🎁 获得装备（选择一件）:");
+                    for (int i = 0; i < drops.Count; i++)
+                    {
+                        lines.AppendLine($"  {i + 1}. {drops[i].GetDisplayText()}");
+                    }
+                    equipmentText.text = lines.ToString();
+
+                    // 入场动画
+                    equipmentText.rectTransform.localScale = Vector3.zero;
+                    equipmentText.rectTransform.DOScale(Vector3.one, 0.4f)
+                        .SetEase(Ease.OutBack).SetLink(gameObject);
+                }
+
+                // 创建选择按钮
+                CreateLootSelectionButtons(drops);
+            }
+        }
+
+        /// <summary>
+        /// 为每件掉落装备创建选择按钮
+        /// </summary>
+        private void CreateLootSelectionButtons(List<LootDrop> drops)
+        {
+            if (equipmentArea == null) return;
+
+            for (int i = 0; i < drops.Count; i++)
+            {
+                int index = i; // 闭包捕获
+                var drop = drops[i];
+
+                var btnGo = new GameObject($"LootBtn_{i}");
+                var btnRt = btnGo.AddComponent<RectTransform>();
+                btnRt.SetParent(equipmentArea, false);
+                btnRt.sizeDelta = new Vector2(equipmentArea.rect.width - 40f, 36f);
+
+                var btnImage = btnGo.AddComponent<Image>();
+                btnImage.color = GetRarityBgColor(drop.Rarity);
+                btnImage.raycastTarget = true;
+
+                var btn = btnGo.AddComponent<Button>();
+                btn.targetGraphic = btnImage;
+                btn.onClick.AddListener(() => OnLootSelected(drop, btnGo));
+
+                var btnText = btnGo.AddComponent<Text>();
+                btnText.font = Resources.GetBuiltinAsset<Font>("Arial.ttf");
+                btnText.fontSize = 14;
+                btnText.color = Color.white;
+                btnText.text = drop.GetDisplayText();
+                btnText.alignment = TextAnchor.MiddleCenter;
+                btnText.raycastTarget = false;
+
+                // 按钮入场动画（依次弹入）
+                btnRt.localScale = Vector3.zero;
+                btnRt.DOScale(Vector3.one, 0.3f)
+                    .SetDelay(0.2f + i * 0.15f)
+                    .SetEase(Ease.OutBack)
+                    .SetLink(gameObject);
+            }
+        }
+
+        /// <summary>
+        /// 玩家选中一件掉落装备
+        /// </summary>
+        private void OnLootSelected(LootDrop drop, GameObject btnObj)
+        {
+            if (drop == null || drop.IsSelected) return;
+
+            var lootSystem = LootSystem.Instance;
+            if (lootSystem == null) return;
+
+            // 加入玩家背包
+            bool claimed = lootSystem.ClaimLoot(drop);
+            if (!claimed)
+            {
+                Debug.LogWarning("[SettlementPanel] 装备领取失败");
+                return;
+            }
+
+            // 更新UI：显示已领取
+            if (equipmentText != null)
+            {
+                equipmentText.text = $"✅ 已获得装备:\n  {drop.GetDisplayText()}";
+            }
+
+            // 移除其他选择按钮（已做出选择）
+            if (equipmentArea != null)
+            {
+                for (int c = equipmentArea.childCount - 1; c >= 0; c--)
+                {
+                    var child = equipmentArea.GetChild(c);
+                    if (child.gameObject != equipmentText?.gameObject && child.gameObject != btnObj)
+                        Destroy(child.gameObject);
+                }
+            }
+
+            // 选中按钮高亮效果
+            if (btnObj != null)
+            {
+                var img = btnObj.GetComponent<Image>();
+                if (img != null)
+                {
+                    img.color = new Color(0.2f, 0.8f, 0.2f, 0.9f);
+                    btnObj.transform.DOScale(1.05f, 0.2f).SetEase(Ease.OutQuad).SetLink(gameObject)
+                        .OnComplete(() => btnObj.transform.DOScale(1f, 0.1f).SetLink(gameObject));
+                }
+            }
+
+            Debug.Log($"[SettlementPanel] 玩家选择了装备: {drop.DisplayName}");
+        }
+
+        /// <summary>
+        /// 获取稀有度对应的背景颜色
+        /// </summary>
+        private Color GetRarityBgColor(CardRarity rarity)
+        {
+            return rarity switch
+            {
+                CardRarity.White => new Color(0.4f, 0.4f, 0.4f, 0.85f),
+                CardRarity.Blue => new Color(0.2f, 0.35f, 0.6f, 0.85f),
+                CardRarity.Purple => new Color(0.45f, 0.2f, 0.6f, 0.85f),
+                CardRarity.Gold => new Color(0.6f, 0.5f, 0.15f, 0.9f),
+                _ => new Color(0.4f, 0.4f, 0.4f, 0.85f)
+            };
         }
 
         private void ShowGoldReward(int level)
