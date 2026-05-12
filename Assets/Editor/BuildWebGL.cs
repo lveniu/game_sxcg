@@ -68,7 +68,7 @@ public class BuildWebGL
         if (report.summary.result == BuildResult.Succeeded)
         {
             Debug.Log($"[BuildWebGL] ✅ 构建成功！");
-            Debug.Log($"[BuildWebGL] 总大小: {report.summary.totalSize / (1024 * 1024f):F2} MB");
+            Debug.Log($"[BuildWebGL] 总大小: {report.summary.totalSize / (1024.0 * 1024.0):F2} MB");
             Debug.Log($"[BuildWebGL] 耗时: {report.summary.totalTime}");
 
             // 6. 包体分析
@@ -137,17 +137,8 @@ public class BuildWebGL
         EditorUserBuildSettings.development = false;
 
         // 异常支持: Explicitly thrown exceptions only（更小包体）
-        // 需要安全调用，部分 Unity 版本可能不支持
-        try
-        {
-            PlayerSettings.SetWebGLExceptionSupport(
-                BuildTargetGroup.WebGL,
-                WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly);
-        }
-        catch (Exception e)
-        {
-            Debug.LogWarning($"[BuildWebGL] 设置 WebGLExceptionSupport 失败: {e.Message}");
-        }
+        // Unity 2022.3 使用 PlayerSettings.WebGL.exceptionSupport 属性
+        PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
 
         // 关闭 Profiler 连接
         EditorUserBuildSettings.connectProfiler = false;
