@@ -107,10 +107,10 @@ namespace Game.UI
             {
                 resultTitleText.text = won
                     ? (LocalizationManager.Instance != null
-                        ? LocalizationManager.Instance.GetText("settlement.victory")
+                        ? LocalizationManager.Instance.GetText("settlement.victory_title")
                         : "🏆 战斗胜利！")
                     : (LocalizationManager.Instance != null
-                        ? LocalizationManager.Instance.GetText("settlement.defeat")
+                        ? LocalizationManager.Instance.GetText("settlement.defeat_title")
                         : "💀 战斗失败...");
                 resultTitleText.color = won ? new Color(1f, 0.85f, 0.2f) : new Color(0.8f, 0.2f, 0.2f);
 
@@ -154,7 +154,7 @@ namespace Game.UI
                 }
                 if (nextButtonText != null)
                     nextButtonText.text = LocalizationManager.Instance != null
-                        ? LocalizationManager.Instance.GetText("settlement.continue")
+                        ? LocalizationManager.Instance.GetText("settlement.next_button")
                         : "继续 →";
             }
 

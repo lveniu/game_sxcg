@@ -475,8 +475,8 @@ public class TutorialGuideManager : MonoBehaviour
             new TutorialGuideStep
             {
                 stepID = "battle",
-                title = GetLocText("tutorial.battle_title", "战斗开始！"),
-                description = GetLocText("tutorial.battle_desc", "战斗自动进行，你可以加速或跳过。\n胜利后获得金币和经验奖励！"),
+                title = GetLocText("tutorial.battle_start_title", "战斗开始！"),
+                description = GetLocText("tutorial.battle_start_desc", "战斗自动进行，你可以加速或跳过。\n胜利后获得金币和经验奖励！"),
                 highlightPath = "SpeedButton",
                 highlightShape = "rect",
                 waitForEvent = "state_change",

@@ -169,6 +169,67 @@ public class PlayerInventory : MonoBehaviour
         return sorted;
     }
 
+    // ===== BE-12 IItem 统一查询 =====
+
+    /// <summary>
+    /// 获取所有物品的 IItem 视图（统一遍历装备+卡牌）
+    /// </summary>
+    public List<IItem> GetAllItems()
+    {
+        var items = new List<IItem>(Equipments.Count + Cards.Count);
+        foreach (var eq in Equipments)
+            if (eq != null) items.Add(eq);
+        foreach (var card in Cards)
+            if (card != null) items.Add(card);
+        return items;
+    }
+
+    /// <summary>
+    /// 按物品大类筛选（前端Tab切换用）
+    /// </summary>
+    public List<IItem> GetItemsByCategory(ItemCategory category)
+    {
+        if (category == ItemCategory.All)
+            return GetAllItems();
+
+        var items = new List<IItem>();
+        foreach (var eq in Equipments)
+            if (eq != null && eq.Category == category) items.Add(eq);
+        foreach (var card in Cards)
+            if (card != null && card.Category == category) items.Add(card);
+        return items;
+    }
+
+    /// <summary>
+    /// 按稀有度筛选所有物品
+    /// </summary>
+    public List<IItem> GetItemsByRarity(CardRarity rarity)
+    {
+        var items = new List<IItem>();
+        foreach (var eq in Equipments)
+            if (eq != null && eq.rarity == rarity) items.Add(eq);
+        foreach (var card in Cards)
+            if (card != null && card.Rarity == rarity) items.Add(card);
+        return items;
+    }
+
+    /// <summary>
+    /// 获取物品总数（装备+卡牌）
+    /// </summary>
+    public int GetTotalItemCount() => Equipments.Count + Cards.Count;
+
+    /// <summary>
+    /// 通过 ItemId 查找物品
+    /// </summary>
+    public IItem FindItemById(string itemId)
+    {
+        foreach (var eq in Equipments)
+            if (eq != null && eq.ItemId == itemId) return eq;
+        foreach (var card in Cards)
+            if (card != null && card.ItemId == itemId) return card;
+        return null;
+    }
+
     // ===== 存档支持 =====
     public void ForceSetGold(int amount) { Gold = amount; OnInventoryChanged?.Invoke(); }
     public void ClearEquipmentsForLoad() { Equipments.Clear(); OnInventoryChanged?.Invoke(); }

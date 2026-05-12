@@ -3,10 +3,39 @@ using UnityEngine;
 /// <summary>
 /// 运行时卡牌实例 — 手牌中的具体卡牌
 /// </summary>
-public class CardInstance
+public class CardInstance : IItem
 {
     public CardData Data { get; private set; }
     public int StarLevel { get; set; } = 1;
+
+    // ===== IItem 接口实现 =====
+
+    /// <summary>物品唯一ID（卡牌名 + 星级，保证唯一性）</summary>
+    public string ItemId => $"{Data.cardName}_star{StarLevel}";
+
+    /// <summary>显示名称</summary>
+    public string DisplayName => CardName;
+
+    /// <summary>物品描述</summary>
+    public string Description => GetEffectDescription();
+
+    /// <summary>物品大类（卡牌归为消耗品Tab）</summary>
+    public ItemCategory Category => ItemCategory.Consumable;
+
+    /// <summary>堆叠数量（卡牌不可堆叠）</summary>
+    public int StackCount { get; set; } = 1;
+
+    /// <summary>最大堆叠</summary>
+    public int MaxStack => 1;
+
+    /// <summary>图标</summary>
+    public Sprite Icon => Data.icon;
+
+    /// <summary>是否可堆叠（卡牌不可堆叠）</summary>
+    public bool IsStackable => false;
+
+    /// <summary>稀有度</summary>
+    public CardRarity Rarity => Data.rarity;
 
     /// <summary>卡牌等级（1~5），影响效果数值</summary>
     public int Level { get; private set; } = 1;

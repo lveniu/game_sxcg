@@ -5,11 +5,40 @@ using UnityEngine;
 /// 含套装归属和强化升级系统
 /// </summary>
 [CreateAssetMenu(fileName = "Equipment", menuName = "Game/Equipment")]
-public class EquipmentData : ScriptableObject
+public class EquipmentData : ScriptableObject, IItem
 {
     public string equipmentName;
     public EquipmentSlot slot;
     public CardRarity rarity; // 复用卡牌稀有度
+
+    // ===== IItem 接口实现 =====
+
+    /// <summary>物品唯一ID（使用 equipmentName 作为标识）</summary>
+    public string ItemId => string.IsNullOrEmpty(equipmentName) ? name : equipmentName;
+
+    /// <summary>显示名称</summary>
+    public string DisplayName => equipmentName;
+
+    /// <summary>物品描述</summary>
+    public string Description => description;
+
+    /// <summary>物品大类（装备）</summary>
+    public ItemCategory Category => ItemCategory.Equipment;
+
+    /// <summary>堆叠数量（装备不可堆叠，始终为1）</summary>
+    public int StackCount { get; set; } = 1;
+
+    /// <summary>最大堆叠（装备不可堆叠，始终为1）</summary>
+    public int MaxStack => 1;
+
+    /// <summary>图标（装备暂无独立图标，返回null）</summary>
+    public Sprite Icon => null;
+
+    /// <summary>是否可堆叠（装备不可堆叠）</summary>
+    public bool IsStackable => false;
+
+    /// <summary>稀有度（直接映射）</summary>
+    CardRarity IItem.Rarity => rarity;
 
     [Header("基础属性")]
     public int attackBonus;
