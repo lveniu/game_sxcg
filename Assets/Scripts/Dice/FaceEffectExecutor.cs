@@ -446,11 +446,19 @@ public class FaceEffectExecutor
 
         if (goldBonus > 0 || interestBonus > 0)
         {
-            var rgm = RoguelikeGameManager.Instance;
-            if (rgm != null)
+            var inventory = PlayerInventory.Instance;
+            if (inventory != null)
             {
-                // 通过事件通知经济系统
-                Debug.Log($"[FaceEffect] 经济效果：金币+{goldBonus}，利息+{interestBonus * 100}%");
+                // 计算实际金币：基础奖励 + 利息（按当前金币百分比）
+                int totalGold = goldBonus;
+                if (interestBonus > 0)
+                    totalGold += Mathf.RoundToInt((inventory.Gold ?? 0) * interestBonus);
+                inventory.AddGold(totalGold);
+                Debug.Log($"[FaceEffect] 经济效果：金币+{totalGold}（基础{goldBonus}，利息{interestBonus * 100}%）");
+            }
+            else
+            {
+                Debug.LogWarning("[FaceEffect] PlayerInventory不存在，经济效果未生效");
             }
         }
 

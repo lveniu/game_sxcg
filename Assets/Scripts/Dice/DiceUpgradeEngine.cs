@@ -233,6 +233,18 @@ public class DiceUpgradeEngine
     /// <param name="faceIndex">面索引（0-based）</param>
     /// <param name="effectId">效果ID</param>
     /// <returns>是否应用成功</returns>
+    /// <summary>
+    /// 计算骰面效果应用的费用
+    /// 基于效果配置中的 cost 字段，未配置则免费
+    /// </summary>
+    private int CalculateEffectCost(string effectId)
+    {
+        var effectEntry = GetEffectById(effectId);
+        if (effectEntry == null) return 0;
+        // 效果配置中的 cost 字段（如有）
+        return effectEntry.cost;
+    }
+
     public bool ApplyEffect(int diceIndex, int faceIndex, string effectId)
     {
         // 1. 验证效果ID是否存在
@@ -244,24 +256,45 @@ public class DiceUpgradeEngine
             return false;
         }
 
-        // 2. 获取骰子引用
+        // 2. 计算效果应用费用
+        int cost = CalculateEffectCost(effectId);
+        if (cost > 0)
+        {
+            if (!CanAfford(cost))
+            {
+                NotifyFailed(diceIndex, faceIndex, $"金币不足：需要 {cost}，当前 {PlayerInventory.Instance?.Gold ?? 0}");
+                return false;
+            }
+            var inventory = PlayerInventory.Instance;
+            if (inventory != null && !inventory.SpendGold(cost))
+            {
+                NotifyFailed(diceIndex, faceIndex, "扣款失败");
+                return false;
+            }
+        }
+
+        // 3. 获取骰子引用
         var roller = GetDiceRoller();
         if (roller == null)
         {
+            // 回滚金币
+            if (cost > 0) PlayerInventory.Instance?.AddGold(cost);
             NotifyFailed(diceIndex, faceIndex, "DiceRoller 不可用");
             return false;
         }
 
-        // 3. 通过 DiceRoller 添加效果
+        // 4. 通过 DiceRoller 添加效果
         bool applied = roller.AddEffectToFace(diceIndex, faceIndex, effectId);
         if (!applied)
         {
+            // 回滚金币
+            if (cost > 0) PlayerInventory.Instance?.AddGold(cost);
             NotifyFailed(diceIndex, faceIndex, "AddEffectToFace 调用失败");
             return false;
         }
 
-        // 4. 通知
-        Debug.Log($"[DiceUpgradeEngine] 效果已应用：骰子{diceIndex + 1} 面{faceIndex + 1} → {effectEntry.name_cn}({effectId})");
+        // 5. 通知
+        Debug.Log($"[DiceUpgradeEngine] 效果已应用：骰子{diceIndex + 1} 面{faceIndex + 1} → {effectEntry.name_cn}({effectId})，花费 {cost} 金币");
         OnEffectApplied?.Invoke(diceIndex, faceIndex, effectId);
         return true;
     }

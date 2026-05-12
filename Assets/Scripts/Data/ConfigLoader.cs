@@ -577,6 +577,7 @@ public class SpecialFaceEntry
     public float heal_pct;
     public float dot_pct;
     public float crit_damage_bonus;
+    public int cost;                    // 效果应用费用（金币），默认0=免费
 }
 
 public class DiceConfigSection
