@@ -891,4 +891,14 @@ public class EventOption
     public string optionText;        // "打开宝箱" / "小心绕过"
     public string effectDescription; // "获得50金币" / "安全通过，无事发生"
     public bool isRiskOption;        // 是否风险选项（红色高亮）
+
+    // ---- RandomEventSystem 使用的扩展字段 ----
+    public EventEffectType effectType;          // 主效果类型
+    public float effectValue;                   // 主效果数值
+    public EventEffectType secondaryEffect;     // 次要效果类型（成功时附带）
+    public float secondaryValue;                // 次要效果数值
+    public EventEffectType riskFailEffectType;  // 风险失败时的效果类型
+    public float riskFailValue;                 // 风险失败时的效果数值
+    public int goldCost;                        // 选项金币消耗
+    public float riskChance = 1.0f;             // 风险成功率（0~1）
 }
