@@ -695,7 +695,8 @@ namespace Game.UI
             sfxVolume = Mathf.Round(value * 20f) / 20f;
             if (sfxSlider != null) sfxSlider.value = sfxVolume;
             if (sfxValueText != null) sfxValueText.text = Mathf.RoundToInt(sfxVolume * 100) + "%";
-            // TODO: 后续对接 AudioManager 设置SFX音量
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.SFXVolume = sfxVolume;
         }
 
         private void OnQualitySelected(int level)
@@ -711,7 +712,8 @@ namespace Game.UI
             vibrationOn = !vibrationOn;
             RefreshVibrationButton();
             Debug.Log($"[Settings] 震动: {(vibrationOn ? "开启" : "关闭")}");
-            // TODO: 后续对接震动 API (Handheld.Vibrate 等)
+            if (vibrationOn)
+                Handheld.Vibrate();
         }
 
         private void OnLanguageSelected(int index)
@@ -719,7 +721,9 @@ namespace Game.UI
             language = index == 0 ? "zh" : "en";
             RefreshLanguageButtons();
             Debug.Log($"[Settings] 语言切换为: {language}");
-            // TODO: 后续对接本地化系统 (I18N / Localization)
+            // 本地化系统对接占位：待 LocalizationManager 实现后取消注释
+            // if (LocalizationManager.Instance != null)
+            //     LocalizationManager.Instance.SetLanguage(language);
         }
 
         private void OnResetClicked()
