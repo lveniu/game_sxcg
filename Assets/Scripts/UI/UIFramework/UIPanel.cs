@@ -67,14 +67,12 @@ namespace Game.UI
             canvasGroup.DOFade(0f, 0.2f).SetEase(Ease.InQuad).OnComplete(() =>
             {
                 gameObject.SetActive(false);
+                // Bug#1 fix: 动画完成后再Kill，而非之前立即Kill导致动画永远不播放
+                DOTween.Kill(gameObject);
                 OnHidden?.Invoke();
             });
 
             OnHide();
-
-            // 技术债清理: 统一Kill该GameObject上所有DOTween，一劳永逸防泄漏
-            // 子面板不用再各自DOKill，基类兜底
-            DOTween.Kill(gameObject);
         }
 
         /// <summary>立即隐藏（无动画，用于初始化）</summary>

@@ -215,18 +215,18 @@ public class BuildWebGL
         }
 
         // 输出格式化报告
-        float MB = 1024f * 1024f;
-        Debug.Log($"  wasm:  {wasmSize / MB,8:F2} MB  ({wasmSize * 100f / totalSize:F1}%)");
-        Debug.Log($"  js:    {jsSize / MB,8:F2} MB  ({jsSize * 100f / totalSize:F1}%)");
-        Debug.Log($"  data:  {dataSize / MB,8:F2} MB  ({dataSize * 100f / totalSize:F1}%)");
-        Debug.Log($"  asset: {assetSize / MB,8:F2} MB  ({assetSize * 100f / totalSize:F1}%)");
-        Debug.Log($"  other: {otherSize / MB,8:F2} MB  ({otherSize * 100f / totalSize:F1}%)");
+        double MB = 1024.0 * 1024.0;
+        Debug.Log($"  wasm:  {wasmSize / MB,8:F2} MB  ({wasmSize * 100.0 / totalSize:F1}%)");
+        Debug.Log($"  js:    {jsSize / MB,8:F2} MB  ({jsSize * 100.0 / totalSize:F1}%)");
+        Debug.Log($"  data:  {dataSize / MB,8:F2} MB  ({dataSize * 100.0 / totalSize:F1}%)");
+        Debug.Log($"  asset: {assetSize / MB,8:F2} MB  ({assetSize * 100.0 / totalSize:F1}%)");
+        Debug.Log($"  other: {otherSize / MB,8:F2} MB  ({otherSize * 100.0 / totalSize:F1}%)");
         Debug.Log($"  ──────────────────────────────────────────");
         Debug.Log($"  TOTAL: {totalSize / MB,8:F2} MB");
 
         // 微信小游戏 4MB 首包基准判断
         // wasm + js 为首包必须加载的框架代码
-        float frameworkMB = (wasmSize + jsSize) / MB;
+        double frameworkMB = (wasmSize + jsSize) / MB;
         Debug.Log($"[BuildWebGL] framework (wasm+js): {frameworkMB:F2} MB");
 
         if (frameworkMB <= 4.0f)
@@ -281,8 +281,8 @@ public class BuildWebGL
             }
         }
 
-        float MB = 1024f * 1024f;
-        float frameworkMB = (wasmSize + jsSize) / MB;
+        double MB = 1024.0 * 1024.0;
+        double frameworkMB = (wasmSize + jsSize) / MB;
         bool wechat4mbPass = frameworkMB <= 4.0;
 
         // 手动构建 JSON（避免依赖 Newtonsoft / System.Text.Json）

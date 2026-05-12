@@ -100,6 +100,13 @@ namespace Game.UI
 
         protected override void Awake() { base.Awake(); slideInAnimation = false; data = new MockCollectionData(); }
 
+        // Bug#2 fix: 场景切换/销毁时清理孤儿Tween，防MissingReferenceException
+        protected virtual void OnDestroy()
+        {
+            KillTweens();
+            DOTween.Kill(gameObject);
+        }
+
         protected override void OnShow()
         {
             KillTweens(); ClearAll();
@@ -301,8 +308,13 @@ namespace Game.UI
         {
             if (detailCard != null && detailCard.gameObject.activeSelf)
                 tweens.Add(detailCard.DOScale(0f, 0.2f).SetEase(Ease.InBack).SetLink(gameObject)
-                    .OnComplete(() => { if (detailCard != null) detailCard.gameObject.SetActive(false); }));
-            if (detailOv != null) detailOv.gameObject.SetActive(false);
+                    .OnComplete(() =>
+                    {
+                        // Bug#6 fix: 卡片动画播完后才隐藏遮罩，避免闪烁
+                        if (detailCard != null) detailCard.gameObject.SetActive(false);
+                        if (detailOv != null) detailOv.gameObject.SetActive(false);
+                    }));
+            else if (detailOv != null) detailOv.gameObject.SetActive(false);
         }
 
         // ──── 网格 ────
