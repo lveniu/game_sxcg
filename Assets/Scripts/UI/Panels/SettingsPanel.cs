@@ -177,6 +177,9 @@ namespace Game.UI
             // --- 语言 ---
             y = BuildLanguageSection(contentRoot, y);
 
+            // --- 教程引导 ---
+            y = BuildTutorialSection(contentRoot, y);
+
             // --- 版本号 ---
             y = BuildVersionSection(contentRoot, y);
 
@@ -586,6 +589,105 @@ namespace Game.UI
             txt.color = Color.white;
             txt.alignment = TextAnchor.MiddleCenter;
             txt.text = "重置所有设置";
+        }
+
+        // ==================== 教程引导区域 ====================
+
+        private float BuildTutorialSection(RectTransform parent, float startY)
+        {
+            var sectionGo = new GameObject("TutorialSection");
+            sectionGo.transform.SetParent(parent, false);
+            var sectionRt = sectionGo.AddComponent<RectTransform>();
+            sectionRt.anchorMin = new Vector2(0f, 1f);
+            sectionRt.anchorMax = new Vector2(1f, 1f);
+            sectionRt.pivot = new Vector2(0.5f, 1f);
+            sectionRt.sizeDelta = new Vector2(0f, 80f);
+            sectionRt.anchoredPosition = new Vector2(0f, -(startY + 10f));
+
+            // 标签
+            var labelGo = new GameObject("Label");
+            labelGo.transform.SetParent(sectionRt, false);
+            var labelRt = labelGo.AddComponent<RectTransform>();
+            labelRt.anchorMin = new Vector2(0.05f, 0.6f);
+            labelRt.anchorMax = new Vector2(0.5f, 0.9f);
+            labelRt.offsetMin = labelRt.offsetMax = Vector2.zero;
+            var labelText = labelGo.AddComponent<Text>();
+            labelText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            labelText.fontSize = 20;
+            labelText.color = LABEL_CLR;
+            labelText.alignment = TextAnchor.MiddleLeft;
+            labelText.text = "📖 新手引导";
+
+            // 开关按钮
+            var btnGo = new GameObject("TutorialToggle");
+            btnGo.transform.SetParent(sectionRt, false);
+            var btnRt = btnGo.AddComponent<RectTransform>();
+            btnRt.anchorMin = new Vector2(0.55f, 0.55f);
+            btnRt.anchorMax = new Vector2(0.95f, 0.95f);
+            btnRt.offsetMin = btnRt.offsetMax = Vector2.zero;
+
+            var btnBg = btnGo.AddComponent<Image>();
+            bool guideOn = TutorialGuideManager.Instance != null && TutorialGuideManager.Instance.IsGuideEnabled();
+            btnBg.color = guideOn ? TOGGLE_ON_CLR : TOGGLE_OFF_CLR;
+
+            var tutorialBtn = btnGo.AddComponent<Button>();
+            tutorialBtn.targetGraphic = btnBg;
+
+            var btnTxtGo = new GameObject("Text");
+            btnTxtGo.transform.SetParent(btnGo.transform, false);
+            var btnTxtRt = btnTxtGo.AddComponent<RectTransform>();
+            btnTxtRt.anchorMin = Vector2.zero;
+            btnTxtRt.anchorMax = Vector2.one;
+            btnTxtRt.offsetMin = btnTxtRt.offsetMax = Vector2.zero;
+            var btnTxt = btnTxtGo.AddComponent<Text>();
+            btnTxt.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            btnTxt.fontSize = 18;
+            btnTxt.color = Color.white;
+            btnTxt.alignment = TextAnchor.MiddleCenter;
+            btnTxt.text = guideOn ? "✓ 开启" : "关闭";
+
+            tutorialBtn.onClick.AddListener(() =>
+            {
+                bool newState = !(TutorialGuideManager.Instance?.IsGuideEnabled() ?? true);
+                TutorialGuideManager.Instance?.SetGuideEnabled(newState);
+                btnBg.color = newState ? TOGGLE_ON_CLR : TOGGLE_OFF_CLR;
+                btnTxt.text = newState ? "✓ 开启" : "关闭";
+                Debug.Log($"[Settings] 新手引导: {(newState ? "开启" : "关闭")}");
+            });
+
+            // 重置引导按钮
+            var resetGuideGo = new GameObject("ResetGuideBtn");
+            resetGuideGo.transform.SetParent(sectionRt, false);
+            var resetGuideRt = resetGuideGo.AddComponent<RectTransform>();
+            resetGuideRt.anchorMin = new Vector2(0.05f, 0.05f);
+            resetGuideRt.anchorMax = new Vector2(0.95f, 0.5f);
+            resetGuideRt.offsetMin = resetGuideRt.offsetMax = Vector2.zero;
+
+            var resetGuideBg = resetGuideGo.AddComponent<Image>();
+            resetGuideBg.color = new Color(0.25f, 0.25f, 0.35f, 0.8f);
+
+            var resetGuideBtn = resetGuideGo.AddComponent<Button>();
+            resetGuideBtn.targetGraphic = resetGuideBg;
+            resetGuideBtn.onClick.AddListener(() =>
+            {
+                TutorialGuideManager.Instance?.ResetGuide();
+                Debug.Log("[Settings] 新手引导已重置");
+            });
+
+            var resetTxtGo = new GameObject("Text");
+            resetTxtGo.transform.SetParent(resetGuideGo.transform, false);
+            var resetTxtRt = resetTxtGo.AddComponent<RectTransform>();
+            resetTxtRt.anchorMin = Vector2.zero;
+            resetTxtRt.anchorMax = Vector2.one;
+            resetTxtRt.offsetMin = resetTxtRt.offsetMax = Vector2.zero;
+            var resetTxt = resetTxtGo.AddComponent<Text>();
+            resetTxt.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            resetTxt.fontSize = 16;
+            resetTxt.color = new Color(0.7f, 0.7f, 0.8f);
+            resetTxt.alignment = TextAnchor.MiddleCenter;
+            resetTxt.text = "重置引导";
+
+            return startY + 95f;
         }
 
         // ============================================================
