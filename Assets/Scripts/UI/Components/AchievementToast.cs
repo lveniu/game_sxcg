@@ -140,17 +140,21 @@ public class AchievementToast : MonoBehaviour
         bg.color = BG_COLOR;
         bg.raycastTarget = false;
 
-        // 金色边框
+        // 稀有度边框颜色
+        Color borderColor = RARITY_COLORS.GetValueOrDefault(
+            def.rarity?.ToLower() ?? "common", GOLD_BORDER);
+
         var outline = go.AddComponent<Outline>();
-        outline.effectColor = GOLD_BORDER;
+        outline.effectColor = borderColor;
         outline.effectDistance = new(3, -3);
 
-        // 金色脉冲边框动画
+        // 稀有度脉冲边框动画
+        Color dimColor = borderColor * .7f; dimColor.a = 1f;
         var seq = DOTween.Sequence();
         seq.Append(DOTween.To(() => outline.effectColor, c => outline.effectColor = c,
-            new Color(1f, .7f, 0f), .4f));
+            dimColor, .4f));
         seq.Append(DOTween.To(() => outline.effectColor, c => outline.effectColor = c,
-            GOLD_BORDER, .4f));
+            borderColor, .4f));
         seq.SetLoops(-1, LoopType.Yoyo).SetTarget(go);
 
         // 内容区域
@@ -162,7 +166,7 @@ public class AchievementToast : MonoBehaviour
         irt.anchorMax = new(.12f, .85f);
         irt.offsetMin = irt.offsetMax = Vector2.zero;
         var iconImg = iconGo.AddComponent<Image>();
-        iconImg.color = new(1f, .84f, 0f, .3f);
+        iconImg.color = new(borderColor.r, borderColor.g, borderColor.b, .3f);
         iconImg.raycastTarget = false;
         var iconTxt = iconGo.AddComponent<Text>();
         iconTxt.text = "🏆";
@@ -182,7 +186,7 @@ public class AchievementToast : MonoBehaviour
         titleTxt.text = $"🏆 成就解锁: {def.name_cn}";
         titleTxt.font = DefFont;
         titleTxt.fontSize = 16;
-        titleTxt.color = new(1f, .84f, 0f);
+        titleTxt.color = borderColor;
         titleTxt.alignment = TextAnchor.MiddleLeft;
         titleTxt.fontStyle = FontStyle.Bold;
 

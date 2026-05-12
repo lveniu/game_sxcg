@@ -303,6 +303,106 @@ namespace Game.UI
             }
         }
 
+        // ==================== 成就详情弹窗 ====================
+
+        GameObject _detailPopup;
+
+        void ShowDetailPopup(AchievementDef d, AchievementProgress p)
+        {
+            // 销毁旧弹窗
+            if (_detailPopup != null) Destroy(_detailPopup);
+
+            var overlay = CreateChild("DetailOverlay", transform);
+            _detailPopup = overlay;
+            var ort = overlay.Rect();
+            ort.anchorMin = Vector2.zero; ort.anchorMax = Vector2.one;
+            ort.offsetMin = ort.offsetMax = Vector2.zero;
+            var overlayBg = overlay.AddComponent<Image>();
+            overlayBg.color = new(0, 0, 0, .6f);
+            overlayBg.raycastTarget = true;
+
+            // 点击背景关闭
+            var overlayBtn = overlay.AddComponent<Button>();
+            overlayBtn.targetGraphic = overlayBg;
+            overlayBtn.onClick.AddListener(() => { Destroy(_detailPopup); _detailPopup = null; });
+
+            // 内容卡
+            var card = CreateChild("DetailCard", overlay.transform);
+            var crt = card.Rect();
+            crt.anchorMin = new(.1f, .3f); crt.anchorMax = new(.9f, .7f);
+            crt.offsetMin = crt.offsetMax = Vector2.zero;
+            card.AddComponent<Image>().color = new(.12f, .12f, .18f, .98f);
+            var cardOutline = card.AddComponent<Outline>();
+            cardOutline.effectColor = RarityColor(d.rarity);
+            cardOutline.effectDistance = new(3, -3);
+
+            Color rarityClr = RarityColor(d.rarity);
+
+            // 图标 + 稀有度标题行
+            var headerRow = CreateChild("Header", card.transform);
+            var hrt = headerRow.Rect();
+            hrt.anchorMin = new(.05f, .8f); hrt.anchorMax = new(.95f, .95f);
+            hrt.offsetMin = hrt.offsetMax = Vector2.zero;
+
+            string emoji = d.icon switch
+            {
+                "sword" => "⚔", "skull" => "💀", "dice" => "🎲", "gem" => "💎", "clock" => "⏱",
+                "dragon" => "🐉", "fire" => "🔥", "shield" => "🛡", "star" => "⭐", "coin" => "💰",
+                "map" => "🗺", "trophy" => "🏆", "chest" => "📦", "heart" => "❤", "lightning" => "⚡",
+                "reroll" => "🔄", "combo" => "🎯", _ => "❓"
+            };
+            MakeText("DetailTitle", headerRow, (0, 0, 1, 1),
+                $"{emoji} {d.name_cn}  {RarityEmoji(d.rarity)}", 22, rarityClr,
+                TextAnchor.MiddleCenter, bold: true);
+
+            // 描述
+            MakeText("DetailDesc", card, (.08f, .6f, .92f, .78f),
+                d.description ?? "", 16, new(.9f, .9f, .95f), TextAnchor.MiddleCenter);
+
+            // 进度
+            bool unlocked = p?.is_unlocked == true;
+            bool claimed = p?.rewards_claimed == true;
+            string progText = unlocked ? "✅ 已解锁" : p != null
+                ? $"进度: {Mathf.Min(p.current_value, d.target_value)}/{d.target_value}"
+                : "未开始";
+            MakeText("DetailProg", card, (.08f, .45f, .92f, .58f),
+                progText, 15, unlocked ? BD_DONE : BAR_FILL, TextAnchor.MiddleCenter, bold: true);
+
+            // 奖励列表
+            string rewardText = "无奖励";
+            if (d.rewards != null && d.rewards.Count > 0)
+            {
+                var parts = new List<string>();
+                foreach (var r in d.rewards)
+                {
+                    switch (r.type?.ToLower())
+                    {
+                        case "gold": parts.Add($"💰 {r.value} 金币"); break;
+                        case "relic": parts.Add($"🎁 遗物: {r.item_id}"); break;
+                        case "dice_face": parts.Add($"🎲 骰子面: {r.item_id}"); break;
+                    }
+                }
+                rewardText = "奖励: " + string.Join("  ", parts);
+            }
+            MakeText("DetailRewards", card, (.08f, .28f, .92f, .42f),
+                rewardText, 14, new(.85f, .8f, .7f), TextAnchor.MiddleCenter);
+
+            // 已领奖标记
+            if (claimed)
+                MakeText("DetailClaimed", card, (.2f, .08f, .8f, .22f),
+                    "✅ 奖励已领取", 16, new(.3f, .8f, .4f), TextAnchor.MiddleCenter, bold: true);
+
+            // 入场缩放动画
+            crt.localScale = Vector3.one * .7f;
+            TrackTween(crt.DOScale(Vector3.one, .3f).SetEase(Ease.OutBack).SetTarget(card));
+
+            // 背景淡入
+            var overlayCanvas = overlayBg.color;
+            overlayBg.color = new(0, 0, 0, 0);
+            TrackTween(DOTween.To(() => overlayBg.color, c => overlayBg.color = c,
+                overlayCanvas, .25f).SetTarget(overlay));
+        }
+
         // ==================== 成就卡片 ====================
         void CreateCard(AchievementDef d, AchievementProgress p, float yPos)
         {
@@ -317,6 +417,17 @@ namespace Game.UI
             rt.sizeDelta = new(0, 100); rt.anchoredPosition = new(0, -yPos);
 
             go.AddComponent<Image>().color = CARD_BG;
+
+            // 卡片点击 → 详情弹窗
+            var cardBtn = go.AddComponent<Button>();
+            cardBtn.targetGraphic = go.GetComponent<Image>();
+            string capturedDefId = d.id;
+            cardBtn.onClick.AddListener(() =>
+            {
+                var am = AchievementManager.Instance;
+                if (am != null)
+                    ShowDetailPopup(d, am.GetProgress(capturedDefId));
+            });
 
             // 边框颜色
             var outline = go.AddComponent<Outline>();
