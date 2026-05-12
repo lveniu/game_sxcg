@@ -28,9 +28,9 @@ namespace Game.UI
             ["reroll"] = Hex("#4DE680"), ["combo"] = Hex("#FF8019")
         };
 
-        // 后端分类: progress / combat / collection / dice / special
-        static readonly string[] CATS = { "all", "progress", "combat", "collection", "dice", "special" };
-        static readonly string[] CAT_LABELS = { "全部", "冒险", "战斗", "收集", "骰子", "特殊" };
+        // 后端分类: combat / collection / exploration / special（对应 achievements.json）
+        static readonly string[] CATS = { "all", "combat", "collection", "exploration", "special" };
+        static readonly string[] CAT_LABELS = { "全部", "⚔ 战斗", "💎 收集", "🗺 探索", "⭐ 特殊" };
 
         static Color RarityColor(string rarity) => rarity?.ToLower() switch
         {
@@ -52,6 +52,7 @@ namespace Game.UI
 
         // ==================== 状态 ====================
         Text summaryText;
+        RectTransform summaryBarFill;
         readonly List<Button> tabButtons = new();
         RectTransform listContainer;
         string currentCategory = "all";
@@ -151,12 +152,34 @@ namespace Game.UI
 
         float BuildSummary(GameObject parent, float y)
         {
-            var (go, _) = MakeSection("Summary", parent, 40, y);
-            summaryText = go.AddComponent<Text>();
-            summaryText.font = DefFont; summaryText.fontSize = 16;
+            var (go, _) = MakeSection("Summary", parent, 56, y);
+
+            // 总进度文本
+            var topRow = CreateChild("SummaryTop", go.transform);
+            var topRt = topRow.Rect();
+            topRt.anchorMin = new(.05f, .55f); topRt.anchorMax = new(.95f, .95f);
+            topRt.offsetMin = topRt.offsetMax = Vector2.zero;
+            summaryText = topRow.AddComponent<Text>();
+            summaryText.font = DefFont; summaryText.fontSize = 15;
             summaryText.color = new(.85f, .85f, .9f);
             summaryText.alignment = TextAnchor.MiddleCenter;
-            return y + 40;
+
+            // 总进度条背景
+            var barBg = CreateChild("SummaryBar", go.transform);
+            var bgRt = barBg.Rect();
+            bgRt.anchorMin = new(.1f, .1f); bgRt.anchorMax = new(.9f, .45f);
+            bgRt.offsetMin = bgRt.offsetMax = Vector2.zero;
+            barBg.AddComponent<Image>().color = BAR_BG;
+
+            // 总进度条填充
+            var barFill = CreateChild("SummaryBarFill", barBg.transform);
+            summaryBarFill = barFill.Rect();
+            summaryBarFill.anchorMin = Vector2.zero; summaryBarFill.pivot = new(0, .5f);
+            summaryBarFill.anchorMax = Vector2.one;
+            summaryBarFill.offsetMin = summaryBarFill.offsetMax = Vector2.zero;
+            barFill.AddComponent<Image>().color = BAR_FILL;
+
+            return y + 56;
         }
 
         float BuildTabs(GameObject parent, float y)
@@ -216,7 +239,16 @@ namespace Game.UI
             foreach (var kv in allProg)
                 if (kv.Value.is_unlocked && !kv.Value.rewards_claimed) claimable++;
 
-            summaryText.text = $"{unlocked}/{total} 已解锁  ⭐ {claimable} 待领奖";
+            summaryText.text = unlocked == total
+                ? $"🏆 全部达成！ {unlocked}/{total}"
+                : $"{unlocked}/{total} 已解锁  ⭐ {claimable} 待领奖";
+
+            // 更新总进度条
+            if (summaryBarFill != null)
+            {
+                float pct = total > 0 ? (float)unlocked / total : 0f;
+                summaryBarFill.anchorMax = new(pct, 1f);
+            }
         }
 
         void RefreshList(string category)

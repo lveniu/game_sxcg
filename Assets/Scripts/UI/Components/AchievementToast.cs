@@ -19,6 +19,16 @@ public class AchievementToast : MonoBehaviour
 
     static readonly Color GOLD_BORDER = new(1f, 0.84f, 0f);
     static readonly Color BG_COLOR = new(.1f, .1f, .15f, .95f);
+
+    // 稀有度颜色
+    static readonly Dictionary<string, Color> RARITY_COLORS = new()
+    {
+        ["common"] = new(.75f, .75f, .75f),
+        ["rare"] = new(.29f, .62f, 1f),
+        ["epic"] = new(.66f, .33f, .97f),
+        ["legendary"] = new(1f, .72f, 0f)
+    };
+
     static Font DefFont => Resources.GetBuiltinResource<Font>("Arial.ttf");
 
     // ========== 状态 ==========

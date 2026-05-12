@@ -333,7 +333,7 @@ public static class EventEffectEngine
     }
 
     /// <summary>
-    /// 攻击力增益效果 — 永久增加英雄攻击力
+    /// 攻击力增益效果 — 正值增加攻击力，负值降低攻击力
     /// 使用 hero.Data.baseAttack + RecalculateStats
     /// </summary>
     static string ExecuteBuffAttack(EventEffect effect)
@@ -341,7 +341,7 @@ public static class EventEffectEngine
         var heroes = GetHeroes();
         if (heroes == null || heroes.Count == 0) return "没有可增益的英雄";
 
-        int amount = Mathf.Max(0, effect.value);
+        int amount = effect.value;
         var targets = ResolveTargets(effect.target, heroes);
 
         foreach (var hero in targets)
@@ -355,12 +355,12 @@ public static class EventEffectEngine
 
         int count = targets.Count;
         return count > 1
-            ? $"全体英雄攻击力 +{amount}"
-            : $"攻击力 +{amount}";
+            ? (amount >= 0 ? $"全体英雄攻击力 +{amount}" : $"全体英雄攻击力 {amount}")
+            : (amount >= 0 ? $"攻击力 +{amount}" : $"攻击力 {amount}");
     }
 
     /// <summary>
-    /// 防御力增益效果 — 永久增加英雄防御力
+    /// 防御力增益效果 — 正值增加防御力，负值降低防御力
     /// 使用 hero.Data.baseDefense + RecalculateStats
     /// </summary>
     static string ExecuteBuffDefense(EventEffect effect)
@@ -368,7 +368,7 @@ public static class EventEffectEngine
         var heroes = GetHeroes();
         if (heroes == null || heroes.Count == 0) return "没有可增益的英雄";
 
-        int amount = Mathf.Max(0, effect.value);
+        int amount = effect.value;
         var targets = ResolveTargets(effect.target, heroes);
 
         foreach (var hero in targets)
@@ -382,8 +382,8 @@ public static class EventEffectEngine
 
         int count = targets.Count;
         return count > 1
-            ? $"全体英雄防御力 +{amount}"
-            : $"防御力 +{amount}";
+            ? (amount >= 0 ? $"全体英雄防御力 +{amount}" : $"全体英雄防御力 {amount}")
+            : (amount >= 0 ? $"防御力 +{amount}" : $"防御力 {amount}");
     }
 
     // ========== 辅助方法 ==========

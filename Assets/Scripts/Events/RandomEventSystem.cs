@@ -797,4 +797,622 @@ public static class RandomEventSystem
             _ => ""
         };
     }
+
+    // ====================================================================
+    // 新事件系统: 配置化事件库 + 效果引擎 + C# 事件回调
+    // 与旧系统完全兼容，旧方法保持不变
+    // ====================================================================
+
+    /// <summary>事件触发回调 — 新事件被生成时触发</summary>
+    public static event System.Action<RandomEventData> OnEventTriggered;
+
+    /// <summary>选项选择回调 — 玩家选择选项后触发</summary>
+    public static event System.Action<int, EventChoice> OnChoiceSelected;
+
+    // 当前激活的事件数据（新系统）
+    private static RandomEventData _currentEventData;
+    private static int _currentLevel;
+
+    /// <summary>
+    /// 根据关卡等级生成配置化随机事件
+    /// 从硬编码事件库中按关卡范围和权重加权随机选取
+    /// </summary>
+    /// <param name="level">当前关卡等级</param>
+    /// <returns>匹配的随机事件数据，若无匹配返回null</returns>
+    public static RandomEventData GenerateEvent(int level)
+    {
+        _currentLevel = level;
+        var library = GetEventLibrary();
+
+        // 过滤关卡范围匹配的事件
+        var candidates = new List<RandomEventData>();
+        var weights = new List<float>();
+
+        foreach (var evt in library)
+        {
+            // 关卡范围检查
+            if (evt.minLevel > 0 && level < evt.minLevel) continue;
+            if (evt.maxLevel > 0 && level > evt.maxLevel) continue;
+
+            candidates.Add(evt);
+            weights.Add(evt.weight);
+        }
+
+        if (candidates.Count == 0)
+        {
+            Debug.LogWarning($"[随机事件] 没有适合关卡{level}的事件");
+            return null;
+        }
+
+        // 加权随机选择
+        float totalWeight = 0f;
+        foreach (var w in weights) totalWeight += w;
+
+        float roll = UnityEngine.Random.value * totalWeight;
+        float cumulative = 0f;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            cumulative += weights[i];
+            if (roll <= cumulative)
+            {
+                _currentEventData = candidates[i];
+                OnEventTriggered?.Invoke(candidates[i]);
+                Debug.Log($"[随机事件-新] 生成事件: {candidates[i].title} (关卡{level})");
+                return candidates[i];
+            }
+        }
+
+        // fallback: 返回最后一个
+        _currentEventData = candidates[candidates.Count - 1];
+        OnEventTriggered?.Invoke(_currentEventData);
+        return _currentEventData;
+    }
+
+    /// <summary>
+    /// 选择事件选项并执行其效果
+    /// 使用 EventEffectEngine 执行效果，触发 OnChoiceSelected 回调
+    /// </summary>
+    /// <param name="choiceIndex">选项索引</param>
+    /// <returns>效果执行结果的描述文字</returns>
+    public static string SelectChoice(int choiceIndex)
+    {
+        if (_currentEventData == null)
+        {
+            Debug.LogWarning("[随机事件] 没有活跃事件，无法选择选项");
+            return "";
+        }
+
+        if (choiceIndex < 0 || choiceIndex >= _currentEventData.choices.Count)
+        {
+            Debug.LogWarning($"[随机事件] 无效选项索引: {choiceIndex}");
+            return "";
+        }
+
+        var choice = _currentEventData.choices[choiceIndex];
+        OnChoiceSelected?.Invoke(choiceIndex, choice);
+
+        // 使用效果引擎执行
+        string result = EventEffectEngine.ExecuteEffects(choice.effects);
+        Debug.Log($"[随机事件-新] 选择选项[{choiceIndex}]: {choice.choiceText}\n{result}");
+
+        return result;
+    }
+
+    /// <summary>
+    /// 获取当前激活的事件数据
+    /// </summary>
+    public static RandomEventData GetCurrentEvent() => _currentEventData;
+
+    /// <summary>
+    /// 获取当前关卡等级
+    /// </summary>
+    public static int GetCurrentLevel() => _currentLevel;
+
+    // ====================================================================
+    // 硬编码事件库（12个中文事件，覆盖各种类型）
+    // ====================================================================
+
+    /// <summary>
+    /// 硬编码事件库缓存
+    /// </summary>
+    private static List<RandomEventData> _eventLibraryCache;
+
+    /// <summary>
+    /// 获取事件库（懒加载，首次调用时初始化）
+    /// </summary>
+    static List<RandomEventData> GetEventLibrary()
+    {
+        if (_eventLibraryCache != null && _eventLibraryCache.Count > 0)
+            return _eventLibraryCache;
+
+        _eventLibraryCache = new List<RandomEventData>();
+        BuildEventLibrary(_eventLibraryCache);
+        return _eventLibraryCache;
+    }
+
+    /// <summary>
+    /// 构建硬编码事件库 — 12个中文事件覆盖各种类型
+    /// 事件类型涵盖: 商人/祭坛/宝箱/诅咒/治愈/锻造/赌徒/训练/废墟/骰子/命运之轮/神秘商人
+    /// </summary>
+    static void BuildEventLibrary(List<RandomEventData> library)
+    {
+        // 1. 旅行商人 — 花金币买卡牌或遗物
+        library.Add(new RandomEventData
+        {
+            eventId = "traveling_merchant",
+            title = "旅行商人",
+            description = "一位神秘的旅行商人出现在你面前，他的背包里装满了稀奇古怪的物品。",
+            flavorText = "\"来看看吧，冒险者。这些可都是好东西。\"",
+            minLevel = 1,
+            maxLevel = 0,
+            weight = 3f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "购买卡牌（花费30金币）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -30, target = "inventory" },
+                        new EventEffect { type = "card", value = 1, target = "inventory" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "购买遗物（花费60金币）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -60, target = "inventory" },
+                        new EventEffect { type = "relic", value = 1, target = "inventory" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "礼貌拒绝",
+                    effects = new List<EventEffect>()
+                }
+            }
+        });
+
+        // 2. 古老祭坛 — 牺牲血量换取攻击增益
+        library.Add(new RandomEventData
+        {
+            eventId = "ancient_altar",
+            title = "古老祭坛",
+            description = "一座散发着诡异光芒的古老祭坛矗立在你面前，似乎需要献上鲜血才能获得力量。",
+            flavorText = "祭坛上的符文隐隐发亮，仿佛在低语着什么……",
+            minLevel = 1,
+            maxLevel = 0,
+            weight = 2.5f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "献祭生命，祈求力量",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "damage", value = 15, target = "all_heroes" },
+                        new EventEffect { type = "buff_atk", value = 3, target = "all_heroes" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "献祭金币代替",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -40, target = "inventory" },
+                        new EventEffect { type = "buff_atk", value = 2, target = "all_heroes" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "离开祭坛",
+                    effects = new List<EventEffect>()
+                }
+            }
+        });
+
+        // 3. 神秘宝箱 — 概率获得金币或遗物
+        library.Add(new RandomEventData
+        {
+            eventId = "mystery_chest",
+            title = "神秘宝箱",
+            description = "你发现了一个被魔法封印的宝箱，上面刻满了古老的符文。",
+            flavorText = "宝箱似乎在微微震动，里面不知道是宝藏还是陷阱……",
+            minLevel = 1,
+            maxLevel = 0,
+            weight = 3f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "直接打开宝箱",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = 50, target = "inventory" },
+                        new EventEffect { type = "relic", value = 1, target = "inventory", probability = 0.3f, failText = "宝箱里只有金币，没有遗物。" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "小心解锁（更安全但奖励较少）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = 25, target = "inventory" },
+                        new EventEffect { type = "heal", value = 10, target = "all_heroes" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "暴力砸开（风险极大）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = 80, target = "inventory" },
+                        new EventEffect { type = "relic", value = 1, target = "inventory", probability = 0.5f, failText = "宝箱被砸坏了，遗物也随之粉碎。" },
+                        new EventEffect { type = "damage", value = 20, target = "all_heroes", probability = 0.4f, failText = "幸好没有触发陷阱。" }
+                    }
+                }
+            }
+        });
+
+        // 4. 黑暗诅咒 — 随机减益效果
+        library.Add(new RandomEventData
+        {
+            eventId = "dark_curse",
+            title = "黑暗诅咒",
+            description = "一阵寒风吹过，黑暗的力量侵蚀了你的队伍。你感觉力量正在流失……",
+            flavorText = "空气中弥漫着腐朽的气息，诅咒已经降临。",
+            minLevel = 3,
+            maxLevel = 0,
+            weight = 2f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "用金币驱散诅咒（花费50金币）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -50, target = "inventory" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "承受诅咒的代价",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "damage", value = 20, target = "all_heroes" },
+                        new EventEffect { type = "buff_atk", value = -2, target = "all_heroes" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "尝试对抗诅咒（50%概率成功）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "buff_atk", value = 2, target = "all_heroes", probability = 0.5f, failText = "对抗失败！诅咒加重了。" },
+                        new EventEffect { type = "damage", value = 25, target = "all_heroes", probability = 0.5f, failText = "" }
+                    }
+                }
+            }
+        });
+
+        // 5. 治愈之泉 — 回复血量
+        library.Add(new RandomEventData
+        {
+            eventId = "healing_spring",
+            title = "治愈之泉",
+            description = "你发现了一处散发着柔和光芒的泉水，泉水清澈见底，散发着淡淡的草药香气。",
+            flavorText = "传说这泉水有神奇的治疗力量，无数冒险者在此恢复元气。",
+            minLevel = 1,
+            maxLevel = 0,
+            weight = 3f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "饮用泉水",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "heal", value = 30, target = "all_heroes" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "用泉水洗涤武器（少量治疗+攻击增益）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "heal", value = 10, target = "all_heroes" },
+                        new EventEffect { type = "buff_atk", value = 1, target = "all_heroes" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "装满水壶带走（获得金币）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = 20, target = "inventory" }
+                    }
+                }
+            }
+        });
+
+        // 6. 锻造大师 — 免费强化一件装备
+        library.Add(new RandomEventData
+        {
+            eventId = "forge_master",
+            title = "锻造大师",
+            description = "一位矮人锻造大师正在路边休息，看到你的装备后露出了感兴趣的表情。",
+            flavorText = "\"这把武器……嗯，让我帮你改进一下吧，免费的。\"",
+            minLevel = 2,
+            maxLevel = 0,
+            weight = 2f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "请求强化装备",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "enhance", value = 1, target = "self" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "请教锻造技巧（花金币学更多）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -25, target = "inventory" },
+                        new EventEffect { type = "enhance", value = 1, target = "self" },
+                        new EventEffect { type = "buff_def", value = 2, target = "all_heroes" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "婉言谢绝",
+                    effects = new List<EventEffect>()
+                }
+            }
+        });
+
+        // 7. 赌徒 — 花费金币赌博
+        library.Add(new RandomEventData
+        {
+            eventId = "gambler",
+            title = "赌徒的邀请",
+            description = "一个戴着面具的赌徒拦住了你的去路，他手中翻飞着金色的硬币。",
+            flavorText = "\"来玩一把？运气好的话，你的金币可以翻倍！\"",
+            minLevel = 1,
+            maxLevel = 0,
+            weight = 2.5f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "小赌一把（花费20金币）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -20, target = "inventory" },
+                        new EventEffect { type = "gold", value = 60, target = "inventory", probability = 0.45f, failText = "你输了！金币归赌徒所有。" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "豪赌一把（花费50金币）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -50, target = "inventory" },
+                        new EventEffect { type = "gold", value = 150, target = "inventory", probability = 0.35f, failText = "大赌大输！你的金币打了水漂。" },
+                        new EventEffect { type = "relic", value = 1, target = "inventory", probability = 0.15f, failText = "" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "拒绝赌博",
+                    effects = new List<EventEffect>()
+                }
+            }
+        });
+
+        // 8. 神秘商人 — 高价买稀有物品
+        library.Add(new RandomEventData
+        {
+            eventId = "mysterious_trader",
+            title = "神秘商人",
+            description = "一个浑身被黑袍包裹的商人出现了，他的商品都很特别，价格也不菲。",
+            flavorText = "\"嘘……这些宝贝可不是一般人能看到的。要不要看看？\"",
+            minLevel = 5,
+            maxLevel = 0,
+            weight = 1.5f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "购买高级卡牌（花费80金币）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -80, target = "inventory" },
+                        new EventEffect { type = "card", value = 2, target = "inventory" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "购买珍贵遗物（花费120金币）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -120, target = "inventory" },
+                        new EventEffect { type = "relic", value = 1, target = "inventory" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "离开",
+                    effects = new List<EventEffect>()
+                }
+            }
+        });
+
+        // 9. 训练场 — 花金币提升英雄经验
+        library.Add(new RandomEventData
+        {
+            eventId = "training_ground",
+            title = "训练场",
+            description = "你遇到了一个经验丰富的教官，他愿意指导你的队伍进行特训。",
+            flavorText = "\"训练是变强的唯一途径！不过我的指导可不免费。\"",
+            minLevel = 2,
+            maxLevel = 0,
+            weight = 2.5f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "全队特训（花费40金币）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -40, target = "inventory" },
+                        new EventEffect { type = "exp", value = 30, target = "all_heroes" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "个人特训（花费20金币）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -20, target = "inventory" },
+                        new EventEffect { type = "exp", value = 50, target = "random_hero" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "免费旁听（效果有限）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "exp", value = 10, target = "all_heroes" }
+                    }
+                }
+            }
+        });
+
+        // 10. 废墟探索 — 概率获得卡牌或受伤
+        library.Add(new RandomEventData
+        {
+            eventId = "ruin_exploration",
+            title = "古老废墟",
+            description = "一座破败的古代遗迹出现在眼前，残垣断壁间似乎隐藏着不为人知的秘密。",
+            flavorText = "废墟深处传来奇怪的声响，可能是宝藏，也可能是危险……",
+            minLevel = 1,
+            maxLevel = 0,
+            weight = 2.5f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "深入探索",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "card", value = 1, target = "inventory", probability = 0.6f, failText = "废墟中空无一物。" },
+                        new EventEffect { type = "damage", value = 15, target = "all_heroes", probability = 0.35f, failText = "你安全地避开了所有陷阱。" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "谨慎搜索外围",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = 25, target = "inventory" },
+                        new EventEffect { type = "card", value = 1, target = "inventory", probability = 0.25f, failText = "只找到了一些金币。" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "绕路离开",
+                    effects = new List<EventEffect>()
+                }
+            }
+        });
+
+        // 11. 骰子之神 — 升级骰子面
+        library.Add(new RandomEventData
+        {
+            eventId = "dice_god",
+            title = "骰子之神",
+            description = "一个由光芒构成的巨大骰子悬浮在空中，骰子之神向你伸出了手。",
+            flavorText = "\"凡人，你的骰运令我愉悦。让我赐予你一份祝福吧。\"",
+            minLevel = 4,
+            maxLevel = 0,
+            weight = 1.5f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "接受骰子祝福",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "dice", value = 1, target = "self" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "献上金币换取双重祝福",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = -60, target = "inventory" },
+                        new EventEffect { type = "dice", value = 1, target = "self" },
+                        new EventEffect { type = "gold", value = 100, target = "inventory", probability = 0.3f, failText = "骰子之神收下了金币，但没有额外赐予。" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "膜拜后离开",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = 15, target = "inventory" }
+                    }
+                }
+            }
+        });
+
+        // 12. 命运之轮 — 随机大奖或大损失
+        library.Add(new RandomEventData
+        {
+            eventId = "wheel_of_fate",
+            title = "命运之轮",
+            description = "一个巨大的命运之轮缓缓转动，指针在无数种可能之间摇摆不定。",
+            flavorText = "命运总是充满了不确定性，但勇敢者往往能获得意想不到的收获。",
+            minLevel = 3,
+            maxLevel = 0,
+            weight = 2f,
+            choices = new List<EventChoice>
+            {
+                new EventChoice
+                {
+                    choiceText = "转动命运之轮（大奖）",
+                    effects = new List<EventEffect>
+                    {
+                        // 大奖线: 大量金币+遗物
+                        new EventEffect { type = "gold", value = 100, target = "inventory", probability = 0.3f, failText = "命运没有眷顾你……" },
+                        new EventEffect { type = "relic", value = 1, target = "inventory", probability = 0.2f, failText = "" },
+                        // 大损失线: 受伤+扣攻击
+                        new EventEffect { type = "damage", value = 30, target = "all_heroes", probability = 0.35f, failText = "" },
+                        new EventEffect { type = "buff_atk", value = -3, target = "all_heroes", probability = 0.15f, failText = "" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "小试身手（中等奖）",
+                    effects = new List<EventEffect>
+                    {
+                        new EventEffect { type = "gold", value = 40, target = "inventory", probability = 0.5f, failText = "只赢得了少量金币。" },
+                        new EventEffect { type = "heal", value = 20, target = "all_heroes", probability = 0.3f, failText = "" },
+                        new EventEffect { type = "damage", value = 10, target = "random_hero", probability = 0.2f, failText = "" }
+                    }
+                },
+                new EventChoice
+                {
+                    choiceText = "拒绝命运的安排",
+                    effects = new List<EventEffect>()
+                }
+            }
+        });
+    }
 }

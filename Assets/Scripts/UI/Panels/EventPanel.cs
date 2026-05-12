@@ -868,6 +868,364 @@ namespace Game.UI
 
         #endregion
 
+        #region 新事件系统接口（配置化事件 RandomEventData）
+
+        /// <summary>
+        /// 显示配置化随机事件（新事件系统入口）
+        /// 通过 RandomEventSystem.GenerateEvent 生成事件后调用
+        /// </summary>
+        /// <param name="data">配置化事件数据</param>
+        public void ShowEvent(RandomEventData data)
+        {
+            if (data == null)
+            {
+                Debug.LogWarning("[EventPanel] ShowEvent: 事件数据为空");
+                Hide();
+                return;
+            }
+
+            currentEvent = null; // 清除旧系统事件引用
+            currentOptions = null;
+
+            // 设置标题
+            if (eventTitleText != null)
+                eventTitleText.text = data.title;
+
+            // 设置描述（含风味文字）
+            if (eventDescText != null)
+            {
+                string desc = data.description;
+                if (!string.IsNullOrEmpty(data.flavorText))
+                    desc += $"\n\n<color=#aaaaaa><i>{data.flavorText}</i></color>";
+                eventDescText.text = desc;
+            }
+
+            // 图标颜色：根据 eventId 推断
+            if (eventIcon != null)
+                eventIcon.color = GetEventColor(data.eventId);
+
+            // 图标背景
+            if (iconBackground != null)
+                ApplyIconBackgroundForNewEvent(data.eventId);
+
+            // 隐藏旧效果面板（新系统在结果显示中使用）
+            if (effectsPanel != null) effectsPanel.gameObject.SetActive(false);
+
+            // 隐藏旧确认按钮
+            if (confirmButton != null) confirmButton.gameObject.SetActive(false);
+
+            // 动态生成选项按钮
+            ClearDynamicOptions();
+
+            if (data.choices != null && data.choices.Count > 0 && optionsContainer != null)
+            {
+                int count = Mathf.Min(data.choices.Count, 4); // 最多4个选项
+                for (int i = 0; i < count; i++)
+                {
+                    var choiceData = data.choices[i];
+                    GameObject btnObj = CreateNewEventChoiceButton(choiceData, i, data);
+                    dynamicOptionButtons.Add(btnObj);
+                }
+            }
+
+            // 隐藏结果区
+            if (resultText != null)
+            {
+                resultText.gameObject.SetActive(false);
+                resultText.text = "";
+            }
+
+            isShowingResult = false;
+
+            // 入场动画
+            PlayEnterAnimation();
+        }
+
+        /// <summary>
+        /// 显示单个选项的详细信息（可选实现，用于悬停提示等）
+        /// </summary>
+        /// <param name="index">选项索引</param>
+        /// <param name="choice">选项数据</param>
+        public void ShowChoice(int index, EventChoice choice)
+        {
+            if (choice == null) return;
+
+            // 在效果面板中显示选项的效果描述
+            if (effectsText != null && choice.effects != null)
+            {
+                var descParts = new List<string>();
+                foreach (var effect in choice.effects)
+                {
+                    descParts.Add(DescribeNewEffect(effect));
+                }
+                string desc = string.Join("\n", descParts);
+                effectsText.text = desc;
+                if (effectsPanel != null)
+                    effectsPanel.gameObject.SetActive(!string.IsNullOrEmpty(desc));
+            }
+        }
+
+        /// <summary>
+        /// 显示选项执行后的效果结果
+        /// </summary>
+        /// <param name="effects">已执行的效果列表</param>
+        public void ShowResult(List<EventEffect> effects)
+        {
+            if (effects == null || effects.Count == 0) return;
+
+            isShowingResult = true;
+
+            // 禁用所有按钮
+            foreach (var btn in dynamicOptionButtons)
+            {
+                if (btn != null)
+                {
+                    var button = btn.GetComponent<Button>();
+                    if (button != null) button.interactable = false;
+                }
+            }
+
+            // 构建结果文本
+            var resultParts = new List<string>();
+            foreach (var effect in effects)
+            {
+                string desc = DescribeNewEffect(effect);
+                if (!string.IsNullOrEmpty(desc))
+                    resultParts.Add(desc);
+            }
+            string resultContent = string.Join("\n", resultParts);
+
+            // 显示结果文字
+            if (resultText != null)
+            {
+                resultText.gameObject.SetActive(true);
+                resultText.text = "";
+
+                StartTypewriter(resultText, resultContent, () =>
+                {
+                    PlayEffectFeedback(resultContent);
+                    DOVirtual.DelayedCall(1.0f, () => CloseWithAnimation()).SetLink(gameObject);
+                });
+            }
+            else
+            {
+                PlayEffectFeedback(resultContent);
+                DOVirtual.DelayedCall(1.0f, () => CloseWithAnimation()).SetLink(gameObject);
+            }
+        }
+
+        /// <summary>
+        /// 为新事件系统创建选项按钮
+        /// </summary>
+        private GameObject CreateNewEventChoiceButton(EventChoice choice, int index, RandomEventData eventData)
+        {
+            GameObject btnObj;
+            if (optionButtonPrefab != null)
+            {
+                btnObj = Object.Instantiate(optionButtonPrefab, optionsContainer);
+            }
+            else
+            {
+                btnObj = new GameObject($"NewOption_{index}");
+                btnObj.transform.SetParent(optionsContainer, false);
+            }
+
+            var btnRect = btnObj.GetComponent<RectTransform>() ?? btnObj.AddComponent<RectTransform>();
+            btnRect.sizeDelta = new Vector2(220f, 50f);
+            btnRect.localScale = Vector3.one;
+
+            // 判断是否有风险（包含概率 < 1 的效果）
+            bool isRisk = choice.effects != null && choice.effects.Exists(e => e.probability < 1f);
+
+            var bgImage = btnObj.GetComponent<Image>();
+            if (bgImage == null)
+            {
+                bgImage = btnObj.AddComponent<Image>();
+                bgImage.sprite = null;
+            }
+
+            bgImage.color = isRisk
+                ? new Color(0.85f, 0.2f, 0.2f, 0.9f)
+                : new Color(0.2f, 0.45f, 0.8f, 0.9f);
+
+            var button = btnObj.GetComponent<Button>();
+            if (button == null)
+                button = btnObj.AddComponent<Button>();
+            button.targetGraphic = bgImage;
+
+            // 添加文字
+            var textObj = new GameObject("Label");
+            textObj.transform.SetParent(btnObj.transform, false);
+            var txt = textObj.AddComponent<Text>();
+            txt.text = choice.choiceText;
+            txt.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            txt.fontSize = 16;
+            txt.color = Color.white;
+            txt.alignment = TextAnchor.MiddleCenter;
+            var txtRect = textObj.GetComponent<RectTransform>();
+            txtRect.anchorMin = Vector2.zero;
+            txtRect.anchorMax = Vector2.one;
+            txtRect.sizeDelta = Vector2.zero;
+
+            // 悬停效果
+            AddHoverEffects(btnObj, button, isRisk);
+
+            // 点击事件：调用新事件系统
+            int capturedIndex = index;
+            button.onClick.AddListener(() =>
+            {
+                if (isShowingResult) return;
+                isShowingResult = true;
+
+                // 执行效果（通过 RandomEventSystem.SelectChoice）
+                string result = RandomEventSystem.SelectChoice(capturedIndex);
+                Debug.Log($"[EventPanel-新] 选择选项[{capturedIndex}]: {choice.choiceText}\n{result}");
+
+                // 获取效果列表用于显示
+                var executedEffects = choice.effects;
+
+                // 按钮脉冲动画
+                if (capturedIndex < dynamicOptionButtons.Count && dynamicOptionButtons[capturedIndex] != null)
+                {
+                    var bRect = dynamicOptionButtons[capturedIndex].GetComponent<RectTransform>();
+                    if (bRect != null)
+                    {
+                        bRect.DOKill();
+                        bRect.DOScale(0.9f, 0.08f).SetEase(Ease.InQuad).SetLink(gameObject)
+                            .OnComplete(() =>
+                            {
+                                bRect.DOScale(1f, 0.1f).SetLink(gameObject);
+                            });
+                    }
+                }
+
+                // 禁用所有按钮
+                foreach (var btn in dynamicOptionButtons)
+                {
+                    if (btn != null)
+                    {
+                        var b = btn.GetComponent<Button>();
+                        if (b != null) b.interactable = false;
+                    }
+                }
+
+                // 显示结果
+                if (resultText != null && !string.IsNullOrEmpty(result))
+                {
+                    resultText.gameObject.SetActive(true);
+                    resultText.text = "";
+                    StartTypewriter(resultText, result, () =>
+                    {
+                        PlayEffectFeedback(result);
+                        DOVirtual.DelayedCall(1.0f, () => CloseWithAnimation()).SetLink(gameObject);
+                    });
+                }
+                else
+                {
+                    DOVirtual.DelayedCall(0.8f, () => CloseWithAnimation()).SetLink(gameObject);
+                }
+            });
+
+            // 入场动画
+            var cg = btnObj.GetComponent<CanvasGroup>() ?? btnObj.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            float originalY = btnRect.anchoredPosition.y;
+            btnRect.anchoredPosition = new Vector2(btnRect.anchoredPosition.x, originalY - 30f);
+
+            cg.DOFade(1f, 0.3f)
+                .SetDelay(0.5f + index * 0.12f)
+                .SetLink(gameObject);
+            btnRect.DOAnchorPosY(originalY, 0.3f)
+                .SetDelay(0.5f + index * 0.12f)
+                .SetEase(Ease.OutQuad)
+                .SetLink(gameObject);
+
+            return btnObj;
+        }
+
+        /// <summary>
+        /// 根据 eventId 推断事件图标颜色
+        /// </summary>
+        private Color GetEventColor(string eventId)
+        {
+            if (string.IsNullOrEmpty(eventId)) return Color.gray;
+
+            return eventId switch
+            {
+                "traveling_merchant" => new Color(0.6f, 0.4f, 0.2f),   // 棕色
+                "ancient_altar"      => new Color(0.9f, 0.9f, 1f),      // 白蓝
+                "mystery_chest"      => new Color(1f, 0.85f, 0.2f),     // 金色
+                "dark_curse"         => new Color(0.5f, 0.1f, 0.5f),    // 暗紫
+                "healing_spring"     => new Color(0.3f, 0.9f, 0.4f),    // 绿色
+                "forge_master"       => new Color(0.9f, 0.5f, 0.15f),   // 橙色
+                "gambler"            => new Color(1f, 0.8f, 0.2f),      // 金黄
+                "mysterious_trader"  => new Color(0.55f, 0.25f, 0.9f),  // 紫色
+                "training_ground"    => new Color(0.2f, 0.6f, 0.8f),    // 蓝色
+                "ruin_exploration"   => new Color(0.6f, 0.55f, 0.45f),  // 灰棕
+                "dice_god"           => new Color(0.95f, 0.85f, 0.3f),  // 亮金
+                "wheel_of_fate"      => new Color(0.85f, 0.3f, 0.85f),  // 粉紫
+                _                    => Color.gray
+            };
+        }
+
+        /// <summary>
+        /// 根据 eventId 设置图标区背景渐变色（新事件系统）
+        /// </summary>
+        private void ApplyIconBackgroundForNewEvent(string eventId)
+        {
+            if (iconBackground == null || string.IsNullOrEmpty(eventId)) return;
+
+            Color bgColor = eventId switch
+            {
+                "traveling_merchant" => new Color(0.4f, 0.3f, 0.15f),
+                "ancient_altar"      => new Color(0.5f, 0.5f, 0.7f),
+                "mystery_chest"      => new Color(0.6f, 0.5f, 0.1f),
+                "dark_curse"         => new Color(0.3f, 0.1f, 0.3f),
+                "healing_spring"     => new Color(0.2f, 0.5f, 0.3f),
+                "forge_master"       => new Color(0.5f, 0.3f, 0.1f),
+                "gambler"            => new Color(0.5f, 0.4f, 0.1f),
+                "mysterious_trader"  => new Color(0.3f, 0.15f, 0.5f),
+                "training_ground"    => new Color(0.1f, 0.35f, 0.5f),
+                "ruin_exploration"   => new Color(0.35f, 0.3f, 0.25f),
+                "dice_god"           => new Color(0.5f, 0.45f, 0.15f),
+                "wheel_of_fate"      => new Color(0.45f, 0.15f, 0.45f),
+                _                    => new Color(0.2f, 0.2f, 0.2f, 0.8f)
+            };
+
+            iconBackground.color = bgColor;
+        }
+
+        /// <summary>
+        /// 描述新事件系统的效果（用于显示）
+        /// </summary>
+        private string DescribeNewEffect(EventEffect effect)
+        {
+            if (effect == null) return "";
+
+            string desc = effect.type switch
+            {
+                "gold"      => effect.value >= 0 ? $"金币 +{effect.value}" : $"金币 {effect.value}",
+                "heal"      => $"生命 +{effect.value}",
+                "damage"    => $"生命 -{effect.value}",
+                "card"      => $"获得{effect.value}张随机卡牌",
+                "relic"     => "获得随机遗物",
+                "dice"      => "升级骰子面",
+                "enhance"   => "强化装备",
+                "exp"       => $"获得{effect.value}经验",
+                "buff_atk"  => effect.value >= 0 ? $"攻击 +{effect.value}" : $"攻击 {effect.value}",
+                "buff_def"  => effect.value >= 0 ? $"防御 +{effect.value}" : $"防御 {effect.value}",
+                _           => effect.type
+            };
+
+            // 概率标注
+            if (effect.probability < 1f)
+                desc += $" ({effect.probability * 100:F0}%概率)";
+
+            return desc;
+        }
+
+        #endregion
+
         #region 辅助组件
 
         /// <summary>
