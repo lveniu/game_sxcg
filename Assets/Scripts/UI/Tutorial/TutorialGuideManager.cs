@@ -33,6 +33,12 @@ public class TutorialGuideManager : MonoBehaviour
     /// <summary>是否启用引导（设置项）</summary>
     private bool guideEnabled = true;
 
+    /// <summary>已添加的点击监听目标（用于销毁时清理）</summary>
+    private readonly List<RectTransform> clickListenerTargets = new List<RectTransform>();
+
+    /// <summary>是否已订阅状态机</summary>
+    private bool subscribedToStateMachine;
+
     #endregion
 
     #region 常量
@@ -112,9 +118,13 @@ public class TutorialGuideManager : MonoBehaviour
     {
         if (Instance == this) Instance = null;
 
-        // 订阅状态机
+        // 清理状态机订阅
         if (GameStateMachine.Instance != null)
             GameStateMachine.Instance.OnStateChanged -= OnGameStateChanged;
+        subscribedToStateMachine = false;
+
+        // 清理所有点击监听器
+        RemoveAllClickListeners();
     }
 
     void Update()
@@ -147,9 +157,12 @@ public class TutorialGuideManager : MonoBehaviour
 
         isGuideActive = true;
 
-        // 订阅状态机事件
-        if (GameStateMachine.Instance != null)
+        // 防重复订阅
+        if (!subscribedToStateMachine && GameStateMachine.Instance != null)
+        {
             GameStateMachine.Instance.OnStateChanged += OnGameStateChanged;
+            subscribedToStateMachine = true;
+        }
 
         AdvanceToNextStep();
         Debug.Log("[TutorialGuideManager] 引导流程启动");
@@ -201,6 +214,13 @@ public class TutorialGuideManager : MonoBehaviour
     public void SkipGuide()
     {
         if (highlight != null) highlight.Hide();
+
+        // 清理状态机订阅和点击监听器
+        if (GameStateMachine.Instance != null)
+            GameStateMachine.Instance.OnStateChanged -= OnGameStateChanged;
+        subscribedToStateMachine = false;
+        RemoveAllClickListeners();
+
         FinishGuide();
         Debug.Log("[TutorialGuideManager] 引导已跳过");
     }
@@ -317,6 +337,10 @@ public class TutorialGuideManager : MonoBehaviour
 
         if (GameStateMachine.Instance != null)
             GameStateMachine.Instance.OnStateChanged -= OnGameStateChanged;
+        subscribedToStateMachine = false;
+
+        // 清理所有点击监听器
+        RemoveAllClickListeners();
 
         OnGuideCompleted?.Invoke();
         Debug.Log("[TutorialGuideManager] 引导流程全部完成！");
@@ -350,6 +374,12 @@ public class TutorialGuideManager : MonoBehaviour
     /// </summary>
     private void AddClickListener(RectTransform target)
     {
+        if (target == null) return;
+
+        // 防重复添加
+        if (clickListenerTargets.Contains(target)) return;
+        clickListenerTargets.Add(target);
+
         var button = target.GetComponent<Button>();
         if (button != null)
         {
@@ -358,13 +388,51 @@ public class TutorialGuideManager : MonoBehaviour
         }
 
         // 没有 Button 组件则添加 EventTrigger
-        var trigger = target.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+        var trigger = target.gameObject.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+        if (trigger == null)
+            trigger = target.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+
         var entry = new UnityEngine.EventSystems.EventTrigger.Entry
         {
             eventID = UnityEngine.EventSystems.EventTriggerType.PointerClick
         };
         entry.callback.AddListener(_ => OnTargetClicked());
         trigger.triggers.Add(entry);
+    }
+
+    /// <summary>
+    /// 移除所有已添加的点击监听器
+    /// </summary>
+    private void RemoveAllClickListeners()
+    {
+        foreach (var target in clickListenerTargets)
+        {
+            if (target == null) continue;
+
+            var button = target.GetComponent<Button>();
+            if (button != null)
+            {
+                // Unity Button 不支持 RemoveListener(anonymous lambda)，只能移除命名方法
+                // 由于 OnTargetClicked 是命名方法，可以安全移除
+                button.onClick.RemoveListener(OnTargetClicked);
+                continue;
+            }
+
+            // 移除 EventTrigger 上的 PointerClick 回调
+            var trigger = target.gameObject.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+            if (trigger != null)
+            {
+                foreach (var entry in trigger.triggers)
+                {
+                    if (entry.eventID == UnityEngine.EventSystems.EventTriggerType.PointerClick)
+                    {
+                        entry.callback.RemoveAllListeners();
+                        break;
+                    }
+                }
+            }
+        }
+        clickListenerTargets.Clear();
     }
 
     /// <summary>
