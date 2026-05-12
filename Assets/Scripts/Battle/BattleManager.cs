@@ -43,6 +43,12 @@ public class BattleManager : MonoBehaviour
     public event System.Action<bool> OnBattleEnded; // true=胜利
     public event System.Action<string> OnDiceSkillTriggered;
 
+    // 战斗统计精细事件（BattleStatsTracker订阅）
+    public event System.Action<Hero, Hero> OnUnitKilled;       // (killer, victim)
+    public event System.Action<Hero, Hero, int> OnDamageDealt; // (attacker, target, damage)
+    public event System.Action<Hero, Hero, int> OnHealDone;    // (healer, target, healAmount)
+    public event System.Action<Hero, int> OnShieldGained;      // (hero, shieldAmount)
+
     private Coroutine battleCoroutine;
 
     void Awake()
@@ -313,6 +319,8 @@ public class BattleManager : MonoBehaviour
                     if (hero == null || hero.IsDead) continue;
                     int heal = Mathf.RoundToInt(hero.MaxHealth * healPct);
                     hero.Heal(heal);
+                    // 战斗统计：骰子技能治疗（healer=null表示系统治疗）
+                    NotifyHealDone(null, hero, heal);
                 }
                 Debug.Log($"[手动骰子技能] 对子治疗！全体恢复{healPct*100}%生命");
                 OnDiceSkillTriggered?.Invoke($"对子治疗！全体恢复{healPct*100}%HP");
@@ -414,6 +422,16 @@ public class BattleManager : MonoBehaviour
                     achMgr.TrackEnemyKill();
                 // 立即推送累计击杀数到成就进度
                 achMgr.TrackProgress("total_enemies_killed", achMgr.GetTotalEnemiesKilled());
+            }
+
+            // 战斗统计：触发 OnUnitKilled 事件（玩家击杀敌人）
+            // 注：精确killer未知（自走棋），传null表示系统击杀
+            foreach (var enemy in enemyUnits)
+            {
+                if (enemy != null && enemy.IsDead)
+                {
+                    OnUnitKilled?.Invoke(null, enemy);
+                }
             }
         }
 
@@ -622,5 +640,34 @@ public class BattleManager : MonoBehaviour
                 if (combo.PairValue > 0) return new int[] { combo.PairValue, combo.PairValue, combo.SingleValue };
                 return new int[] { 1, 2, 3 };
         }
+    }
+
+    // ========================================================
+    // 战斗统计通知方法（由Hero/AutoChessAI调用）
+    // ========================================================
+
+    /// <summary>
+    /// 通知伤害造成 — 由 Hero.TakeDamage 调用
+    /// </summary>
+    public void NotifyDamageDealt(Hero attacker, Hero target, int damage)
+    {
+        OnDamageDealt?.Invoke(attacker, target, damage);
+    }
+
+    /// <summary>
+    /// 通知治疗完成 — 由 Hero.Heal / AutoChessAI 调用
+    /// healer参数为施放治疗的英雄，target为被治疗者
+    /// </summary>
+    public void NotifyHealDone(Hero healer, Hero target, int healAmount)
+    {
+        OnHealDone?.Invoke(healer, target, healAmount);
+    }
+
+    /// <summary>
+    /// 通知护盾获得 — 由 Hero.AddShield 调用
+    /// </summary>
+    public void NotifyShieldGained(Hero hero, int shieldAmount)
+    {
+        OnShieldGained?.Invoke(hero, shieldAmount);
     }
 }

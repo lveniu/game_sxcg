@@ -148,13 +148,14 @@ public class PlayerInventory : MonoBehaviour
     /// <summary>
     /// 获取装备的战力评分（用于排序和比较）
     /// 权重：攻击×3 + 防御×2 + 生命×1 + 速度×2 + 暴击×100
+    /// 含强化加成
     /// </summary>
     public static int GetEquipmentPower(EquipmentData equip)
     {
         if (equip == null) return 0;
-        return equip.attackBonus * 3 + equip.defenseBonus * 2
-             + equip.healthBonus + equip.speedBonus * 2
-             + Mathf.RoundToInt(equip.critRateBonus * 100);
+        return equip.EnhancedAttackBonus * 3 + equip.EnhancedDefenseBonus * 2
+             + equip.EnhancedHealthBonus + equip.EnhancedSpeedBonus * 2
+             + Mathf.RoundToInt(equip.EnhancedCritRateBonus * 100);
     }
 
     /// <summary>按战力排序装备（默认降序，最强在前）</summary>

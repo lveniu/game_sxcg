@@ -108,6 +108,131 @@ public class CardDeck : MonoBehaviour
     }
 
     /// <summary>
+    /// 检查是否有足够的同名卡进行合成（按cardId/cardName匹配）
+    /// 与 TryMergeCards 功能一致，此方法仅做检查不执行
+    /// </summary>
+    /// <param name="cardId">目标卡牌名称</param>
+    /// <returns>是否有足够的同名卡可合成</returns>
+    public bool CanMerge(string cardId)
+    {
+        int count = 0;
+        foreach (var card in handCards)
+        {
+            if (card.CardName == cardId && card.StarLevel < 3)
+            {
+                count++;
+                if (count >= 2) return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 消耗材料卡进行合成升级
+    /// 消耗2张同名同星卡，生成一张升星后的卡牌
+    /// </summary>
+    /// <param name="cardId">要合成的卡牌名称</param>
+    /// <returns>合成后的卡牌实例；失败返回null</returns>
+    public CardInstance MergeCards(string cardId)
+    {
+        // 查找所有同名同星的非进化卡
+        var candidates = new List<CardInstance>();
+        int minStar = int.MaxValue;
+
+        // 找到最低星级的同名卡
+        foreach (var card in handCards)
+        {
+            if (card.CardName == cardId && card.StarLevel < 3 && card.Data.cardType != CardType.Evolution)
+            {
+                if (card.StarLevel < minStar) minStar = card.StarLevel;
+            }
+        }
+
+        if (minStar == int.MaxValue) return null;
+
+        // 收集最低星级的同名卡
+        foreach (var card in handCards)
+        {
+            if (card.CardName == cardId && card.StarLevel == minStar && card.Data.cardType != CardType.Evolution)
+            {
+                candidates.Add(card);
+            }
+        }
+
+        if (candidates.Count < 2) return null;
+
+        // 检查金币消耗（如果有upgradeCost）
+        int upgradeCost = candidates[0].Data.upgradeCost;
+        // TODO: 接入金币系统后检查余额，目前跳过金币检查
+
+        // 移除两张材料卡
+        var card1 = candidates[0];
+        var card2 = candidates[1];
+        handCards.Remove(card1);
+        handCards.Remove(card2);
+
+        // 创建升星后的卡牌
+        var merged = new CardInstance(card1.Data);
+        merged.StarLevel = card1.StarLevel;
+        merged.Merge(); // 升星
+
+        // 继承原卡等级（取较高者）
+        // merged.Level 默认为1，此处保留原始等级
+
+        handCards.Add(merged);
+        Debug.Log($"合成成功：{cardId} {minStar}星 → {merged.StarLevel}星" +
+                  (upgradeCost > 0 ? $"（花费{upgradeCost}金币）" : ""));
+        return merged;
+    }
+
+    /// <summary>
+    /// 检查指定卡牌是否可以通过消耗材料卡升级（等级提升）
+    /// </summary>
+    /// <param name="card">目标卡牌实例</param>
+    /// <returns>是否可以升级</returns>
+    public bool CanUpgradeCard(CardInstance card)
+    {
+        if (card == null) return false;
+        return card.CanUpgrade(handCards);
+    }
+
+    /// <summary>
+    /// 执行卡牌升级（消耗材料卡提升等级）
+    /// </summary>
+    /// <param name="card">目标卡牌实例</param>
+    /// <returns>升级是否成功</returns>
+    public bool UpgradeCard(CardInstance card)
+    {
+        if (card == null) return false;
+        if (!card.CanUpgrade(handCards)) return false;
+
+        // 消耗2张材料卡
+        string materialName = card.Data.upgradeFrom;
+        int consumed = 0;
+        var toRemove = new List<CardInstance>();
+
+        foreach (var c in handCards)
+        {
+            if (c != card && c.Data.cardName == materialName && consumed < 2)
+            {
+                toRemove.Add(c);
+                consumed++;
+            }
+        }
+
+        if (consumed < 2) return false;
+
+        // 移除材料卡
+        foreach (var c in toRemove)
+        {
+            handCards.Remove(c);
+        }
+
+        // 执行升级
+        return card.Upgrade();
+    }
+
+    /// <summary>
     /// 查找可合成的同名同星卡牌
     /// </summary>
     public List<CardInstance> FindMergeableCards(string cardName, int starLevel)

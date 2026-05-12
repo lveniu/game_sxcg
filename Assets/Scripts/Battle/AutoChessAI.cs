@@ -23,6 +23,9 @@ public static class AutoChessAI
                 int heal = Mathf.RoundToInt(self.Data.activeSkill?.effectValue ?? 15);
                 weakest.Heal(heal);
                 Debug.Log($"{self.Data.heroName} 治疗 {weakest.Data.heroName} 恢复 {heal} 生命");
+                // 战斗统计：通知治疗事件（healer=self, target=weakest）
+                if (BattleManager.Instance != null)
+                    BattleManager.Instance.NotifyHealDone(self, weakest, heal);
                 return;
             }
         }
@@ -168,6 +171,9 @@ public static class AutoChessAI
                     int heal = Mathf.RoundToInt(skill.effectValue);
                     self.Heal(heal);
                     Debug.Log($"{self.Data.heroName} 释放 [{skill.skillName}] 恢复 {heal} 生命");
+                    // 战斗统计：通知自我治疗事件
+                    if (BattleManager.Instance != null)
+                        BattleManager.Instance.NotifyHealDone(self, self, heal);
                 }
                 break;
         }

@@ -91,6 +91,7 @@ public class Hero : MonoBehaviour
 
     /// <summary>
     /// 根据星级和装备重新计算属性
+    /// 含装备强化加成和套装效果
     /// </summary>
     public void RecalculateStats()
     {
@@ -104,11 +105,12 @@ public class Hero : MonoBehaviour
         foreach (var item in EquippedItems.Values)
         {
             if (item == null) continue;
-            equipHealth += item.healthBonus;
-            equipAtk += item.attackBonus;
-            equipDef += item.defenseBonus;
-            equipSpd += item.speedBonus;
-            equipCrit += item.critRateBonus;
+            // 使用强化后的属性（每级+10%基础属性）
+            equipHealth += item.EnhancedHealthBonus;
+            equipAtk += item.EnhancedAttackBonus;
+            equipDef += item.EnhancedDefenseBonus;
+            equipSpd += item.EnhancedSpeedBonus;
+            equipCrit += item.EnhancedCritRateBonus;
         }
 
         MaxHealth = Mathf.RoundToInt(Data.baseHealth * combinedMultiplier) + equipHealth;
@@ -119,6 +121,9 @@ public class Hero : MonoBehaviour
 
         // 应用遗物Buff
         ApplyRelicBuffs();
+
+        // 应用套装效果
+        ApplySetBonuses();
     }
 
     /// <summary>
@@ -159,6 +164,18 @@ public class Hero : MonoBehaviour
     {
         RelicBuffs.Add(buff);
         RecalculateStats();
+    }
+
+    /// <summary>
+    /// 应用套装效果（由 RecalculateStats 调用）
+    /// </summary>
+    private void ApplySetBonuses()
+    {
+        var setSystem = SetBonusSystem.Instance;
+        if (setSystem != null)
+        {
+            setSystem.CheckSetBonus(this);
+        }
     }
 
     /// <summary>是否已进化（星级≥3视为进化状态）</summary>
@@ -228,6 +245,10 @@ public class Hero : MonoBehaviour
         CurrentHealth -= actual;
         if (CurrentHealth < 0) CurrentHealth = 0;
 
+        // 战斗统计：通知伤害事件
+        if (attacker != null && BattleManager.Instance != null)
+            BattleManager.Instance.NotifyDamageDealt(attacker, this, actual);
+
         // 遗物荆棘反伤
         float thornsRate = GetRelicBuffValue(RelicBuffType.Thorns);
         if (attacker != null && thornsRate > 0f && !attacker.IsDead)
@@ -285,6 +306,10 @@ public class Hero : MonoBehaviour
     {
         // MVP简化：护盾转化为临时生命
         CurrentHealth = Mathf.Min(MaxHealth + shieldAmount, CurrentHealth + shieldAmount);
+
+        // 战斗统计：通知护盾事件
+        if (BattleManager.Instance != null)
+            BattleManager.Instance.NotifyShieldGained(this, shieldAmount);
 
         // 战斗特效：护盾
         BattleEffectManager.PlayShield(transform.position);
@@ -351,6 +376,15 @@ public class Hero : MonoBehaviour
     {
         CritRate = Mathf.Clamp01(CritRate + percentage);
         BattleCritRate = Mathf.Clamp01(BattleCritRate + percentage);
+    }
+
+    /// <summary>
+    /// 强化暴击伤害（固定加成）
+    /// </summary>
+    /// <param name="value">暴击伤害加成值（如0.3=30%）</param>
+    public void BoostCritDamage(float value)
+    {
+        BattleCritDamage += value;
     }
 
     /// <summary>

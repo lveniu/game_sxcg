@@ -120,36 +120,57 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// 从各系统收集战斗统计数据，不存在时使用GameStats Mock
+        /// 从各系统收集战斗统计数据，优先使用 BattleStatsTracker 真实数据
         /// </summary>
         private void CollectStats(GameStateMachine gsm, RoguelikeGameManager rgm)
         {
-            // 击杀数：优先RoguelikeGameManager，回退到GameStats
-            statKillCount = GameStats.KillCount;
-            // TODO: 后端 BattleStatsSystem 完成后替换为 rgm.BattleStats.KillCount
+            // 尝试获取真实战斗统计数据
+            var tracker = BattleStatsTracker.Instance;
+            RunBattleStats runStats = tracker != null ? tracker.GetCurrentRunStats() : null;
 
-            // 遗物数
+            // 击杀数：优先 BattleStatsTracker，回退到 GameStats
+            if (runStats != null && runStats.totalKills > 0)
+                statKillCount = runStats.totalKills;
+            else
+                statKillCount = GameStats.KillCount;
+
+            // 遗物数：优先RoguelikeGameManager，再RunStats，回退GameStats
             statRelicCount = 0;
             if (rgm != null && rgm.RelicSystem != null)
                 statRelicCount = rgm.RelicSystem.RelicCount;
+            else if (runStats != null && runStats.relicsCollected != null)
+                statRelicCount = runStats.relicsCollected.Count;
             else
                 statRelicCount = GameStats.RelicCount;
 
-            // 战斗时长
-            statBattleDuration = GameStats.BattleDuration;
-            // TODO: 后端 BattleStatsSystem 完成后替换
+            // 战斗时长：优先 BattleStatsTracker 累计时长
+            if (runStats != null && runStats.totalBattleDuration > 0f)
+                statBattleDuration = runStats.totalBattleDuration;
+            else
+                statBattleDuration = GameStats.BattleDuration;
 
-            // 最高连胜
-            statMaxWinStreak = GameStats.MaxWinStreak;
-            // TODO: 后端 BattleStatsSystem 完成后替换
+            // 最高连胜：优先 BattleStatsTracker
+            if (runStats != null)
+                statMaxWinStreak = runStats.maxConsecutiveWins;
+            else
+                statMaxWinStreak = GameStats.MaxWinStreak;
 
-            // 伤害总输出
-            statTotalDamage = GameStats.TotalDamageDealt;
-            // TODO: 后端 BattleStatsSystem 完成后替换
+            // 伤害总输出：优先 BattleStatsTracker
+            if (runStats != null && runStats.totalDamageDealt > 0)
+                statTotalDamage = runStats.totalDamageDealt;
+            else
+                statTotalDamage = GameStats.TotalDamageDealt;
 
-            // MVP英雄
-            statMvpHeroName = GameStats.GetMVPHero();
-            // TODO: 后端 BattleStatsSystem 完成后替换为真实伤害统计
+            // MVP英雄：优先 BattleStatsTracker 真实伤害统计
+            if (tracker != null)
+            {
+                string mvpName = tracker.GetMVPHeroName();
+                statMvpHeroName = mvpName != "无" ? mvpName : GameStats.GetMVPHero();
+            }
+            else
+            {
+                statMvpHeroName = GameStats.GetMVPHero();
+            }
         }
 
         /// <summary>

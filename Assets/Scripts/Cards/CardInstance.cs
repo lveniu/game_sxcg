@@ -7,6 +7,16 @@ public class CardInstance
 {
     public CardData Data { get; private set; }
     public int StarLevel { get; set; } = 1;
+
+    /// <summary>卡牌等级（1~5），影响效果数值</summary>
+    public int Level { get; private set; } = 1;
+
+    /// <summary>最大等级上限</summary>
+    public const int MaxLevel = 5;
+
+    /// <summary>每级效果倍率增量</summary>
+    private const float LevelBonusPerLevel = 0.15f;
+
     public bool IsEvolutionCard => Data.cardType == CardType.Evolution;
 
     public string CardName => Data.cardName;
@@ -14,10 +24,53 @@ public class CardInstance
     public int Cost => Data.cost;
     public Sprite Icon => Data.icon;
 
+    /// <summary>根据等级获取效果倍率（等级1=1.0，每级+15%）</summary>
+    public float LevelMultiplier => 1f + (Level - 1) * LevelBonusPerLevel;
+
     public CardInstance(CardData data)
     {
         Data = data;
         StarLevel = 1;
+        Level = 1;
+    }
+
+    /// <summary>
+    /// 检查此卡牌是否可以通过消耗材料卡进行升级
+    /// </summary>
+    /// <param name="availableCards">当前手牌中可作为材料的卡牌列表</param>
+    /// <returns>是否满足升级条件</returns>
+    public bool CanUpgrade(System.Collections.Generic.List<CardInstance> availableCards)
+    {
+        // 已满级不可升级
+        if (Level >= MaxLevel) return false;
+
+        // 没有合成来源配置，说明不可通过消耗材料升级
+        if (string.IsNullOrEmpty(Data.upgradeFrom)) return false;
+
+        // 检查手牌中是否有足够的材料卡
+        int materialCount = 0;
+        foreach (var card in availableCards)
+        {
+            if (card != this && card.Data.cardName == Data.upgradeFrom)
+            {
+                materialCount++;
+            }
+        }
+
+        // 需要至少2张同名材料卡
+        return materialCount >= 2;
+    }
+
+    /// <summary>
+    /// 升级卡牌等级（需先通过CanUpgrade检查）
+    /// </summary>
+    /// <returns>是否升级成功</returns>
+    public bool Upgrade()
+    {
+        if (Level >= MaxLevel) return false;
+        Level++;
+        UnityEngine.Debug.Log($"卡牌升级：{CardName} → 等级{Level}，效果倍率{LevelMultiplier:F2}");
+        return true;
     }
 
     /// <summary>
@@ -64,10 +117,18 @@ public class CardInstance
     /// </summary>
     public string GetEffectDescription()
     {
+        string desc = Data.description;
+
+        // 附加等级信息（等级>1时显示）
+        if (Level > 1)
+        {
+            desc += $"\n[等级{Level}] 效果倍率×{LevelMultiplier:F2}";
+        }
+
         if (Data.requiredCombo != DiceCombinationType.None)
         {
-            return $"{Data.description}\n[联动] {Data.requiredCombo} 时效果×{Data.comboMultiplier}";
+            return $"{desc}\n[联动] {Data.requiredCombo} 时效果×{Data.comboMultiplier}";
         }
-        return Data.description;
+        return desc;
     }
 }

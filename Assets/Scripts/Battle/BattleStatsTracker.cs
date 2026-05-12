@@ -4,141 +4,37 @@ using System.Linq;
 using UnityEngine;
 
 // ============================================================
-// 数据模型
+// BattleStatsTracker — 单例，事件驱动采集战斗数据
 // ============================================================
 
 /// <summary>
-/// 单次战斗记录
+/// 战斗统计追踪器 — 订阅 BattleManager 事件采集数据，不侵入核心业务逻辑
+/// 功能：击杀数、伤害、治疗、护盾、骰子组合统计
 /// </summary>
-[Serializable]
-public class BattleRecord
-{
-    public int battleIndex;          // 第N场战斗
-    public bool isVictory;
-    public float duration;           // 战斗时长（秒）
-    public int totalDamageDealt;
-    public int totalDamageTaken;
-    public int totalHealing;
-    public int totalShield;
-    public List<string> diceCombos = new List<string>(); // 触发的骰子组合
-}
-
-/// <summary>
-/// 英雄成长轨迹
-/// </summary>
-[Serializable]
-public class HeroGrowth
-{
-    public string heroName;
-    public string heroClass;
-
-    public int initialLevel;
-    public int finalLevel;
-
-    public int initialStar;
-    public int finalStar;
-
-    public int initialHP;
-    public int finalHP;
-
-    public int initialAtk;
-    public int finalAtk;
-
-    public int initialDef;
-    public int finalDef;
-
-    public int initialSpd;
-    public int finalSpd;
-}
-
-/// <summary>
-/// 整个Run的统计数据
-/// JsonUtility不兼容Dictionary，comboCounts用平行List序列化
-/// </summary>
-[Serializable]
-public class RunStats
-{
-    // 汇总统计
-    public int totalBattles;
-    public int victories;
-    public int defeats;
-    public float winRate;
-    public int maxConsecutiveWins;
-
-    public int totalDamageDealt;
-    public int totalDamageTaken;
-    public int totalHealing;
-    public int totalShield;
-
-    // 骰子组合统计 — JsonUtility兼容的平行List
-    public List<string> comboNames = new List<string>();
-    public List<int> comboValues = new List<int>();
-
-    // 运行时Dictionary（[NonSerialized]不参与JsonUtility序列化）
-    [NonSerialized] public Dictionary<string, int> comboCounts = new Dictionary<string, int>();
-
-    // 遗物 & 成长
-    public List<string> relicsCollected = new List<string>();
-    public HeroGrowth heroGrowth = new HeroGrowth();
-
-    // 战斗历史
-    public List<BattleRecord> battleHistory = new List<BattleRecord>();
-
-    /// <summary>序列化前：Dictionary → 平行List</summary>
-    public void BeforeSerialize()
-    {
-        if (comboCounts != null)
-        {
-            comboNames = comboCounts.Keys.ToList();
-            comboValues = comboCounts.Values.ToList();
-        }
-    }
-
-    /// <summary>反序列化后：平行List → Dictionary</summary>
-    public void AfterDeserialize()
-    {
-        comboCounts = new Dictionary<string, int>();
-        if (comboNames != null && comboValues != null)
-        {
-            for (int i = 0; i < comboNames.Count && i < comboValues.Count; i++)
-                comboCounts[comboNames[i]] = comboValues[i];
-        }
-    }
-}
-
-/// <summary>
-/// 接口 — 后续可对接后端持久化
-/// </summary>
-public interface IBattleStatsData
-{
-    RunStats GetCurrentRunStats();
-    List<RunStats> GetHistoryRunStats();
-    void SaveRunStats(RunStats stats);
-}
-
-// ============================================================
-// BattleStatsTracker — 单例数据采集层
-// ============================================================
-
-/// <summary>
-/// 战斗统计追踪器 — 通过订阅BattleManager事件采集数据，不侵入业务逻辑
-/// </summary>
-public class BattleStatsTracker : MonoBehaviour, IBattleStatsData
+public class BattleStatsTracker : MonoBehaviour
 {
     public static BattleStatsTracker Instance { get; private set; }
 
-    private RunStats currentRun;
+    // ─── 当前Run统计 ───────────────────────────────
+    private RunBattleStats currentRun;
+    private RunBattleStats lastRun;   // 上一局（持久化后缓存）
+
+    // ─── 当前战斗临时数据 ──────────────────────────
+    private BattleStatsRecord currentBattle;
     private float battleStartTime;
-    private Hero trackedHero;
-    private int heroHPBeforeBattle;
-    private int consecutiveWins;
+    private Dictionary<int, int> heroHPBeforeBattle = new Dictionary<int, int>();
     private bool isTracking;
+    private bool battleActive;
 
-    // 事件 — 面板可订阅
-    public event Action<RunStats> OnRunStatsUpdated;
-    public event Action<BattleRecord> OnBattleRecorded;
+    // ─── 事件 — 面板/其他系统可订阅 ─────────────────
+    public event Action<RunBattleStats> OnRunStatsUpdated;
+    public event Action<BattleStatsRecord> OnBattleRecorded;
+    public event Action<RunBattleStats> OnRunEnded;
 
-    // 场景加载后重新订阅（DontDestroyOnLoad会导致场景切换后BM引用失效）
+    // ====================================================
+    // 生命周期
+    // ====================================================
+
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -157,7 +53,6 @@ public class BattleStatsTracker : MonoBehaviour, IBattleStatsData
         UnsubscribeEvents();
     }
 
-    // 场景切换后重新尝试订阅
     void OnEnable()
     {
         SubscribeEvents();
@@ -168,150 +63,356 @@ public class BattleStatsTracker : MonoBehaviour, IBattleStatsData
         UnsubscribeEvents();
     }
 
-    // ========================================================
-    // 事件订阅（不侵入BattleManager）
-    // ========================================================
+    // ====================================================
+    // 事件订阅（不侵入 BattleManager）
+    // ====================================================
 
     private void SubscribeEvents()
     {
         var bm = BattleManager.Instance;
         if (bm == null) return;
-        bm.OnBattleStarted += OnBattleStarted;
-        bm.OnBattleEnded += OnBattleEnded;
-        bm.OnDiceSkillTriggered += OnDiceSkillTriggered;
+
+        bm.OnBattleStarted += HandleBattleStarted;
+        bm.OnBattleEnded += HandleBattleEnded;
+        bm.OnDiceSkillTriggered += HandleDiceSkillTriggered;
+
+        // 新增的精细事件（可能为null，安全订阅）
+        bm.OnUnitKilled += HandleUnitKilled;
+        bm.OnDamageDealt += HandleDamageDealt;
+        bm.OnHealDone += HandleHealDone;
+        bm.OnShieldGained += HandleShieldGained;
     }
 
     private void UnsubscribeEvents()
     {
         var bm = BattleManager.Instance;
         if (bm == null) return;
-        bm.OnBattleStarted -= OnBattleStarted;
-        bm.OnBattleEnded -= OnBattleEnded;
-        bm.OnDiceSkillTriggered -= OnDiceSkillTriggered;
+
+        bm.OnBattleStarted -= HandleBattleStarted;
+        bm.OnBattleEnded -= HandleBattleEnded;
+        bm.OnDiceSkillTriggered -= HandleDiceSkillTriggered;
+
+        bm.OnUnitKilled -= HandleUnitKilled;
+        bm.OnDamageDealt -= HandleDamageDealt;
+        bm.OnHealDone -= HandleHealDone;
+        bm.OnShieldGained -= HandleShieldGained;
     }
 
-    // ========================================================
+    // ====================================================
     // Run 生命周期
-    // ========================================================
+    // ====================================================
 
     /// <summary>开始新一轮（重置所有统计）</summary>
     public void StartNewRun()
     {
-        currentRun = new RunStats
+        currentRun = new RunBattleStats
         {
-            comboCounts = new Dictionary<string, int>(),
+            comboCountMap = new Dictionary<string, int>(),
             relicsCollected = new List<string>(),
-            battleHistory = new List<BattleRecord>(),
-            heroGrowth = new HeroGrowth()
+            heroCumulativeMap = new Dictionary<int, HeroBattleStats>(),
+            heroCumulativeList = new List<HeroBattleStats>(),
+            battleHistory = new List<BattleStatsRecord>()
         };
-        consecutiveWins = 0;
         isTracking = true;
+        battleActive = false;
+        Debug.Log("[BattleStatsTracker] 新Run开始，统计数据已重置");
     }
 
-    /// <summary>Run结束，序列化保存</summary>
+    /// <summary>Run结束，持久化保存</summary>
     public void EndRun()
     {
         isTracking = false;
+        lastRun = currentRun;
         SaveRunStats(currentRun);
+        OnRunEnded?.Invoke(currentRun);
+        Debug.Log($"[BattleStatsTracker] Run结束，共{currentRun.totalBattles}场战斗，{currentRun.victories}胜");
     }
 
-    // ========================================================
+    // ====================================================
     // 战斗事件处理
-    // ========================================================
+    // ====================================================
 
     /// <summary>战斗开始 — 快照英雄状态</summary>
-    private void OnBattleStarted()
+    private void HandleBattleStarted()
     {
         battleStartTime = Time.time;
+        battleActive = true;
 
-        // 从BattleManager获取玩家方第一个存活英雄作为追踪对象
         var bm = BattleManager.Instance;
-        if (bm != null && bm.playerUnits != null && bm.playerUnits.Count > 0)
+        if (bm == null) return;
+
+        currentBattle = new BattleStatsRecord
         {
-            trackedHero = bm.playerUnits.FirstOrDefault(h => h != null && !h.IsDead);
+            battleIndex = currentRun.totalBattles + 1,
+            heroStatsMap = new Dictionary<int, HeroBattleStats>(),
+            diceSkillsTriggered = new List<string>()
+        };
+
+        // 记录骰子组合信息
+        if (bm.CurrentDiceCombo != null && bm.CurrentDiceCombo.Type != DiceCombinationType.None)
+        {
+            currentBattle.diceComboType = bm.CurrentDiceCombo.Type.ToString();
+            currentBattle.diceComboDesc = bm.CurrentDiceCombo.Description;
+
+            // Run级骰子组合计数
+            if (currentRun.comboCountMap == null)
+                currentRun.comboCountMap = new Dictionary<string, int>();
+
+            string comboName = bm.CurrentDiceCombo.Type.ToString();
+            if (currentRun.comboCountMap.ContainsKey(comboName))
+                currentRun.comboCountMap[comboName]++;
+            else
+                currentRun.comboCountMap[comboName] = 1;
         }
-        if (trackedHero == null)
+        else
         {
-            trackedHero = FindObjectOfType<Hero>();
+            currentBattle.diceComboType = "None";
+            currentBattle.diceComboDesc = "无";
         }
 
-        if (trackedHero != null)
+        // 快照所有玩家英雄的HP
+        heroHPBeforeBattle.Clear();
+        if (bm.playerUnits != null)
         {
-            heroHPBeforeBattle = trackedHero.CurrentHealth;
+            foreach (var hero in bm.playerUnits)
+            {
+                if (hero == null) continue;
+
+                int id = hero.GetInstanceID();
+                heroHPBeforeBattle[id] = hero.CurrentHealth;
+
+                // 初始化英雄统计
+                if (!currentBattle.heroStatsMap.ContainsKey(id))
+                {
+                    currentBattle.heroStatsMap[id] = new HeroBattleStats
+                    {
+                        heroName = hero.Data != null ? hero.Data.heroName : "未知",
+                        heroInstanceId = id
+                    };
+                }
+            }
         }
     }
 
-    /// <summary>战斗结束 — 记录战斗数据并更新Run统计</summary>
-    private void OnBattleEnded(bool victory)
+    /// <summary>战斗结束 — 汇总统计</summary>
+    private void HandleBattleEnded(bool victory)
     {
+        if (!battleActive || currentBattle == null) return;
+        battleActive = false;
+
         float duration = Time.time - battleStartTime;
+        currentBattle.isVictory = victory;
+        currentBattle.duration = duration;
 
-        var record = new BattleRecord
-        {
-            battleIndex = currentRun.totalBattles + 1,
-            isVictory = victory,
-            duration = duration,
-            totalDamageDealt = 0,
-            totalDamageTaken = 0,
-            totalHealing = 0,
-            totalShield = 0,
-            diceCombos = new List<string>()
-        };
+        // 从BM获取最终击杀数（基于已清除的敌人）
+        var bm = BattleManager.Instance;
 
-        // 推算伤害（通过英雄HP变化）
-        if (trackedHero != null)
+        // 计算伤害承受（通过英雄HP差值推算 + 累计追踪）
+        if (bm != null && bm.playerUnits != null)
         {
-            int hpLost = heroHPBeforeBattle - trackedHero.CurrentHealth;
-            record.totalDamageTaken = Mathf.Max(0, hpLost);
+            foreach (var hero in bm.playerUnits)
+            {
+                if (hero == null) continue;
+                int id = hero.GetInstanceID();
+
+                if (heroHPBeforeBattle.TryGetValue(id, out int hpBefore))
+                {
+                    int hpLost = hpBefore - hero.CurrentHealth;
+                    int damageTaken = Mathf.Max(0, hpLost);
+
+                    // 护盾转化为临时生命会导致 CurrentHealth > MaxHealth
+                    // 但承受伤害 = hpBefore - CurrentHealth + 已算作伤害的部分
+                    if (!currentBattle.heroStatsMap.ContainsKey(id))
+                    {
+                        currentBattle.heroStatsMap[id] = new HeroBattleStats
+                        {
+                            heroName = hero.Data != null ? hero.Data.heroName : "未知",
+                            heroInstanceId = id
+                        };
+                    }
+                    currentBattle.heroStatsMap[id].damageTaken += damageTaken;
+                }
+            }
         }
 
-        // 更新Run汇总
+        // 汇总本场数据
+        currentBattle.totalDamageDealt = 0;
+        currentBattle.totalDamageTaken = 0;
+        currentBattle.totalHealing = 0;
+        currentBattle.totalShield = 0;
+        currentBattle.totalKills = 0;
+
+        foreach (var kv in currentBattle.heroStatsMap)
+        {
+            var hs = kv.Value;
+            currentBattle.totalDamageDealt += hs.damageDealt;
+            currentBattle.totalDamageTaken += hs.damageTaken;
+            currentBattle.totalHealing += hs.healingDone;
+            currentBattle.totalShield += hs.shieldGained;
+            currentBattle.totalKills += hs.kills;
+        }
+
+        // ─── 更新Run累计统计 ──────────────────────────
         currentRun.totalBattles++;
         if (victory)
         {
             currentRun.victories++;
-            consecutiveWins++;
-            if (consecutiveWins > currentRun.maxConsecutiveWins)
-                currentRun.maxConsecutiveWins = consecutiveWins;
+            currentRun.currentConsecutiveWins++;
+            if (currentRun.currentConsecutiveWins > currentRun.maxConsecutiveWins)
+                currentRun.maxConsecutiveWins = currentRun.currentConsecutiveWins;
         }
         else
         {
             currentRun.defeats++;
-            consecutiveWins = 0;
+            currentRun.currentConsecutiveWins = 0;
         }
 
         currentRun.winRate = currentRun.totalBattles > 0
             ? (float)currentRun.victories / currentRun.totalBattles * 100f
             : 0f;
 
-        currentRun.totalDamageTaken += record.totalDamageTaken;
+        currentRun.totalDamageDealt += currentBattle.totalDamageDealt;
+        currentRun.totalDamageTaken += currentBattle.totalDamageTaken;
+        currentRun.totalHealing += currentBattle.totalHealing;
+        currentRun.totalShield += currentBattle.totalShield;
+        currentRun.totalKills += currentBattle.totalKills;
+        currentRun.totalBattleDuration += duration;
 
-        currentRun.battleHistory.Add(record);
+        if (duration > currentRun.longestBattle)
+            currentRun.longestBattle = duration;
 
-        OnBattleRecorded?.Invoke(record);
+        // 合并英雄累计统计
+        foreach (var kv in currentBattle.heroStatsMap)
+        {
+            int id = kv.Key;
+            var battleHS = kv.Value;
+            if (!currentRun.heroCumulativeMap.ContainsKey(id))
+            {
+                currentRun.heroCumulativeMap[id] = new HeroBattleStats
+                {
+                    heroName = battleHS.heroName,
+                    heroInstanceId = battleHS.heroInstanceId
+                };
+            }
+            var runHS = currentRun.heroCumulativeMap[id];
+            runHS.damageDealt += battleHS.damageDealt;
+            runHS.damageTaken += battleHS.damageTaken;
+            runHS.healingDone += battleHS.healingDone;
+            runHS.shieldGained += battleHS.shieldGained;
+            runHS.kills += battleHS.kills;
+            runHS.critCount += battleHS.critCount;
+        }
+
+        currentRun.battleHistory.Add(currentBattle);
+
+        // 通知
+        OnBattleRecorded?.Invoke(currentBattle);
         OnRunStatsUpdated?.Invoke(currentRun);
+
+        Debug.Log($"[BattleStatsTracker] 第{currentBattle.battleIndex}场结束 " +
+                  $"胜={victory} 时长={duration:F1}s " +
+                  $"伤害={currentBattle.totalDamageDealt} 击杀={currentBattle.totalKills} " +
+                  $"治疗={currentBattle.totalHealing} 护盾={currentBattle.totalShield}");
     }
 
-    /// <summary>骰子技能触发 — 记录组合使用次数</summary>
-    private void OnDiceSkillTriggered(string skillName)
+    /// <summary>骰子技能触发 — 记录</summary>
+    private void HandleDiceSkillTriggered(string skillName)
     {
         if (string.IsNullOrEmpty(skillName)) return;
         if (!isTracking || currentRun == null) return;
 
-        if (currentRun.comboCounts == null)
-            currentRun.comboCounts = new Dictionary<string, int>();
-
-        if (currentRun.comboCounts.ContainsKey(skillName))
-            currentRun.comboCounts[skillName]++;
-        else
-            currentRun.comboCounts[skillName] = 1;
+        // 本场记录
+        if (currentBattle != null && battleActive)
+        {
+            currentBattle.diceSkillsTriggered.Add(skillName);
+        }
     }
 
-    // ========================================================
-    // 外部调用接口
-    // ========================================================
+    /// <summary>单位被击杀</summary>
+    private void HandleUnitKilled(Hero killer, Hero victim)
+    {
+        if (!battleActive || currentBattle == null) return;
 
-    /// <summary>遗物收集记录（由RoguelikeGameManager等外部调用）</summary>
+        if (killer != null)
+        {
+            int killerId = killer.GetInstanceID();
+            if (currentBattle.heroStatsMap.TryGetValue(killerId, out var hs))
+            {
+                hs.kills++;
+            }
+        }
+    }
+
+    /// <summary>伤害造成</summary>
+    private void HandleDamageDealt(Hero attacker, Hero target, int damage)
+    {
+        if (!battleActive || currentBattle == null) return;
+        if (attacker == null) return;
+
+        // 统计玩家方英雄的伤害
+        int attackerId = attacker.GetInstanceID();
+        EnsureHeroStats(attacker);
+        if (currentBattle.heroStatsMap.TryGetValue(attackerId, out var hs))
+        {
+            hs.damageDealt += damage;
+            // 暴击判定（伤害 > 攻击力视为暴击）
+            if (damage > attacker.BattleAttack)
+                hs.critCount++;
+        }
+    }
+
+    /// <summary>治疗完成</summary>
+    private void HandleHealDone(Hero healer, Hero target, int healAmount)
+    {
+        if (!battleActive || currentBattle == null) return;
+
+        // 治疗者统计（healer可能为null，如骰子技能治疗）
+        if (healer != null)
+        {
+            int healerId = healer.GetInstanceID();
+            EnsureHeroStats(healer);
+            if (currentBattle.heroStatsMap.TryGetValue(healerId, out var hs))
+            {
+                hs.healingDone += healAmount;
+            }
+        }
+        // 如果healer为null，则归到target自身的治疗统计
+        else if (target != null)
+        {
+            int targetId = target.GetInstanceID();
+            EnsureHeroStats(target);
+            if (currentBattle.heroStatsMap.TryGetValue(targetId, out var hs))
+            {
+                hs.healingDone += healAmount;
+            }
+        }
+    }
+
+    /// <summary>护盾获得</summary>
+    private void HandleShieldGained(Hero hero, int shieldAmount)
+    {
+        if (!battleActive || currentBattle == null) return;
+        if (hero == null) return;
+
+        int heroId = hero.GetInstanceID();
+        EnsureHeroStats(hero);
+        if (currentBattle.heroStatsMap.TryGetValue(heroId, out var hs))
+        {
+            hs.shieldGained += shieldAmount;
+        }
+    }
+
+    // ====================================================
+    // 外部调用接口（供其他系统使用）
+    // ====================================================
+
+    /// <summary>获取当前Run统计</summary>
+    public RunBattleStats GetCurrentRunStats() => currentRun;
+
+    /// <summary>获取上一局Run统计</summary>
+    public RunBattleStats GetLastRunStats() => lastRun;
+
+    /// <summary>遗物收集记录</summary>
     public void RecordRelicCollected(string relicName)
     {
         if (string.IsNullOrEmpty(relicName) || currentRun == null) return;
@@ -319,78 +420,72 @@ public class BattleStatsTracker : MonoBehaviour, IBattleStatsData
             currentRun.relicsCollected.Add(relicName);
     }
 
-    /// <summary>英雄成长轨迹（由SettlementPanel等外部调用）</summary>
-    public void RecordHeroGrowth(Hero hero)
+    /// <summary>击杀数手动累加（当 OnUnitKilled 事件未触发时作为兜底）</summary>
+    public void RecordKill(int count = 1)
     {
-        if (hero == null || hero.Data == null || currentRun == null) return;
-        var g = currentRun.heroGrowth;
-        if (g == null) currentRun.heroGrowth = g = new HeroGrowth();
+        if (currentRun == null) return;
+        currentRun.totalKills += count;
+    }
 
-        if (string.IsNullOrEmpty(g.heroName))
+    /// <summary>获取当前Run的MVP英雄名</summary>
+    public string GetMVPHeroName()
+    {
+        if (currentRun == null) return "无";
+        var mvp = currentRun.GetMVPHero();
+        return mvp != null ? mvp.heroName : "无";
+    }
+
+    // ====================================================
+    // 内部辅助
+    // ====================================================
+
+    /// <summary>确保英雄在当前战斗统计中已注册</summary>
+    private void EnsureHeroStats(Hero hero)
+    {
+        if (hero == null || currentBattle == null) return;
+        int id = hero.GetInstanceID();
+        if (!currentBattle.heroStatsMap.ContainsKey(id))
         {
-            // 首次记录 = 初始值
-            g.heroName = hero.Data.heroName;
-            g.heroClass = hero.Data.heroClass.ToString();
-            g.initialLevel = hero.HeroLevel;
-            g.initialStar = hero.StarLevel;
-            g.initialHP = hero.MaxHealth;
-            g.initialAtk = hero.Attack;
-            g.initialDef = hero.Defense;
-            g.initialSpd = hero.Speed;
+            currentBattle.heroStatsMap[id] = new HeroBattleStats
+            {
+                heroName = hero.Data != null ? hero.Data.heroName : "未知",
+                heroInstanceId = id
+            };
         }
-
-        // 每次都更新最终值
-        g.finalLevel = hero.HeroLevel;
-        g.finalStar = hero.StarLevel;
-        g.finalHP = hero.MaxHealth;
-        g.finalAtk = hero.Attack;
-        g.finalDef = hero.Defense;
-        g.finalSpd = hero.Speed;
     }
 
-    // ========================================================
-    // IBattleStatsData 实现
-    // ========================================================
-
-    /// <summary>获取当前Run统计</summary>
-    public RunStats GetCurrentRunStats() => currentRun;
-
-    /// <summary>获取历史Run统计（预留，当前从PlayerPrefs读取上一局）</summary>
-    public List<RunStats> GetHistoryRunStats()
-    {
-        var list = new List<RunStats>();
-        var lastRun = LoadLastRunStats();
-        if (lastRun != null)
-            list.Add(lastRun);
-        return list;
-    }
+    // ====================================================
+    // 持久化
+    // ====================================================
 
     /// <summary>持久化RunStats（JSON → PlayerPrefs）</summary>
-    public void SaveRunStats(RunStats stats)
+    public void SaveRunStats(RunBattleStats stats)
     {
         if (stats == null) return;
-
-        // 序列化前转换Dictionary → 平行List
         stats.BeforeSerialize();
-
         string json = JsonUtility.ToJson(stats);
-        PlayerPrefs.SetString("LastRunStats", json);
+        PlayerPrefs.SetString("LastRunBattleStats", json);
         PlayerPrefs.Save();
-
         Debug.Log($"[BattleStatsTracker] RunStats已保存，共{stats.totalBattles}场战斗");
     }
 
     /// <summary>从PlayerPrefs加载上一局RunStats</summary>
-    public RunStats LoadLastRunStats()
+    public RunBattleStats LoadLastRunStats()
     {
-        string json = PlayerPrefs.GetString("LastRunStats", "");
+        // 优先从新key读取
+        string json = PlayerPrefs.GetString("LastRunBattleStats", "");
+        if (string.IsNullOrEmpty(json))
+        {
+            // 兼容旧key
+            json = PlayerPrefs.GetString("LastRunStats", "");
+        }
         if (string.IsNullOrEmpty(json)) return null;
 
         try
         {
-            var stats = JsonUtility.FromJson<RunStats>(json);
+            var stats = JsonUtility.FromJson<RunBattleStats>(json);
             if (stats != null)
-                stats.AfterDeserialize(); // 平行List → Dictionary
+                stats.AfterDeserialize();
             return stats;
         }
         catch (Exception e)
@@ -398,5 +493,19 @@ public class BattleStatsTracker : MonoBehaviour, IBattleStatsData
             Debug.LogWarning($"[BattleStatsTracker] 加载RunStats失败: {e.Message}");
             return null;
         }
+    }
+
+    // ====================================================
+    // 调试辅助
+    // ====================================================
+
+    /// <summary>打印当前Run统计摘要</summary>
+    public void DebugPrintSummary()
+    {
+        if (currentRun == null) { Debug.Log("[BattleStats] 无Run数据"); return; }
+        Debug.Log($"[BattleStats] 场次={currentRun.totalBattles} 胜={currentRun.victories} " +
+                  $"连胜={currentRun.maxConsecutiveWins} 击杀={currentRun.totalKills} " +
+                  $"伤害={currentRun.totalDamageDealt} 治疗={currentRun.totalHealing} " +
+                  $"护盾={currentRun.totalShield} 时长={currentRun.totalBattleDuration:F1}s");
     }
 }

@@ -68,6 +68,13 @@ public class CardData : ScriptableObject
     public DiceCombinationType requiredCombo; // 需要的组合类型（None=不需要）
     public float comboMultiplier = 1.5f;      // 联动时的倍率
 
+    [Header("合成")]
+    public string upgradeFrom;     // 合成来源卡牌ID（null表示不可通过合成升级）
+    public int upgradeCost = 0;    // 合成花费金币（0表示无金币消耗）
+
+    [Header("效果引擎")]
+    public string effectIdStr;     // 效果引擎用的字符串ID（与face_effects.json等配置关联）
+
     [Header("外观")]
     public Sprite icon;
 

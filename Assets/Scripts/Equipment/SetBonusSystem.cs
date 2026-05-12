@@ -298,9 +298,7 @@ public class SetBonusSystem : MonoBehaviour
                 hero.BoostCritRate(effect.value);
                 break;
             case SetBonusType.CritDamageFlat:
-                // 暴击伤害通过 BattleCritDamage 直接加
-                hero.GetType().GetProperty("BattleCritDamage")?.SetValue(hero, (float)(hero.BattleCritDamage + effect.value));
-                // 备用：直接用反射不优雅，改用Hero的方法
+                hero.BoostCritDamage(effect.value);
                 break;
             case SetBonusType.LifeStealFlat:
                 hero.LifeStealRate += effect.value;

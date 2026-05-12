@@ -10,6 +10,14 @@ public static class EquipmentManager
     static readonly string[] armorNames = { "皮甲", "锁子甲", "板甲", "链甲", "魔法盔", "龙鳞甲" };
     static readonly string[] accessoryNames = { "力量戒指", "防御护符", "敏捷靴", "暴击水晶", "生命宝珠", "先攻之眼" };
 
+    // 套装定义表（ID → 名称）
+    static readonly (string id, string name)[] setDefinitions = {
+        ("set_flame", "烈焰套装"),
+        ("set_rock",  "磐石套装"),
+        ("set_wind",  "疾风套装"),
+        ("set_fate",  "命运套装")
+    };
+
     /// <summary>
     /// 随关卡获得装备掉落
     /// </summary>
@@ -59,6 +67,16 @@ public static class EquipmentManager
 
         // 根据槽位和稀有度分配属性
         ApplyStats(equip, slot, rarity, levelId);
+
+        // 30%概率分配套装（紫装以上50%概率）
+        float setChance = rarity >= CardRarity.Purple ? 0.5f : 0.3f;
+        if (Random.value < setChance)
+        {
+            var setDef = setDefinitions[Random.Range(0, setDefinitions.Length)];
+            equip.setId = setDef.id;
+            equip.setName = setDef.name;
+        }
+
         return equip;
     }
 
