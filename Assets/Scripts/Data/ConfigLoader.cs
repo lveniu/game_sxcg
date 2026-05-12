@@ -103,6 +103,9 @@ public static class ConfigLoader
 
     /// <summary>加载成就配置</summary>
     public static AchievementsConfig LoadAchievements() => Load<AchievementsConfig>("achievements");
+
+    /// <summary>加载随机事件配置</summary>
+    public static RandomEventsFileConfig LoadRandomEvents() => Load<RandomEventsFileConfig>("random_events");
 }
 
 // =====================================================================
@@ -970,4 +973,45 @@ public class AchievementRarityDisplay
 {
     public string color;
     public string name_cn;
+}
+
+// ---------- random_events.json ----------
+
+/// <summary>随机事件配置</summary>
+public class RandomEventsFileConfig
+{
+    public string _version;
+    public string _description;
+    public float trigger_chance;
+    public float risk_success_rate;
+    public List<RandomEventEntry> events;
+}
+
+/// <summary>随机事件条目</summary>
+public class RandomEventEntry
+{
+    public string id;
+    public string type;                // Treasure / Trap / MysteryMerchant / Altar / WanderingHealer / Arena
+    public string name_cn;
+    public string description_template;
+    public string gold_formula;         // 可选
+    public string health_loss_formula;  // 可选
+    public string buff_attack_formula;  // 可选
+    public string heal_formula;         // 可选
+    public float discount_rate;         // 可选
+    public List<RandomEventOptionEntry> options;
+}
+
+/// <summary>随机事件选项</summary>
+public class RandomEventOptionEntry
+{
+    public string optionText;
+    public string effectType;           // AddGold / AddHealth / AddAttack / AddRandomCard / AddRandomRelic / HealPercent / Discount / TriggerBattle / None
+    public string effectFormula;
+    public string secondaryEffect;      // 可选
+    public string secondaryFormula;     // 可选
+    public bool isRiskOption;
+    public string riskFailEffectType;   // 可选
+    public string riskFailFormula;      // 可选
+    public int goldCost;                // 可选
 }

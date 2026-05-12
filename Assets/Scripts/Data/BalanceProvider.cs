@@ -28,6 +28,7 @@ public static class BalanceProvider
     private static FaceEffectsFileConfig _faceEffects;
     private static HeroExpFileConfig _heroExpConfig;
     private static RoguelikeMapFileConfig _roguelikeMap;
+    private static RandomEventsFileConfig _randomEvents;
 
     // 懒加载属性
     public static HeroClassesConfig HeroClasses => _heroClasses ?? (_heroClasses = ConfigLoader.LoadHeroClasses());
@@ -43,6 +44,7 @@ public static class BalanceProvider
     public static FaceEffectsFileConfig FaceEffects => _faceEffects ?? (_faceEffects = ConfigLoader.LoadFaceEffects());
     public static HeroExpFileConfig HeroExpConfig => _heroExpConfig ?? (_heroExpConfig = ConfigLoader.LoadHeroExpConfig());
     public static RoguelikeMapFileConfig RoguelikeMapConfig => _roguelikeMap ?? (_roguelikeMap = ConfigLoader.LoadRoguelikeMap());
+    public static RandomEventsFileConfig RandomEventsConfig => _randomEvents ?? (_randomEvents = ConfigLoader.LoadRandomEvents());
 
     /// <summary>
     /// 热重载所有配置（策划调数值后调用）
@@ -63,6 +65,7 @@ public static class BalanceProvider
         _faceEffects = null;
         _heroExpConfig = null;
         _roguelikeMap = null;
+        _randomEvents = null;
         GameBalance.ReloadConfigs();
         Debug.Log("[BalanceProvider] 所有配置已重新加载");
     }
@@ -746,6 +749,34 @@ public static class BalanceProvider
         if (r == "mage" || r == "法师") return HeroClass.Mage;
         if (r == "assassin" || r == "刺客") return HeroClass.Assassin;
         return HeroClass.Warrior;
+    }
+
+    // ========== 随机事件相关 ==========
+
+    /// <summary>获取所有随机事件配置</summary>
+    public static List<RandomEventEntry> GetRandomEvents()
+    {
+        return RandomEventsConfig?.events ?? new List<RandomEventEntry>();
+    }
+
+    /// <summary>按事件类型获取配置</summary>
+    public static RandomEventEntry GetRandomEvent(string eventType)
+    {
+        var events = RandomEventsConfig?.events;
+        if (events == null) return null;
+        return events.Find(e => e.type == eventType || e.id == eventType);
+    }
+
+    /// <summary>获取随机事件触发概率（默认0.3）</summary>
+    public static float GetRandomEventTriggerChance()
+    {
+        return RandomEventsConfig?.trigger_chance ?? 0.3f;
+    }
+
+    /// <summary>获取风险成功率（默认0.5）</summary>
+    public static float GetRiskSuccessRate()
+    {
+        return RandomEventsConfig?.risk_success_rate ?? 0.5f;
     }
 
     // ========== 成就系统相关 ==========

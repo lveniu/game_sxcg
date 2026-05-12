@@ -53,11 +53,12 @@ public static class RandomEventSystem
     };
 
     /// <summary>
-    /// 触发随机事件（30%概率）— 旧流程兼容
+    /// 触发随机事件（概率由JSON配置）— 旧流程兼容
     /// </summary>
     public static RandomEvent TriggerEvent(int levelId)
     {
-        if (UnityEngine.Random.value > 0.3f) return null;
+        float triggerChance = BalanceProvider.GetRandomEventTriggerChance();
+        if (UnityEngine.Random.value > triggerChance) return null;
 
         int type = UnityEngine.Random.Range(0, 6);
         var evt = new RandomEvent { eventType = (RandomEventType)type };
@@ -84,9 +85,52 @@ public static class RandomEventSystem
     }
 
     /// <summary>
-    /// 填充事件基础数据
+    /// 填充事件基础数据 — JSON优先，fallback到硬编码
     /// </summary>
     static void PopulateEvent(RandomEvent evt, int levelId)
+    {
+        // BE-11: 尝试从JSON配置读取
+        var jsonEntry = BalanceProvider.GetRandomEvent(evt.eventType.ToString());
+        if (jsonEntry != null)
+        {
+            PopulateEventFromJson(evt, jsonEntry, levelId);
+            return;
+        }
+
+        // Fallback: 原有硬编码
+        PopulateEventHardcoded(evt, levelId);
+    }
+
+    /// <summary>
+    /// 从JSON配置填充事件数据
+    /// </summary>
+    static void PopulateEventFromJson(RandomEvent evt, RandomEventEntry entry, int levelId)
+    {
+        // 解析公式变量
+        float goldReward = EvaluateFormula(entry.gold_formula, levelId);
+        float healthLoss = EvaluateFormula(entry.health_loss_formula, levelId);
+        float buffAttack = EvaluateFormula(entry.buff_attack_formula, levelId);
+        float healAmount = EvaluateFormula(entry.heal_formula, levelId);
+
+        evt.goldReward = Mathf.RoundToInt(goldReward);
+        evt.healthLoss = Mathf.RoundToInt(healthLoss);
+        evt.buffAttack = Mathf.RoundToInt(buffAttack);
+        evt.healAmount = Mathf.RoundToInt(healAmount);
+        evt.discountRate = entry.discount_rate > 0 ? entry.discount_rate : 0.5f;
+
+        // 替换描述模板中的变量
+        string desc = entry.description_template ?? "";
+        desc = desc.Replace("{goldReward}", evt.goldReward.ToString());
+        desc = desc.Replace("{healthLoss}", evt.healthLoss.ToString());
+        desc = desc.Replace("{buffAttack}", evt.buffAttack.ToString());
+        desc = desc.Replace("{healAmount}", evt.healAmount.ToString());
+        evt.description = desc;
+    }
+
+    /// <summary>
+    /// 硬编码fallback（原PopulateEvent逻辑）
+    /// </summary>
+    static void PopulateEventHardcoded(RandomEvent evt, int levelId)
     {
         switch (evt.eventType)
         {
@@ -123,9 +167,71 @@ public static class RandomEventSystem
     }
 
     /// <summary>
-    /// 为事件生成多选项（地图节点模式）
+    /// 为事件生成多选项（地图节点模式）— JSON优先，fallback到硬编码
     /// </summary>
     static void GenerateOptionsForEvent(RandomEvent evt, int levelId)
+    {
+        evt.options.Clear();
+
+        // BE-11: 尝试从JSON配置读取选项
+        var jsonEntry = BalanceProvider.GetRandomEvent(evt.eventType.ToString());
+        if (jsonEntry?.options != null && jsonEntry.options.Count > 0)
+        {
+            GenerateOptionsFromJson(evt, jsonEntry, levelId);
+            return;
+        }
+
+        // Fallback: 原有硬编码选项
+        GenerateOptionsHardcoded(evt, levelId);
+    }
+
+    /// <summary>
+    /// 从JSON配置生成选项
+    /// </summary>
+    static void GenerateOptionsFromJson(RandomEvent evt, RandomEventEntry entry, int levelId)
+    {
+        // 预计算公式变量
+        float goldReward = EvaluateFormula(entry.gold_formula, levelId);
+        float healthLoss = EvaluateFormula(entry.health_loss_formula, levelId);
+        float buffAttack = EvaluateFormula(entry.buff_attack_formula, levelId);
+        float healAmount = EvaluateFormula(entry.heal_formula, levelId);
+
+        foreach (var opt in entry.options)
+        {
+            var option = new EventOption
+            {
+                optionText = opt.optionText,
+                effectType = ParseEffectType(opt.effectType),
+                effectValue = EvaluateFormulaWithVars(opt.effectFormula, levelId, goldReward, healthLoss, buffAttack, healAmount),
+                isRiskOption = opt.isRiskOption,
+                goldCost = opt.goldCost
+            };
+
+            // 次要效果
+            if (!string.IsNullOrEmpty(opt.secondaryEffect))
+            {
+                option.secondaryEffect = ParseEffectType(opt.secondaryEffect);
+                option.secondaryValue = EvaluateFormulaWithVars(opt.secondaryFormula, levelId, goldReward, healthLoss, buffAttack, healAmount);
+            }
+
+            // 风险失败效果
+            if (!string.IsNullOrEmpty(opt.riskFailEffectType))
+            {
+                option.riskFailEffectType = ParseEffectType(opt.riskFailEffectType);
+                option.riskFailValue = EvaluateFormulaWithVars(opt.riskFailFormula, levelId, goldReward, healthLoss, buffAttack, healAmount);
+            }
+
+            // 生成效果描述
+            option.effectDescription = BuildOptionDescription(option);
+
+            evt.options.Add(option);
+        }
+    }
+
+    /// <summary>
+    /// 硬编码fallback选项（原GenerateOptionsForEvent逻辑）
+    /// </summary>
+    static void GenerateOptionsHardcoded(RandomEvent evt, int levelId)
     {
         evt.options.Clear();
 
@@ -525,5 +631,170 @@ public static class RandomEventSystem
         var chosen = available[UnityEngine.Random.Range(0, available.Count)];
         relicSys.AcquireRelic(chosen);
         return $"获得遗物: {chosen.relicName}";
+    }
+
+    // ========== BE-11: JSON 配置辅助方法 ==========
+
+    /// <summary>
+    /// 解析简单公式 — 支持 "20 + level * 5" 格式
+    /// 变量: level, goldReward, healthLoss, buffAttack, healAmount
+    /// </summary>
+    static float EvaluateFormula(string formula, int level)
+    {
+        if (string.IsNullOrEmpty(formula)) return 0f;
+        return EvaluateFormulaWithVars(formula, level, 0, 0, 0, 0);
+    }
+
+    /// <summary>
+    /// 解析公式，支持预计算变量替换
+    /// </summary>
+    static float EvaluateFormulaWithVars(string formula, int level, float goldReward, float healthLoss, float buffAttack, float healAmount)
+    {
+        if (string.IsNullOrEmpty(formula)) return 0f;
+
+        try
+        {
+            // 替换变量名
+            string expr = formula
+                .Replace("goldReward", goldReward.ToString("F2"))
+                .Replace("healthLoss", healthLoss.ToString("F2"))
+                .Replace("buffAttack", buffAttack.ToString("F2"))
+                .Replace("healAmount", healAmount.ToString("F2"))
+                .Replace("level", level.ToString());
+
+            // 处理 max(a, b) 函数
+            if (expr.Contains("max("))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(expr, @"max\(\s*([^,]+)\s*,\s*([^)]+)\s*\)");
+                if (match.Success)
+                {
+                    float a = EvaluateSimpleExpr(match.Groups[1].Value.Trim());
+                    float b = EvaluateSimpleExpr(match.Groups[2].Value.Trim());
+                    return Mathf.Max(a, b);
+                }
+            }
+
+            return EvaluateSimpleExpr(expr);
+        }
+        catch
+        {
+            Debug.LogWarning($"[RandomEventSystem] 公式解析失败: {formula}");
+            return 0f;
+        }
+    }
+
+    /// <summary>
+    /// 解析简单数学表达式（支持 +, -, *, / 和括号）
+    /// </summary>
+    static float EvaluateSimpleExpr(string expr)
+    {
+        if (string.IsNullOrEmpty(expr)) return 0f;
+        expr = expr.Trim();
+
+        // 递归处理括号
+        while (expr.Contains("("))
+        {
+            int open = expr.LastIndexOf('(');
+            int close = expr.IndexOf(')', open);
+            if (close < 0) break;
+            string inner = expr.Substring(open + 1, close - open - 1);
+            float val = EvaluateSimpleExpr(inner);
+            expr = expr.Substring(0, open) + val.ToString("F6") + expr.Substring(close + 1);
+        }
+
+        // 处理加减法（从左到右）
+        // 先找最外层的 + 和 -
+        int addIdx = -1, subIdx = -1;
+        for (int i = expr.Length - 1; i >= 0; i--)
+        {
+            if (expr[i] == '+') { addIdx = i; break; }
+            if (expr[i] == '-' && i > 0 && !"+-*/".Contains(expr[i - 1].ToString())) { subIdx = i; break; }
+        }
+        if (addIdx > 0)
+            return EvaluateSimpleExpr(expr.Substring(0, addIdx)) + EvaluateSimpleExpr(expr.Substring(addIdx + 1));
+        if (subIdx > 0)
+            return EvaluateSimpleExpr(expr.Substring(0, subIdx)) - EvaluateSimpleExpr(expr.Substring(subIdx + 1));
+
+        // 处理乘除法
+        int mulIdx = expr.LastIndexOf('*');
+        int divIdx = expr.LastIndexOf('/');
+        if (mulIdx >= 0)
+            return EvaluateSimpleExpr(expr.Substring(0, mulIdx)) * EvaluateSimpleExpr(expr.Substring(mulIdx + 1));
+        if (divIdx >= 0)
+        {
+            float divisor = EvaluateSimpleExpr(expr.Substring(divIdx + 1));
+            return divisor != 0 ? EvaluateSimpleExpr(expr.Substring(0, divIdx)) / divisor : 0f;
+        }
+
+        // 最终数值
+        expr = expr.Trim();
+        if (expr.StartsWith("-"))
+        {
+            float v;
+            if (float.TryParse(expr.Substring(1), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out v))
+                return -v;
+        }
+        else
+        {
+            float v;
+            if (float.TryParse(expr, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out v))
+                return v;
+        }
+        return 0f;
+    }
+
+    /// <summary>
+    /// 字符串 → EventEffectType 枚举
+    /// </summary>
+    static EventEffectType ParseEffectType(string typeStr)
+    {
+        if (string.IsNullOrEmpty(typeStr)) return EventEffectType.None;
+        if (System.Enum.TryParse(typeStr, out EventEffectType result))
+            return result;
+        return EventEffectType.None;
+    }
+
+    /// <summary>
+    /// 根据选项效果生成描述文本
+    /// </summary>
+    static string BuildOptionDescription(EventOption opt)
+    {
+        var parts = new List<string>();
+
+        if (opt.effectType != EventEffectType.None)
+            parts.Add(DescribeEffect(opt.effectType, opt.effectValue));
+
+        if (opt.secondaryEffect != EventEffectType.None)
+            parts.Add(DescribeEffect(opt.secondaryEffect, opt.secondaryValue));
+
+        if (opt.goldCost > 0)
+            parts.Insert(0, $"花费{opt.goldCost}金币");
+
+        if (opt.isRiskOption)
+            parts.Add("（风险）");
+
+        return string.Join("，", parts);
+    }
+
+    /// <summary>
+    /// 描述单个效果
+    /// </summary>
+    static string DescribeEffect(EventEffectType type, float value)
+    {
+        int v = Mathf.RoundToInt(value);
+        return type switch
+        {
+            EventEffectType.AddGold => $"金币 {(v >= 0 ? "+" : "")}{v}",
+            EventEffectType.AddHealth => v >= 0 ? $"生命 +{v}" : $"生命 {v}",
+            EventEffectType.AddAttack => $"攻击 +{v}",
+            EventEffectType.AddRandomCard => "获得随机卡牌",
+            EventEffectType.AddRandomRelic => "获得随机遗物",
+            EventEffectType.HealPercent => $"回复{v}%最大生命",
+            EventEffectType.Discount => $"商店折扣{v}%",
+            EventEffectType.TriggerBattle => $"进入战斗，胜利获得{v}金币",
+            _ => ""
+        };
     }
 }
