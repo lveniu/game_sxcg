@@ -69,7 +69,7 @@ namespace Game.UI
 
         [Header("标题配置")]
         [Tooltip("游戏标题文字")]
-        public string gameTitle = "骰子勇者";
+        public string gameTitle = ""; // 由 LocalizationManager 填充
 
         // ============================================================
         // 内部缓存
@@ -115,9 +115,14 @@ namespace Game.UI
             // --- 清理旧的监听器并重新绑定 ---
             BindButtons();
 
-            // --- 设置标题文字 ---
+            // --- 设置标题文字（本地化） ---
             if (gameTitleText != null)
-                gameTitleText.text = gameTitle;
+            {
+                if (LocalizationManager.Instance != null)
+                    gameTitleText.text = LocalizationManager.Instance.GetText("main_menu.game_title");
+                else
+                    gameTitleText.text = gameTitle;
+            }
 
             // --- 设置版本号 ---
             SetupVersionText();

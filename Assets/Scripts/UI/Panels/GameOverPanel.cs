@@ -99,12 +99,20 @@ namespace Game.UI
             // ── 基础标题 ──────────────────────────────────────
             bool isWin = gsm != null && gsm.IsGameWon;
             if (resultTitle != null)
-                resultTitle.text = isWin ? "🏆 通关！" : "💀 阵亡";
+                resultTitle.text = isWin
+                    ? (LocalizationManager.Instance != null
+                        ? LocalizationManager.Instance.GetText("game_over.victory")
+                        : "🏆 通关！")
+                    : (LocalizationManager.Instance != null
+                        ? LocalizationManager.Instance.GetText("game_over.defeat")
+                        : "💀 阵亡");
 
             // ── 关卡 ──────────────────────────────────────────
             int level = rgm != null ? rgm.CurrentLevel : (gsm != null ? gsm.CurrentLevel : 0);
             if (levelReachedText != null)
-                levelReachedText.text = $"第 {level} 关";
+                levelReachedText.text = LocalizationManager.Instance != null
+                    ? LocalizationManager.Instance.GetText("game_over.level_reached", level.ToString())
+                    : $"第 {level} 关";
 
             // ── 收集统计数据 ──────────────────────────────────
             CollectStats(gsm, rgm);
@@ -217,14 +225,15 @@ namespace Game.UI
                 Destroy(statsContainer.GetChild(i).gameObject);
 
             // 卡片数据定义（图标, 标签, 值Text引用, 是否滚动动画）
+            var loc = LocalizationManager.Instance;
             var cardDefs = new[]
             {
-                ("⚔", "击杀", statKillCount, true),
-                ("🏆", "遗物", statRelicCount, true),
-                ("⏱", "时长", 0, false),       // 时长不滚动
-                ("🔥", "连胜", statMaxWinStreak, true),
-                ("💥", "总伤", 0, true),         // 总伤特殊格式化
-                ("🌟", "MVP", 0, false),          // MVP不滚动
+                ("⚔", loc != null ? loc.GetText("game_over.stat_kills") : "击杀", statKillCount, true),
+                ("🏆", loc != null ? loc.GetText("game_over.stat_relics") : "遗物", statRelicCount, true),
+                ("⏱", loc != null ? loc.GetText("game_over.stat_time") : "时长", 0, false),       // 时长不滚动
+                ("🔥", loc != null ? loc.GetText("game_over.stat_streak") : "连胜", statMaxWinStreak, true),
+                ("💥", loc != null ? loc.GetText("game_over.stat_damage") : "总伤", 0, true),         // 总伤特殊格式化
+                ("🌟", loc != null ? loc.GetText("game_over.stat_mvp") : "MVP", 0, false),          // MVP不滚动
             };
 
             for (int row = 0; row < 3; row++)

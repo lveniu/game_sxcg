@@ -85,8 +85,10 @@ namespace Game.UI
         // ============================================================
         private Slider bgmSlider;
         private Text   bgmValueText;
+        private Text   bgmSliderLabel;
         private Slider sfxSlider;
         private Text   sfxValueText;
+        private Text   sfxSliderLabel;
         private Button[] qualityBtns = new Button[3];
         private Text[]  qualityBtnTexts = new Text[3];
         private Button  vibrationBtn;
@@ -162,11 +164,11 @@ namespace Game.UI
 
             // --- 音乐音量 ---
             y = BuildSliderSection(contentRoot, y, "🔊 音乐音量",
-                out bgmSlider, out bgmValueText, DEFAULT_BGM_VOLUME, OnBGMChanged);
+                out bgmSlider, out bgmValueText, out bgmSliderLabel, DEFAULT_BGM_VOLUME, OnBGMChanged);
 
             // --- 音效音量 ---
             y = BuildSliderSection(contentRoot, y, "🔉 音效音量",
-                out sfxSlider, out sfxValueText, DEFAULT_SFX_VOLUME, OnSFXChanged);
+                out sfxSlider, out sfxValueText, out sfxSliderLabel, DEFAULT_SFX_VOLUME, OnSFXChanged);
 
             // --- 画质 ---
             y = BuildQualitySection(contentRoot, y);
@@ -243,7 +245,7 @@ namespace Game.UI
         // ==================== 滑块区域 ====================
 
         private float BuildSliderSection(RectTransform parent, float startY, string label,
-            out Slider slider, out Text valueText, float defaultValue, UnityEngine.Events.UnityAction<float> onValueChanged)
+            out Slider slider, out Text valueText, out Text labelTextOut, float defaultValue, UnityEngine.Events.UnityAction<float> onValueChanged)
         {
             float sectionHeight = 90f;
 
@@ -270,6 +272,7 @@ namespace Game.UI
             labelText.fontSize = 20;
             labelText.color = SECTION_LABEL_CLR;
             labelText.alignment = TextAnchor.MiddleLeft;
+            labelTextOut = labelText;
 
             // 滑块背景
             var sliderBgGo = new GameObject("SliderBg");
@@ -701,6 +704,16 @@ namespace Game.UI
             qualityLevel = PlayerPrefs.GetInt(KEY_QUALITY, DEFAULT_QUALITY);
             vibrationOn = PlayerPrefs.GetInt(KEY_VIBRATION, DEFAULT_VIBRATION) == 1;
             language    = PlayerPrefs.GetString(KEY_LANGUAGE, DEFAULT_LANGUAGE);
+
+            // 同步 LocalizationManager 语言
+            if (LocalizationManager.Instance != null)
+            {
+                var lang = language == "en"
+                    ? LocalizationManager.Language.EnUS
+                    : LocalizationManager.Language.ZhCN;
+                if (LocalizationManager.Instance.CurrentLanguage != lang)
+                    LocalizationManager.Instance.SetLanguage(lang);
+            }
         }
 
         private void SaveSettings()
@@ -824,9 +837,30 @@ namespace Game.UI
             language = index == 0 ? "zh" : "en";
             RefreshLanguageButtons();
             Debug.Log($"[Settings] 语言切换为: {language}");
-            // 本地化系统对接占位：待 LocalizationManager 实现后取消注释
-            // if (LocalizationManager.Instance != null)
-            //     LocalizationManager.Instance.SetLanguage(language);
+
+            // 对接 LocalizationManager
+            if (LocalizationManager.Instance != null)
+            {
+                var lang = index == 0
+                    ? LocalizationManager.Language.ZhCN
+                    : LocalizationManager.Language.EnUS;
+                LocalizationManager.Instance.SetLanguage(lang);
+            }
+
+            // 刷新Settings面板自身的本地化文本
+            RefreshLocalizedTexts();
+        }
+
+        /// <summary> 刷新Settings面板中所有本地化文本 </summary>
+        private void RefreshLocalizedTexts()
+        {
+            if (LocalizationManager.Instance == null) return;
+
+            // 标签本地化
+            if (bgmSliderLabel != null)
+                bgmSliderLabel.text = LocalizationManager.Instance.GetText("settings.bgm_volume");
+            if (sfxSliderLabel != null)
+                sfxSliderLabel.text = LocalizationManager.Instance.GetText("settings.sfx_volume");
         }
 
         private void OnResetClicked()

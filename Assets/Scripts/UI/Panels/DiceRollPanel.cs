@@ -86,7 +86,9 @@ namespace Game.UI
             foreach (var bg in diceBgs) if (bg) bg.color = Color.white;
             foreach (var tog in keepToggles) if (tog) tog.isOn = false;
             if (comboArea) comboArea.SetActive(false);
-            if (rerollCountText) rerollCountText.text = $"重摇: {diceRoller.RemainingRerolls}";
+            if (rerollCountText) rerollCountText.text = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("dice_roll.reroll_count", diceRoller.RemainingRerolls.ToString())
+                : $"重摇: {diceRoller.RemainingRerolls}";
             if (rerollButton) rerollButton.interactable = false;
             if (confirmButton) confirmButton.interactable = false;
             if (rollButton) rollButton.interactable = true;
@@ -221,7 +223,9 @@ namespace Game.UI
             if (combinationText)
             {
                 if (combo.Type == DiceCombinationType.None)
-                    combinationText.text = "无组合";
+                    combinationText.text = LocalizationManager.Instance != null
+                        ? LocalizationManager.Instance.GetText("dice_roll.no_combination")
+                        : "无组合";
                 else
                     combinationText.text = comboDisplay.nameCN;
             }
@@ -253,13 +257,17 @@ namespace Game.UI
         private void OnRerollsExhausted()
         {
             if (rerollButton) rerollButton.interactable = false;
-            if (rerollCountText) rerollCountText.text = "重摇: 0";
+            if (rerollCountText) rerollCountText.text = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("dice_roll.reroll_count", "0")
+                : "重摇: 0";
         }
 
         private void UpdateRerollCount()
         {
             if (rerollCountText)
-                rerollCountText.text = $"重摇: {diceRoller.RemainingRerolls}";
+                rerollCountText.text = LocalizationManager.Instance != null
+                    ? LocalizationManager.Instance.GetText("dice_roll.reroll_count", diceRoller.RemainingRerolls.ToString())
+                    : $"重摇: {diceRoller.RemainingRerolls}";
         }
 
         #endregion

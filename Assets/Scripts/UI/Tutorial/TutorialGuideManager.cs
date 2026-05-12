@@ -423,8 +423,8 @@ public class TutorialGuideManager : MonoBehaviour
             new TutorialGuideStep
             {
                 stepID = "hero_select",
-                title = "选择你的英雄",
-                description = "从三位英雄中选择一位作为你的初始角色。\n每位英雄拥有独特的技能和属性！",
+                title = GetLocText("tutorial.hero_select_title", "选择你的英雄"),
+                description = GetLocText("tutorial.hero_select_desc", "从三位英雄中选择一位作为你的初始角色。\n每位英雄拥有独特的技能和属性！"),
                 highlightPath = "HeroCards",
                 highlightShape = "rect",
                 waitForEvent = "click",
@@ -436,8 +436,8 @@ public class TutorialGuideManager : MonoBehaviour
             new TutorialGuideStep
             {
                 stepID = "dice_roll",
-                title = "掷出命运之骰",
-                description = "点击掷骰按钮，投掷骰子获取本关资源。\n骰面结果决定你的战斗加成！",
+                title = GetLocText("tutorial.dice_roll_title", "掷出命运之骰"),
+                description = GetLocText("tutorial.dice_roll_desc", "点击掷骰按钮，投掷骰子获取本关资源。\n骰面结果决定你的战斗加成！"),
                 highlightPath = "RollButton",
                 highlightShape = "rect",
                 waitForEvent = "click",
@@ -449,8 +449,8 @@ public class TutorialGuideManager : MonoBehaviour
             new TutorialGuideStep
             {
                 stepID = "dice_lock",
-                title = "锁定有利骰子",
-                description = "点击骰子可以锁定它，锁定的骰子不会被重摇。\n保留好结果，重摇不满意的面！",
+                title = GetLocText("tutorial.dice_lock_title", "锁定有利骰子"),
+                description = GetLocText("tutorial.dice_lock_desc", "点击骰子可以锁定它，锁定的骰子不会被重摇。\n保留好结果，重摇不满意的面！"),
                 highlightPath = "DiceContainer",
                 highlightShape = "rect",
                 waitForEvent = "click",
@@ -462,8 +462,8 @@ public class TutorialGuideManager : MonoBehaviour
             new TutorialGuideStep
             {
                 stepID = "dice_confirm",
-                title = "确认骰子组合",
-                description = "确认你的骰子结果，进入战斗阶段。\n三条、顺子、对子各有不同加成！",
+                title = GetLocText("tutorial.dice_confirm_title", "确认骰子组合"),
+                description = GetLocText("tutorial.dice_confirm_desc", "确认你的骰子结果，进入战斗阶段。\n三条、顺子、对子各有不同加成！"),
                 highlightPath = "ConfirmButton",
                 highlightShape = "rect",
                 waitForEvent = "click",
@@ -475,8 +475,8 @@ public class TutorialGuideManager : MonoBehaviour
             new TutorialGuideStep
             {
                 stepID = "battle",
-                title = "战斗开始！",
-                description = "战斗自动进行，你可以加速或跳过。\n胜利后获得金币和经验奖励！",
+                title = GetLocText("tutorial.battle_title", "战斗开始！"),
+                description = GetLocText("tutorial.battle_desc", "战斗自动进行，你可以加速或跳过。\n胜利后获得金币和经验奖励！"),
                 highlightPath = "SpeedButton",
                 highlightShape = "rect",
                 waitForEvent = "state_change",
@@ -486,6 +486,16 @@ public class TutorialGuideManager : MonoBehaviour
                 showBubble = true
             }
         };
+    }
+
+    /// <summary>
+    /// 本地化辅助方法 — 优先从语言包读取，回退到fallback
+    /// </summary>
+    private static string GetLocText(string key, string fallback)
+    {
+        if (LocalizationManager.Instance != null)
+            return LocalizationManager.Instance.GetText(key);
+        return fallback;
     }
 
     #endregion

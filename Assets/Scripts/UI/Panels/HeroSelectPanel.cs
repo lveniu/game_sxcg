@@ -60,7 +60,9 @@ namespace Game.UI
             selectedIndex = -1;
             SelectedClass = HeroClass.Warrior;
             confirmButton.interactable = false;
-            tipText.text = "选择你的英雄";
+            tipText.text = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("hero_select.title")
+                : "选择你的英雄";
 
             // 通过UIConfigBridge填充英雄数据
             for (int i = 0; i < allCards.Length && i < heroDisplayData.Length; i++)
@@ -75,7 +77,9 @@ namespace Game.UI
                 if (card.defText) card.defText.text = $"DEF {data.stats.defense}";
                 if (card.spdText) card.spdText.text = $"SPD {data.stats.speed}";
                 if (card.critText) card.critText.text = $"CRT {Mathf.RoundToInt(data.stats.critRate * 100)}%";
-                if (card.costText) card.costText.text = $"消耗 {data.summonCost}";
+                if (card.costText) card.costText.text = LocalizationManager.Instance != null
+                    ? LocalizationManager.Instance.GetText("hero_select.cost", data.summonCost.ToString())
+                    : $"消耗 {data.summonCost}";
                 if (card.skillDescText) card.skillDescText.text = data.description;
                 if (card.selectedMark) card.selectedMark.SetActive(false);
                 if (card.border) card.border.color = Color.white;
@@ -114,7 +118,9 @@ namespace Game.UI
                     allCards[i].border.color = selected ? heroDisplayData[i].color : Color.white;
             }
 
-            tipText.text = $"已选择: {heroDisplayData[index].displayName}";
+            tipText.text = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("hero_select.selected", heroDisplayData[index].displayName)
+                : $"已选择: {heroDisplayData[index].displayName}";
         }
 
         private void OnConfirm()

@@ -105,7 +105,13 @@ namespace Game.UI
             // 标题
             if (resultTitleText != null)
             {
-                resultTitleText.text = won ? "🏆 战斗胜利！" : "💀 战斗失败...";
+                resultTitleText.text = won
+                    ? (LocalizationManager.Instance != null
+                        ? LocalizationManager.Instance.GetText("settlement.victory")
+                        : "🏆 战斗胜利！")
+                    : (LocalizationManager.Instance != null
+                        ? LocalizationManager.Instance.GetText("settlement.defeat")
+                        : "💀 战斗失败...");
                 resultTitleText.color = won ? new Color(1f, 0.85f, 0.2f) : new Color(0.8f, 0.2f, 0.2f);
 
                 resultTitleText.rectTransform.localScale = Vector3.zero;
@@ -147,7 +153,9 @@ namespace Game.UI
                     nextButton.interactable = true;
                 }
                 if (nextButtonText != null)
-                    nextButtonText.text = "继续 →";
+                    nextButtonText.text = LocalizationManager.Instance != null
+                        ? LocalizationManager.Instance.GetText("settlement.continue")
+                        : "继续 →";
             }
 
             if (backButton != null)
@@ -176,12 +184,14 @@ namespace Game.UI
             if (inventory != null)
             {
                 inventory.AddGold(goldReward);
-                goldRewardText.text = $"💰 金币 +{goldReward}（余额：{inventory.Gold}）";
+                goldRewardText.text = LocalizationManager.Instance != null
+                    ? LocalizationManager.Instance.GetText("settlement.gold_reward_balance", goldReward.ToString(), inventory.Gold.ToString())
+                    : $"💰 金币 +{goldReward}（余额：{inventory.Gold}）";
             }
             else
-            {
-                goldRewardText.text = $"💰 金币 +{goldReward}";
-            }
+                goldRewardText.text = LocalizationManager.Instance != null
+                    ? LocalizationManager.Instance.GetText("settlement.gold_reward", goldReward.ToString())
+                    : $"💰 金币 +{goldReward}";
 
             goldRewardText.rectTransform.localScale = Vector3.zero;
             goldRewardText.rectTransform.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutBack).SetLink(gameObject);
