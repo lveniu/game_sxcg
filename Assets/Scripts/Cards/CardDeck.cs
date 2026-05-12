@@ -163,7 +163,21 @@ public class CardDeck : MonoBehaviour
 
         // 检查金币消耗（如果有upgradeCost）
         int upgradeCost = candidates[0].Data.upgradeCost;
-        // TODO: 接入金币系统后检查余额，目前跳过金币检查
+        if (upgradeCost > 0)
+        {
+            var inventory = PlayerInventory.Instance;
+            if (inventory == null)
+            {
+                Debug.LogWarning("PlayerInventory 不存在，无法扣除金币");
+                return null;
+            }
+            if (inventory.Gold < upgradeCost)
+            {
+                Debug.LogWarning($"金币不足：需要 {upgradeCost}，当前 {inventory.Gold}");
+                return null;
+            }
+            inventory.SpendGold(upgradeCost);
+        }
 
         // 移除两张材料卡
         var card1 = candidates[0];
