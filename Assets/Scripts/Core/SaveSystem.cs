@@ -8,6 +8,9 @@ public class SaveData
     public int version = 1;
     public long saveTimestamp;
 
+    // 存档状态（0=正常, 1=失败/死亡）
+    public int saveStatus;
+
     // 肉鸽进度
     public int currentLevel;
     public int maxLevelReached;
@@ -69,6 +72,17 @@ public class SaveSystem : MonoBehaviour
 
     public static bool HasSave => PlayerPrefs.GetInt(HAS_SAVE_KEY, 0) == 1;
 
+    /// <summary>存档是否为失败状态</summary>
+    public static bool IsSaveFailed
+    {
+        get
+        {
+            if (!HasSave) return false;
+            var data = Instance?.Load();
+            return data != null && data.saveStatus == 1;
+        }
+    }
+
     public event System.Action OnSaveComplete;
     public event System.Action<SaveData> OnLoadComplete;
 
@@ -88,6 +102,19 @@ public class SaveSystem : MonoBehaviour
         PlayerPrefs.SetInt(HAS_SAVE_KEY, 1);
         PlayerPrefs.Save();
         Debug.Log($"[SaveSystem] 存档完成 Lv{data.currentLevel} 金币{data.gold}");
+        OnSaveComplete?.Invoke();
+    }
+
+    /// <summary>保存为失败状态（死亡时不删档，标记失败）</summary>
+    public void SaveAsFailed()
+    {
+        var data = CaptureCurrentState();
+        data.saveStatus = 1; // 标记为失败
+        string json = JsonUtility.ToJson(data, true);
+        PlayerPrefs.SetString(SAVE_KEY, json);
+        PlayerPrefs.SetInt(HAS_SAVE_KEY, 1);
+        PlayerPrefs.Save();
+        Debug.Log($"[SaveSystem] 失败存档已保存 Lv{data.currentLevel}");
         OnSaveComplete?.Invoke();
     }
 

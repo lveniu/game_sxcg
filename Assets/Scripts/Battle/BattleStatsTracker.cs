@@ -25,6 +25,7 @@ public class BattleStatsTracker : MonoBehaviour
     private Dictionary<int, int> heroHPBeforeBattle = new Dictionary<int, int>();
     private bool isTracking;
     private bool battleActive;
+    private bool subscribed;
 
     // ─── 事件 — 面板/其他系统可订阅 ─────────────────
     public event Action<RunBattleStats> OnRunStatsUpdated;
@@ -51,6 +52,7 @@ public class BattleStatsTracker : MonoBehaviour
     void OnDestroy()
     {
         UnsubscribeEvents();
+        subscribed = false;
     }
 
     void OnEnable()
@@ -69,6 +71,7 @@ public class BattleStatsTracker : MonoBehaviour
 
     private void SubscribeEvents()
     {
+        if (subscribed) return;  // 防重复订阅
         var bm = BattleManager.Instance;
         if (bm == null) return;
 
@@ -81,10 +84,13 @@ public class BattleStatsTracker : MonoBehaviour
         bm.OnDamageDealt += HandleDamageDealt;
         bm.OnHealDone += HandleHealDone;
         bm.OnShieldGained += HandleShieldGained;
+
+        subscribed = true;
     }
 
     private void UnsubscribeEvents()
     {
+        if (!subscribed) return;  // 防重复取消
         var bm = BattleManager.Instance;
         if (bm == null) return;
 
@@ -96,6 +102,8 @@ public class BattleStatsTracker : MonoBehaviour
         bm.OnDamageDealt -= HandleDamageDealt;
         bm.OnHealDone -= HandleHealDone;
         bm.OnShieldGained -= HandleShieldGained;
+
+        subscribed = false;
     }
 
     // ====================================================

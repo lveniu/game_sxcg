@@ -401,24 +401,27 @@ public class BattleEffectManager : MonoBehaviour
     public void OnBattleEnd()
     {
         // 不清理对象池，只清理活跃特效
-        if (effectsContainer != null)
-        {
-            DOTween.KillAll();
-            for (int i = effectsContainer.childCount - 1; i >= 0; i--)
+            // 仅清理特效对象上的 Tween，不影响 UI 等其他系统
+            if (effectsContainer != null)
             {
-                var child = effectsContainer.GetChild(i);
-                if (child != null && child.gameObject.activeSelf)
+                for (int i = effectsContainer.childCount - 1; i >= 0; i--)
                 {
-                    child.gameObject.SetActive(false);
-                    // 尝试回收到池中
-                    var poolable = child.gameObject;
-                    if (poolable.name.StartsWith("PooledEffect_"))
+                    var child = effectsContainer.GetChild(i);
+                    if (child != null && child.gameObject != null)
                     {
-                        string type = poolable.name.Replace("PooledEffect_", "");
-                        ReturnToPool(type, poolable);
+                        DG.Tweening.DOTween.Kill(child.gameObject);
+                        // 回收对象池
+                        if (child.gameObject.activeSelf)
+                        {
+                            child.gameObject.SetActive(false);
+                            if (child.gameObject.name.StartsWith("PooledEffect_"))
+                            {
+                                string type = child.gameObject.name.Replace("PooledEffect_", "");
+                                ReturnToPool(type, child.gameObject);
+                            }
+                        }
                     }
                 }
-            }
         }
 
         // 重置闪烁

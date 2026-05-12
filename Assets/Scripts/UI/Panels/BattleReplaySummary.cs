@@ -376,10 +376,8 @@ namespace Game.UI
             onReplayComplete = null;
             callback?.Invoke();
 
-            // 隐藏自己
-            var uiManager = NewUIManager.Instance;
-            if (uiManager != null)
-                uiManager.HideSubPanel(this);
+            // 隐藏自己 — 直接用基类Hide()，不依赖NewUIManager
+            Hide();
         }
 
         // ══════════════════════════════════════

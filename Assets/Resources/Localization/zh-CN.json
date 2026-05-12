@@ -1,196 +1,194 @@
 {
-  "main_menu": {
-    "game_title": "骰子勇者",
-    "start_button": "开始游戏",
-    "continue_button": "继续游戏",
-    "settings_button": "设置",
-    "quit_button": "退出",
-    "version": "v{0}"
-  },
-
-  "hero_select": {
-    "title": "选择你的英雄",
-    "selected": "已选择: {0}",
-    "confirm_button": "确认选择",
-    "cost": "消耗 {0}",
-    "warrior_name": "战士",
-    "mage_name": "法师",
-    "assassin_name": "刺客",
-    "warrior_desc": "高生命值，前排坦克",
-    "mage_desc": "远程法术，后排输出",
-    "assassin_desc": "高暴击，爆发刺杀"
-  },
-
-  "dice_roll": {
-    "reroll_count": "重摇: {0}",
-    "roll_button": "掷骰",
-    "reroll_button": "重摇",
-    "confirm_button": "确认",
-    "no_combination": "无组合",
-    "combo_pair": "对子",
-    "combo_straight": "顺子",
-    "combo_three": "三条"
-  },
-
-  "battle": {
-    "waiting": "等待战斗开始...",
-    "started": "⚔ 战斗开始！",
-    "victory": "🏆 战斗胜利！",
-    "defeat": "💀 战斗失败...",
-    "skip": "⏭ 跳过战斗",
-    "auto_settlement": ">>> 自动进入结算...",
-    "auto_menu": ">>> 返回主菜单...",
-    "crit_prefix": "暴击",
-    "dead": "💀 阵亡",
-    "time_used": "用时 {0}s",
-    "heroes_dead": "英雄已阵亡...",
-    "speed_changed": "速度切换：{0}",
-    "dice_skill_none": "🎲 无骰子技能",
-    "dice_skill_used": "🎲 已释放",
-    "dice_skill_three": "三条·AOE",
-    "dice_skill_straight": "顺子·加速",
-    "dice_skill_pair": "对子·治疗",
-    "dice_skill_label": "骰子技能",
-    "reward_preview": "通关奖励即将揭晓...",
-    "reward_preview_level": "通关奖励即将揭晓...\n第{0}关完成！"
-  },
-
-  "battle_grid": {
-    "front_row": "← 前排（防御位）",
-    "middle_row": "← 中排（均衡位）",
-    "back_row": "← 后排（输出位）",
-    "front_label": "前排",
-    "middle_label": "中排",
-    "back_label": "后排",
-    "start_battle": "开始战斗",
-    "summon_first": "请先召唤英雄",
-    "position_info": "站位：{0}\n{1} — {2}",
-    "no_buff": "无特殊加成",
-    "warrior_front_buff": "战士前排：防御+30%",
-    "warrior_back_buff": "战士后排：无特殊加成",
-    "mage_front_buff": "法师前排：无特殊加成",
-    "mage_back_buff": "法师后排：攻击+20%",
-    "assassin_front_buff": "刺客前排：无特殊加成",
-    "assassin_back_buff": "刺客后排：无特殊加成"
-  },
-
-  "settlement": {
-    "victory_title": "🏆 战斗胜利！",
-    "defeat_title": "💀 战斗失败...",
-    "next_button": "继续 →",
-    "gold_reward": "💰 金币 +{0}",
-    "gold_reward_balance": "💰 金币 +{0}（余额：{1}）",
-    "star_up": "★ 进化!",
-    "star_up_detail": "★→{0} 进化!"
-  },
-
-  "roguelike_reward": {
-    "title": "🎁 选择一项奖励",
-    "confirm_button": "确认选择",
-    "selected": "选择: {0}"
-  },
-
-  "roguelike_map": {
-    "layer_progress": "地图 {0}/{1}",
-    "difficulty": "难度: {0}"
-  },
-
-  "game_over": {
-    "victory_title": "🏆 通关！",
-    "defeat_title": "💀 阵亡",
-    "level_reached": "第 {0} 关",
-    "stat_kills": "击杀",
-    "stat_relics": "遗物",
-    "stat_time": "时长",
-    "stat_streak": "连胜",
-    "stat_damage": "总伤",
-    "stat_mvp": "MVP",
-    "warrior_class": "战士"
-  },
-
-  "boss_mechanic": {
-    "phase": "阶段 {0}/{1}",
-    "phase_1_desc": "🎯 Boss处于第一阶段，攻击力较低",
-    "phase_2_desc": "⚠ Boss进入狂暴状态！攻击力+50%",
-    "phase_3_desc": "🔥 Boss释放终极技能！全屏AOE",
-    "phase_2_banner": "⚠ 第二阶段！Boss狂暴化！",
-    "phase_3_banner": "🔥 终极阶段！全屏AOE预警！",
-    "phase_banner": "第{0}阶段！",
-    "ultimate_warning": "⚠ Boss即将释放终极AOE！",
-    "rage_warning": "⚠ Boss狂暴！攻击力大幅提升！",
-    "stealth_warning": "⚠ Boss隐身！下次攻击将造成双倍伤害！",
-    "curse_warning": "⚠ Boss释放诅咒！全体持续掉血！",
-    "bomb_warning": "💣 Boss安放炸弹！倒计时中...",
-    "element_switch": "🔄 Boss切换了元素属性！",
-    "ultimate_phase_warning": "⚠ 终极阶段！Boss释放全屏技能！",
-    "summon_minions": "👾 Boss召唤了 {0} 个小怪！",
-    "bomb_explode": "💣 炸弹爆炸！全体受到 {0} 伤害！"
-  },
-
-  "card_play": {
-    "free": "免费",
-    "cost_points": "{0}点",
-    "permanent": "本局永久",
-    "this_battle": "本场",
-    "cost_detail": "消耗{0}点",
-    "combo_link": "联动:{0} ×{1}",
-    "summon": "召唤 ({0}点)",
-    "population_full": "人口已满",
-    "insufficient_points": "点数不足",
-    "play_permanent": "打出（免费·永久）",
-    "play_battle": "打出（{0}点·本场）",
-    "evolve_select": "选择英雄进化",
-    "merge": "合成 (2→升星)",
-    "merge_unavailable": "无可合成卡牌",
-    "summon_action": "召唤",
-    "attribute_permanent": "属性永久生效",
-    "evolve_action": "进化",
-    "play_combo": "打出·骰子联动！",
-    "play": "打出",
-    "population": "人口: {0}/{1}",
-    "dice_points": "骰子点数: {0}",
-    "combo_info": "组合: {0}"
-  },
-
-  "event": {
-    "gold": "金币 {0}{1}"
-  },
-
-  "achievement": {
-    "no_reward": "无奖励",
-    "reward_label": "奖励: {0}",
-    "claim": "领取 🎁"
-  },
-
-  "settings": {
-    "bgm_volume": "🔊 音乐音量",
-    "sfx_volume": "🔉 音效音量",
-    "language_label": "🌐 语言",
-    "language_zh": "中文",
-    "language_en": "English"
-  },
-
-  "tutorial": {
-    "skip": "跳过引导",
-    "hero_select_title": "选择你的英雄",
-    "hero_select_desc": "从三位英雄中选择一位作为你的初始角色。\n每位英雄拥有独特的技能和属性！",
-    "dice_roll_title": "掷出命运之骰",
-    "dice_roll_desc": "点击掷骰按钮，投掷骰子获取本关资源。\n骰面结果决定你的战斗加成！",
-    "dice_lock_title": "锁定有利骰子",
-    "dice_lock_desc": "点击骰子可以锁定它，锁定的骰子不会被重摇。\n保留好结果，重摇不满意的面！",
-    "dice_confirm_title": "确认骰子组合",
-    "dice_confirm_desc": "确认你的骰子结果，进入战斗阶段。\n三条、顺子、对子各有不同加成！",
-    "battle_start_title": "战斗开始！",
-    "battle_start_desc": "战斗自动进行，你可以加速或跳过。\n胜利后获得金币和经验奖励！"
-  },
-
-  "common": {
-    "confirm": "确认",
-    "cancel": "取消",
-    "close": "关闭",
-    "back": "返回",
-    "unknown": "未知",
-    "loading": "加载中...",
-    "none": "无"
-  }
+    "main_menu": {
+        "game_title": "骰子勇者",
+        "start_button": "开始游戏",
+        "continue_button": "继续游戏",
+        "settings_button": "设置",
+        "quit_button": "退出",
+        "version": "v{0}"
+    },
+    "hero_select": {
+        "title": "选择你的英雄",
+        "selected": "已选择: {0}",
+        "confirm_button": "确认选择",
+        "cost": "消耗 {0}",
+        "warrior_name": "战士",
+        "mage_name": "法师",
+        "assassin_name": "刺客",
+        "warrior_desc": "高生命值，前排坦克",
+        "mage_desc": "远程法术，后排输出",
+        "assassin_desc": "高暴击，爆发刺杀"
+    },
+    "dice_roll": {
+        "reroll_count": "重摇: {0}",
+        "roll_button": "掷骰",
+        "reroll_button": "重摇",
+        "confirm_button": "确认",
+        "no_combination": "无组合",
+        "combo_pair": "对子",
+        "combo_straight": "顺子",
+        "combo_three": "三条"
+    },
+    "battle": {
+        "waiting": "等待战斗开始...",
+        "started": "⚔ 战斗开始！",
+        "victory": "🏆 战斗胜利！",
+        "defeat": "💀 战斗失败...",
+        "skip": "⏭ 跳过战斗",
+        "auto_settlement": ">>> 自动进入结算...",
+        "auto_menu": ">>> 返回主菜单...",
+        "crit_prefix": "暴击",
+        "dead": "💀 阵亡",
+        "time_used": "用时 {0}s",
+        "heroes_dead": "英雄已阵亡...",
+        "speed_changed": "速度切换：{0}",
+        "dice_skill_none": "🎲 无骰子技能",
+        "dice_skill_used": "🎲 已释放",
+        "dice_skill_three": "三条·AOE",
+        "dice_skill_straight": "顺子·加速",
+        "dice_skill_pair": "对子·治疗",
+        "dice_skill_label": "骰子技能",
+        "reward_preview": "通关奖励即将揭晓...",
+        "reward_preview_level": "通关奖励即将揭晓...\n第{0}关完成！"
+    },
+    "battle_grid": {
+        "front_row": "← 前排（防御位）",
+        "middle_row": "← 中排（均衡位）",
+        "back_row": "← 后排（输出位）",
+        "front_label": "前排",
+        "middle_label": "中排",
+        "back_label": "后排",
+        "start_battle": "开始战斗",
+        "summon_first": "请先召唤英雄",
+        "position_info": "站位：{0}\n{1} — {2}",
+        "no_buff": "无特殊加成",
+        "warrior_front_buff": "战士前排：防御+30%",
+        "warrior_back_buff": "战士后排：无特殊加成",
+        "mage_front_buff": "法师前排：无特殊加成",
+        "mage_back_buff": "法师后排：攻击+20%",
+        "assassin_front_buff": "刺客前排：无特殊加成",
+        "assassin_back_buff": "刺客后排：无特殊加成"
+    },
+    "settlement": {
+        "victory_title": "🏆 战斗胜利！",
+        "defeat_title": "💀 战斗失败...",
+        "next_button": "继续 →",
+        "gold_reward": "💰 金币 +{0}",
+        "gold_reward_balance": "💰 金币 +{0}（余额：{1}）",
+        "star_up": "★ 进化!",
+        "star_up_detail": "★→{0} 进化!"
+    },
+    "roguelike_reward": {
+        "title": "🎁 选择一项奖励",
+        "confirm_button": "确认选择",
+        "selected": "选择: {0}"
+    },
+    "roguelike_map": {
+        "layer_progress": "地图 {0}/{1}",
+        "difficulty": "难度: {0}"
+    },
+    "game_over": {
+        "victory_title": "🏆 通关！",
+        "defeat_title": "💀 阵亡",
+        "level_reached": "第 {0} 关",
+        "stat_kills": "击杀",
+        "stat_relics": "遗物",
+        "stat_time": "时长",
+        "stat_streak": "连胜",
+        "stat_damage": "总伤",
+        "stat_mvp": "MVP",
+        "warrior_class": "战士"
+    },
+    "boss_mechanic": {
+        "phase": "阶段 {0}/{1}",
+        "phase_1_desc": "🎯 Boss处于第一阶段，攻击力较低",
+        "phase_2_desc": "⚠ Boss进入狂暴状态！攻击力+50%",
+        "phase_3_desc": "🔥 Boss释放终极技能！全屏AOE",
+        "phase_2_banner": "⚠ 第二阶段！Boss狂暴化！",
+        "phase_3_banner": "🔥 终极阶段！全屏AOE预警！",
+        "phase_banner": "第{0}阶段！",
+        "ultimate_warning": "⚠ Boss即将释放终极AOE！",
+        "rage_warning": "⚠ Boss狂暴！攻击力大幅提升！",
+        "stealth_warning": "⚠ Boss隐身！下次攻击将造成双倍伤害！",
+        "curse_warning": "⚠ Boss释放诅咒！全体持续掉血！",
+        "bomb_warning": "💣 Boss安放炸弹！倒计时中...",
+        "element_switch": "🔄 Boss切换了元素属性！",
+        "ultimate_phase_warning": "⚠ 终极阶段！Boss释放全屏技能！",
+        "summon_minions": "👾 Boss召唤了 {0} 个小怪！",
+        "bomb_explode": "💣 炸弹爆炸！全体受到 {0} 伤害！"
+    },
+    "card_play": {
+        "free": "免费",
+        "cost_points": "{0}点",
+        "permanent": "本局永久",
+        "this_battle": "本场",
+        "cost_detail": "消耗{0}点",
+        "combo_link": "联动:{0} ×{1}",
+        "summon": "召唤 ({0}点)",
+        "population_full": "人口已满",
+        "insufficient_points": "点数不足",
+        "play_permanent": "打出（免费·永久）",
+        "play_battle": "打出（{0}点·本场）",
+        "evolve_select": "选择英雄进化",
+        "merge": "合成 (2→升星)",
+        "merge_unavailable": "无可合成卡牌",
+        "summon_action": "召唤",
+        "attribute_permanent": "属性永久生效",
+        "evolve_action": "进化",
+        "play_combo": "打出·骰子联动！",
+        "play": "打出",
+        "population": "人口: {0}/{1}",
+        "dice_points": "骰子点数: {0}",
+        "combo_info": "组合: {0}"
+    },
+    "event": {
+        "gold": "金币 {0}{1}"
+    },
+    "achievement": {
+        "no_reward": "无奖励",
+        "reward_label": "奖励: {0}",
+        "claim": "领取 🎁"
+    },
+    "settings": {
+        "bgm_volume": "🔊 音乐音量",
+        "sfx_volume": "🔉 音效音量",
+        "language_label": "🌐 语言",
+        "language_zh": "中文",
+        "language_en": "English"
+    },
+    "tutorial": {
+        "skip": "跳过引导",
+        "hero_select_title": "选择你的英雄",
+        "hero_select_desc": "从三位英雄中选择一位作为你的初始角色。\n每位英雄拥有独特的技能和属性！",
+        "dice_roll_title": "掷出命运之骰",
+        "dice_roll_desc": "点击掷骰按钮，投掷骰子获取本关资源。\n骰面结果决定你的战斗加成！",
+        "dice_lock_title": "锁定有利骰子",
+        "dice_lock_desc": "点击骰子可以锁定它，锁定的骰子不会被重摇。\n保留好结果，重摇不满意的面！",
+        "dice_confirm_title": "确认骰子组合",
+        "dice_confirm_desc": "确认你的骰子结果，进入战斗阶段。\n三条、顺子、对子各有不同加成！",
+        "battle_start_title": "战斗开始！",
+        "battle_start_desc": "战斗自动进行，你可以加速或跳过。\n胜利后获得金币和经验奖励！"
+    },
+    "common": {
+        "confirm": "确认",
+        "cancel": "取消",
+        "close": "关闭",
+        "back": "返回",
+        "unknown": "未知",
+        "loading": "加载中...",
+        "none": "无"
+    },
+    "save": {
+        "slot_label": "存档槽位 {0}",
+        "level_info": "关卡 {0}",
+        "hero_info": "{0} Lv{1}",
+        "time_minutes": "时长 {0}分钟",
+        "time_hours": "时长 {0}小时{1}分",
+        "status_empty": "空",
+        "status_occupied": "已存档",
+        "no_hero": "无英雄",
+        "confirm_overwrite": "已有存档，确认覆盖？",
+        "confirm_incompatible": "存档版本不兼容，可能丢失数据。仍要加载？",
+        "confirm_delete": "确认删除存档？此操作不可撤销。"
+    }
 }

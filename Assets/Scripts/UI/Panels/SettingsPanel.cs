@@ -617,7 +617,7 @@ namespace Game.UI
             var labelText = labelGo.AddComponent<Text>();
             labelText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             labelText.fontSize = 20;
-            labelText.color = LABEL_CLR;
+            labelText.color = SECTION_LABEL_CLR;
             labelText.alignment = TextAnchor.MiddleLeft;
             labelText.text = "📖 新手引导";
 

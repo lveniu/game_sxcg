@@ -2,6 +2,9 @@ using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.Rendering;
+using System.IO;
+using System.IO.Compression;
+using System.Text;
 
 /// <summary>
 /// WebGL基线构建自动化脚本
@@ -17,6 +20,16 @@ public static class WebGLBuildPipeline
 {
     private const string OUTPUT_DIR = "Builds/WebGL";
     private const string SCENE_PATH = "Assets/Scenes/MainScene.unity";
+
+    // ========== 构建关键文件清单 ==========
+    private static readonly string[] CRITICAL_FILES = new string[]
+    {
+        "index.html",
+        "Build/Build.data",
+        "Build/Build.framework.js",
+        "Build/Build.loader.js",
+        "Build/Build.wasm"
+    };
 
     [MenuItem("Build/WebGL Baseline Build")]
     public static void BuildWebGL()
@@ -55,6 +68,12 @@ public static class WebGLBuildPipeline
 
         // Step 5: 生成构建报告
         GenerateBuildReport(report, elapsed);
+
+        // Step 6: 构建后自动优化
+        if (report.summary.result == BuildResult.Succeeded)
+        {
+            PostBuildOptimization();
+        }
     }
 
     /// <summary>
@@ -84,6 +103,255 @@ public static class WebGLBuildPipeline
         var elapsed = System.DateTime.Now - startTime;
 
         GenerateBuildReport(report, elapsed);
+
+        if (report.summary.result == BuildResult.Succeeded)
+        {
+            PostBuildOptimization(OUTPUT_DIR + "_Dev");
+        }
+    }
+
+    // ========== 构建后优化 ==========
+
+    /// <summary>
+    /// 构建后自动优化：gzip压缩JS、生成build-report.json、检查关键文件
+    /// </summary>
+    public static void PostBuildOptimization(string outputDir = null)
+    {
+        string targetDir = outputDir ?? OUTPUT_DIR;
+        Debug.Log($"[WebGL构建后优化] 开始处理: {targetDir}");
+
+        if (!Directory.Exists(targetDir))
+        {
+            Debug.LogError($"[WebGL构建后优化] 输出目录不存在: {targetDir}");
+            return;
+        }
+
+        int compressedCount = 0;
+        long totalOriginalSize = 0;
+        long totalCompressedSize = 0;
+
+        // 1. gzip压缩所有 .js 和 .wasm 文件
+        try
+        {
+            string[] jsFiles = Directory.GetFiles(targetDir, "*.js", SearchOption.AllDirectories);
+            string[] wasmFiles = Directory.GetFiles(targetDir, "*.wasm", SearchOption.AllDirectories);
+
+            var allCompressible = new System.Collections.Generic.List<string>(jsFiles);
+            allCompressible.AddRange(wasmFiles);
+
+            foreach (string filePath in allCompressible)
+            {
+                try
+                {
+                    FileInfo fi = new FileInfo(filePath);
+                    totalOriginalSize += fi.Length;
+
+                    string gzPath = filePath + ".gz";
+                    using (var sourceStream = File.OpenRead(filePath))
+                    using (var destStream = File.Create(gzPath))
+                    using (var gzipStream = new GZipStream(destStream, CompressionLevel.Optimal))
+                    {
+                        sourceStream.CopyTo(gzipStream);
+                    }
+
+                    FileInfo gzFi = new FileInfo(gzPath);
+                    totalCompressedSize += gzFi.Length;
+                    compressedCount++;
+
+                    double ratio = (1.0 - (double)gzFi.Length / fi.Length) * 100.0;
+                    Debug.Log($"[Gzip] {Path.GetFileName(filePath)}: {FormatSize(fi.Length)} → {FormatSize(gzFi.Length)} ({ratio:F1}% 压缩)");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[Gzip] 压缩失败 {Path.GetFileName(filePath)}: {e.Message}");
+                }
+            }
+
+            Debug.Log($"[WebGL构建后优化] 压缩完成: {compressedCount} 个文件, " +
+                $"{FormatSize(totalOriginalSize)} → {FormatSize(totalCompressedSize)}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[WebGL构建后优化] 压缩阶段出错: {e.Message}");
+        }
+
+        // 2. 生成 build-report.json（文件大小统计）
+        GenerateBuildSizeReport(targetDir);
+
+        // 3. 验证构建完整性
+        ValidateBuild(targetDir);
+
+        Debug.Log("[WebGL构建后优化] 完成 ✓");
+    }
+
+    /// <summary>
+    /// 返回构建大小报告（JSON字符串）
+    /// </summary>
+    public static string GetBuildSizeReport(string outputDir = null)
+    {
+        string targetDir = outputDir ?? OUTPUT_DIR;
+
+        if (!Directory.Exists(targetDir))
+        {
+            return $"{{ \"error\": \"目录不存在: {targetDir}\" }}";
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine("{");
+        sb.AppendLine($"  \"buildDirectory\": \"{targetDir.Replace("\\", "/")}\",");
+        sb.AppendLine($"  \"generatedAt\": \"{System.DateTime.Now:yyyy-MM-dd HH:mm:ss}\",");
+
+        // 总大小
+        long totalSize = GetDirectorySize(targetDir);
+        sb.AppendLine($"  \"totalSize\": {totalSize},");
+        sb.AppendLine($"  \"totalSizeFormatted\": \"{FormatSize(totalSize)}\",");
+
+        // 按文件类型统计
+        sb.AppendLine("  \"byExtension\": {");
+        var extMap = new System.Collections.Generic.Dictionary<string, long>();
+        var extCount = new System.Collections.Generic.Dictionary<string, int>();
+
+        foreach (string file in Directory.GetFiles(targetDir, "*.*", SearchOption.AllDirectories))
+        {
+            string ext = Path.GetExtension(file).ToLower();
+            if (string.IsNullOrEmpty(ext)) ext = "(no ext)";
+
+            long size = new FileInfo(file).Length;
+            if (!extMap.ContainsKey(ext)) { extMap[ext] = 0; extCount[ext] = 0; }
+            extMap[ext] += size;
+            extCount[ext]++;
+        }
+
+        bool first = true;
+        foreach (var kvp in extMap)
+        {
+            if (!first) sb.AppendLine(",");
+            first = false;
+            sb.Append($"    \"{kvp.Key}\": {{ \"size\": {kvp.Value}, \"sizeFormatted\": \"{FormatSize(kvp.Value)}\", \"count\": {extCount[kvp.Key]} }}");
+        }
+        sb.AppendLine();
+        sb.AppendLine("  },");
+
+        // 文件列表（按大小降序，最多50个）
+        sb.AppendLine("  \"files\": [");
+        var fileList = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, long>>();
+        foreach (string file in Directory.GetFiles(targetDir, "*.*", SearchOption.AllDirectories))
+        {
+            string relPath = file.Substring(targetDir.Length).TrimStart('/', '\\').Replace("\\", "/");
+            long size = new FileInfo(file).Length;
+            fileList.Add(new System.Collections.Generic.KeyValuePair<string, long>(relPath, size));
+        }
+        fileList.Sort((a, b) => b.Value.CompareTo(a.Value));
+
+        int count = System.Math.Min(fileList.Count, 50);
+        for (int i = 0; i < count; i++)
+        {
+            sb.Append($"    {{ \"path\": \"{fileList[i].Key}\", \"size\": {fileList[i].Value}, \"sizeFormatted\": \"{FormatSize(fileList[i].Value)}\" }}");
+            if (i < count - 1) sb.AppendLine(",");
+            else sb.AppendLine();
+        }
+        sb.AppendLine("  ]");
+        sb.AppendLine("}");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 验证构建完整性，检查关键文件是否存在
+    /// </summary>
+    public static bool ValidateBuild(string outputDir = null)
+    {
+        string targetDir = outputDir ?? OUTPUT_DIR;
+        Debug.Log($"[构建验证] 检查目录: {targetDir}");
+
+        if (!Directory.Exists(targetDir))
+        {
+            Debug.LogError($"[构建验证] 输出目录不存在: {targetDir}");
+            return false;
+        }
+
+        bool allValid = true;
+        var missingFiles = new System.Collections.Generic.List<string>();
+
+        foreach (string criticalFile in CRITICAL_FILES)
+        {
+            string fullPath = Path.Combine(targetDir, criticalFile);
+            if (File.Exists(fullPath))
+            {
+                long size = new FileInfo(fullPath).Length;
+                Debug.Log($"[构建验证] ✓ {criticalFile} ({FormatSize(size)})");
+            }
+            else
+            {
+                Debug.LogError($"[构建验证] ✗ 缺少关键文件: {criticalFile}");
+                missingFiles.Add(criticalFile);
+                allValid = false;
+            }
+        }
+
+        // 检查 index.html 是否包含 loader 引用
+        if (allValid)
+        {
+            string indexPath = Path.Combine(targetDir, "index.html");
+            if (File.Exists(indexPath))
+            {
+                string indexContent = File.ReadAllText(indexPath);
+                if (!indexContent.Contains("loader.js") && !indexContent.Contains("Build.loader.js"))
+                {
+                    Debug.LogWarning("[构建验证] index.html 可能缺少 loader.js 引用");
+                }
+            }
+        }
+
+        if (allValid)
+        {
+            Debug.Log($"[构建验证] ✓ 构建完整，所有关键文件存在");
+        }
+        else
+        {
+            Debug.LogError($"[构建验证] ✗ 构建不完整，缺少 {missingFiles.Count} 个关键文件");
+        }
+
+        return allValid;
+    }
+
+    // ========== 构建报告辅助 ==========
+
+    private static void GenerateBuildSizeReport(string targetDir)
+    {
+        try
+        {
+            string reportJson = GetBuildSizeReport(targetDir);
+            string reportPath = Path.Combine(targetDir, "build-report.json");
+            File.WriteAllText(reportPath, reportJson);
+            Debug.Log($"[构建报告] build-report.json 已生成: {reportPath}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[构建报告] 生成 build-report.json 失败: {e.Message}");
+        }
+    }
+
+    private static long GetDirectorySize(string path)
+    {
+        long size = 0;
+        try
+        {
+            foreach (string file in Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
+            {
+                try { size += new FileInfo(file).Length; } catch { }
+            }
+        }
+        catch { }
+        return size;
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F2} MB";
+        return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
     }
 
     // ========== Player Settings 配置 ==========

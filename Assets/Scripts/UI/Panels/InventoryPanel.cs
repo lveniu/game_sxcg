@@ -139,6 +139,35 @@ namespace Game.UI
             ClearGrid();
         }
 
+        /// <summary>面板销毁兜底清理（防 OnHide 未被调用时的泄漏）</summary>
+        protected override void OnDestroy()
+        {
+            // 取消事件订阅
+            var inv = PlayerInventory.Instance;
+            if (inv != null)
+                inv.OnInventoryChanged -= OnInventoryChanged;
+
+            // 清理网格子物体
+            ClearGrid();
+
+            // 清理残留的临时 UI（如详情面板中的按钮等）
+            ResetDetailPanel();
+            HideHeroSelectPopup();
+            HideConfirmDiscardPopup();
+
+            // 清理所有残留的 Tween（如果有的话）
+            if (gameObject != null)
+            {
+                foreach (var t in itemCells.Values)
+                {
+                    if (t != null && t.gameObject != null)
+                        DG.Tweening.DOTween.Kill(t.gameObject);
+                }
+            }
+
+            base.OnDestroy();
+        }
+
         /// <summary>后端背包变更回调 — 自动刷新</summary>
         private void OnInventoryChanged()
         {

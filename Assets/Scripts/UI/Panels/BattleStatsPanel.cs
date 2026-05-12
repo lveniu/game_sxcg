@@ -272,7 +272,7 @@ namespace Game.UI
                 ("承伤", stats.totalDamageTaken,   ColorTaken)
             };
 
-            int maxVal = 1;
+            long maxVal = 1;
             foreach (var e in entries)
                 if (e.Item2 > maxVal) maxVal = e.Item2;
 
@@ -407,13 +407,16 @@ namespace Game.UI
 
         private float BuildHeroGrowthSection(RectTransform parent, float startY, RunBattleStats stats)
         {
-            var g = stats.heroGrowth;
-            bool hasData = g != null && !string.IsNullOrEmpty(g.heroName);
+            // Bug#fix: 使用 heroCumulativeList 替代不存在的 heroGrowth 字段
+            var heroes = stats.heroCumulativeList;
+            bool hasData = heroes != null && heroes.Count > 0;
 
             float barH = 14f;
             float rowH = 30f;
+            // 每个英雄显示: 名称行 + 伤害/击杀/治疗 三行柱
+            float perHero = rowH + 3 * (barH + 22f) + Padding;
             float height = hasData
-                ? 30f + rowH + 3 * (barH + 22f) + Padding * 2
+                ? 30f + heroes.Count * perHero + Padding
                 : 30f + 40f + Padding;
 
             var rt = CreateSection(parent, "HeroGrowth", startY, PanelWidth, height);
@@ -435,34 +438,44 @@ namespace Game.UI
                 return startY + height + SectionSpacing;
             }
 
-            // 英雄信息行
+            // 找最大值做柱状图归一化
+            long maxStat = 1;
+            foreach (var h in heroes)
+                maxStat = Math.Max(maxStat, Math.Max(h.damageDealt, Math.Max(h.healingDone, h.kills * 200L)));
+
             float yPos = height - 30f - Padding;
-            var infoRt = CreateChild("HeroInfo", rt, new Vector2(Padding, yPos - rowH), new Vector2(PanelWidth - Padding * 2, rowH));
-            infoRt.anchorMin = new Vector2(0, 1);
-            infoRt.anchorMax = new Vector2(1, 1);
-            var infoTxt = infoRt.gameObject.AddComponent<Text>();
-            infoTxt.font = defaultFont;
-            infoTxt.fontSize = 15;
-            infoTxt.fontStyle = FontStyle.Bold;
-            infoTxt.color = Color.white;
-            infoTxt.text = $"⚔ {g.heroName}  Lv.{g.initialLevel}→{g.finalLevel}  ⭐{g.initialStar}→{g.finalStar}";
-            infoTxt.alignment = TextAnchor.MiddleLeft;
-            infoTxt.raycastTarget = false;
-
-            // 属性对比行
-            float maxGrowth = Mathf.Max(1, g.finalHP - g.initialHP, g.finalAtk - g.initialAtk, g.finalDef - g.initialDef);
-            var statLines = new[]
+            for (int hi = 0; hi < heroes.Count; hi++)
             {
-                ("HP",  g.initialHP,  g.finalHP),
-                ("ATK", g.initialAtk, g.finalAtk),
-                ("DEF", g.initialDef, g.finalDef)
-            };
+                var hero = heroes[hi];
+                // 英雄信息行
+                var infoRt = CreateChild($"HeroInfo_{hi}", rt, new Vector2(Padding, yPos - rowH), new Vector2(PanelWidth - Padding * 2, rowH));
+                infoRt.anchorMin = new Vector2(0, 1);
+                infoRt.anchorMax = new Vector2(1, 1);
+                var infoTxt = infoRt.gameObject.AddComponent<Text>();
+                infoTxt.font = defaultFont;
+                infoTxt.fontSize = 15;
+                infoTxt.fontStyle = FontStyle.Bold;
+                infoTxt.color = Color.white;
+                infoTxt.text = $"⚔ {hero.heroName}  击杀:{hero.kills}  暴击:{hero.critCount}";
+                infoTxt.alignment = TextAnchor.MiddleLeft;
+                infoTxt.raycastTarget = false;
 
-            for (int i = 0; i < statLines.Length; i++)
-            {
-                float lineY = yPos - rowH - Padding - i * (barH + 22f);
-                CreateStatGrowthRow(rt, statLines[i].Item1, statLines[i].Item2, statLines[i].Item3,
-                    maxGrowth, lineY, barH);
+                // 伤害/治疗/护盾 柱状行
+                var statLines = new[]
+                {
+                    ("伤害", (long)hero.damageDealt, ColorDamage),
+                    ("治疗", (long)hero.healingDone, ColorHeal),
+                    ("护盾", (long)hero.shieldGained, ColorShield)
+                };
+
+                for (int i = 0; i < statLines.Length; i++)
+                {
+                    float lineY = yPos - rowH - Padding - i * (barH + 22f);
+                    CreateStatGrowthRow(rt, statLines[i].Item1, statLines[i].Item2, maxStat,
+                        lineY, barH, statLines[i].Item3);
+                }
+
+                yPos -= perHero;
             }
 
             return startY + height + SectionSpacing;
@@ -472,7 +485,7 @@ namespace Game.UI
 
         private float BuildBattleHistorySection(RectTransform parent, float startY, RunBattleStats stats)
         {
-            var history = stats.battleHistory ?? new List<BattleRecord>();
+            var history = stats.battleHistory ?? new List<BattleStatsRecord>();
             float collapsedH = 50f;
             float itemH = 36f;
             float expandedH = collapsedH + history.Count * itemH + Padding;
@@ -690,7 +703,7 @@ namespace Game.UI
         /// <summary>
         /// 创建横向柱状图行（带DOSizeDelta动画）
         /// </summary>
-        private void CreateBarRow(RectTransform parent, string label, int value, int maxVal,
+        private void CreateBarRow(RectTransform parent, string label, long value, long maxVal,
             Color barColor, float yPos, float maxWidth, float barH, bool isCount)
         {
             float labelW = 50f;
@@ -750,14 +763,12 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// 创建英雄属性增长行
+        /// 创建英雄属性柱状行（累计统计值）
         /// </summary>
         private void CreateStatGrowthRow(RectTransform parent, string statName,
-            int initial, int final, float maxGrowth, float yPos, float barH)
+            long value, long maxStat, float yPos, float barH, Color barColor)
         {
-            int growth = final - initial;
-
-            // 文字行：HP 80→120  (+40)
+            // 文字行：伤害 5,400
             float textY = yPos - barH - 4f;
             var textRt = CreateChild($"StatText_{statName}", parent,
                 new Vector2(Padding, textY - 18f), new Vector2(PanelWidth - Padding * 2, 18f));
@@ -768,13 +779,11 @@ namespace Game.UI
             statTxt.font = defaultFont;
             statTxt.fontSize = 13;
             statTxt.color = new Color(0.8f, 0.8f, 0.85f);
-            string growthStr = growth >= 0 ? $"<color=#4CFF66>(+{growth})</color>" : $"<color=#FF4444>({growth})</color>";
-            statTxt.text = $"{statName}  {initial}→{final}  {growthStr}";
+            statTxt.text = $"{statName}  {value:N0}";
             statTxt.alignment = TextAnchor.MiddleLeft;
-            statTxt.supportRichText = true;
             statTxt.raycastTarget = false;
 
-            // 增长条
+            // 柱状条
             float barStartX = Padding;
             float barAreaW = PanelWidth - Padding * 2;
             var barRt = CreateChild($"GrowthBar_{statName}", parent,
@@ -783,7 +792,7 @@ namespace Game.UI
             barBg.color = new Color(0.15f, 0.15f, 0.2f, 0.6f);
             barBg.raycastTarget = false;
 
-            // 增长填充条
+            // 填充条
             var fillRt = CreateChild("Fill", barRt, Vector2.zero, new Vector2(0f, barH));
             fillRt.anchorMin = new Vector2(0f, 0f);
             fillRt.anchorMax = new Vector2(0f, 1f);
@@ -791,10 +800,10 @@ namespace Game.UI
             fillRt.offsetMin = Vector2.zero;
             fillRt.offsetMax = new Vector2(0f, 0f);
             var fillImg = fillRt.gameObject.AddComponent<Image>();
-            fillImg.color = ColorGrowth;
+            fillImg.color = barColor;
             fillImg.raycastTarget = false;
 
-            float targetW = maxGrowth > 0 ? (float)growth / maxGrowth * barAreaW : 0f;
+            float targetW = maxStat > 0 ? (float)value / maxStat * barAreaW : 0f;
             targetW = Mathf.Clamp(targetW, 0f, barAreaW);
             var tween = fillRt.DOSizeDelta(new Vector2(targetW, barH), 0.6f)
                 .SetEase(Ease.OutQuart)
@@ -808,14 +817,14 @@ namespace Game.UI
         // ================================================================
 
         /// <summary>
-        /// 从RunStats.comboCounts中查找组合计数（支持多种名称匹配）
+        /// 从RunBattleStats.comboCountMap中查找组合计数（支持多种名称匹配）
         /// </summary>
         private int GetComboCount(RunBattleStats stats, params string[] possibleNames)
         {
-            if (stats?.comboCounts == null) return 0;
+            if (stats?.comboCountMap == null) return 0;
             foreach (var name in possibleNames)
             {
-                if (stats.comboCounts.TryGetValue(name, out int count))
+                if (stats.comboCountMap.TryGetValue(name, out int count))
                     return count;
             }
             return 0;
@@ -837,7 +846,7 @@ namespace Game.UI
                 totalDamageTaken = 9800,
                 totalHealing = 6200,
                 totalShield = 3100,
-                comboCounts = new Dictionary<string, int>
+                comboCountMap = new Dictionary<string, int>
                 {
                     { "三条", 8 },
                     { "对子", 15 },
@@ -845,31 +854,34 @@ namespace Game.UI
                     { "散牌", 18 }
                 },
                 relicsCollected = new List<string> { "烈焰之刃", "冰霜护盾", "生命之环" },
-                heroGrowth = new HeroGrowth
+                heroCumulativeList = new List<HeroBattleStats>
                 {
-                    heroName = "战士",
-                    heroClass = "Warrior",
-                    initialLevel = 1, finalLevel = 15,
-                    initialStar = 1, finalStar = 3,
-                    initialHP = 80, finalHP = 120,
-                    initialAtk = 30, finalAtk = 65,
-                    initialDef = 20, finalDef = 45,
-                    initialSpd = 10, finalSpd = 18
+                    new HeroBattleStats
+                    {
+                        heroName = "战士",
+                        heroInstanceId = 1,
+                        damageDealt = 5400,
+                        damageTaken = 3200,
+                        healingDone = 1200,
+                        shieldGained = 800,
+                        kills = 18,
+                        critCount = 5
+                    }
                 },
-                battleHistory = new List<BattleRecord>
+                battleHistory = new List<BattleStatsRecord>
                 {
-                    new BattleRecord { battleIndex = 1, isVictory = true,  duration = 12.3f },
-                    new BattleRecord { battleIndex = 2, isVictory = true,  duration = 8.7f },
-                    new BattleRecord { battleIndex = 3, isVictory = false, duration = 15.2f },
-                    new BattleRecord { battleIndex = 4, isVictory = true,  duration = 10.1f },
-                    new BattleRecord { battleIndex = 5, isVictory = true,  duration = 7.8f },
-                    new BattleRecord { battleIndex = 6, isVictory = true,  duration = 11.5f },
-                    new BattleRecord { battleIndex = 7, isVictory = false, duration = 13.9f },
-                    new BattleRecord { battleIndex = 8, isVictory = true,  duration = 9.2f },
-                    new BattleRecord { battleIndex = 9, isVictory = true,  duration = 6.5f },
-                    new BattleRecord { battleIndex = 10, isVictory = true, duration = 14.0f },
-                    new BattleRecord { battleIndex = 11, isVictory = false, duration = 16.8f },
-                    new BattleRecord { battleIndex = 12, isVictory = true,  duration = 8.3f }
+                    new BattleStatsRecord { battleIndex = 1, isVictory = true,  duration = 12.3f },
+                    new BattleStatsRecord { battleIndex = 2, isVictory = true,  duration = 8.7f },
+                    new BattleStatsRecord { battleIndex = 3, isVictory = false, duration = 15.2f },
+                    new BattleStatsRecord { battleIndex = 4, isVictory = true,  duration = 10.1f },
+                    new BattleStatsRecord { battleIndex = 5, isVictory = true,  duration = 7.8f },
+                    new BattleStatsRecord { battleIndex = 6, isVictory = true,  duration = 11.5f },
+                    new BattleStatsRecord { battleIndex = 7, isVictory = false, duration = 13.9f },
+                    new BattleStatsRecord { battleIndex = 8, isVictory = true,  duration = 9.2f },
+                    new BattleStatsRecord { battleIndex = 9, isVictory = true,  duration = 6.5f },
+                    new BattleStatsRecord { battleIndex = 10, isVictory = true, duration = 14.0f },
+                    new BattleStatsRecord { battleIndex = 11, isVictory = false, duration = 16.8f },
+                    new BattleStatsRecord { battleIndex = 12, isVictory = true,  duration = 8.3f }
                 }
             };
             return stats;

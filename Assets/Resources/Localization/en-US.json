@@ -1,196 +1,194 @@
 {
-  "main_menu": {
-    "game_title": "Dice Heroes",
-    "start_button": "Start Game",
-    "continue_button": "Continue",
-    "settings_button": "Settings",
-    "quit_button": "Quit",
-    "version": "v{0}"
-  },
-
-  "hero_select": {
-    "title": "Choose Your Hero",
-    "selected": "Selected: {0}",
-    "confirm_button": "Confirm",
-    "cost": "Cost {0}",
-    "warrior_name": "Warrior",
-    "mage_name": "Mage",
-    "assassin_name": "Assassin",
-    "warrior_desc": "High HP, frontline tank",
-    "mage_desc": "Ranged magic, backline DPS",
-    "assassin_desc": "High crit, burst assassin"
-  },
-
-  "dice_roll": {
-    "reroll_count": "Rerolls: {0}",
-    "roll_button": "Roll",
-    "reroll_button": "Reroll",
-    "confirm_button": "Confirm",
-    "no_combination": "No Combo",
-    "combo_pair": "Pair",
-    "combo_straight": "Straight",
-    "combo_three": "Three of a Kind"
-  },
-
-  "battle": {
-    "waiting": "Waiting for battle...",
-    "started": "⚔ Battle Start!",
-    "victory": "🏆 Victory!",
-    "defeat": "💀 Defeat...",
-    "skip": "⏭ Skip Battle",
-    "auto_settlement": ">>> Entering settlement...",
-    "auto_menu": ">>> Returning to menu...",
-    "crit_prefix": "CRIT",
-    "dead": "💀 Dead",
-    "time_used": "Time: {0}s",
-    "heroes_dead": "Heroes have fallen...",
-    "speed_changed": "Speed: {0}",
-    "dice_skill_none": "🎲 No Dice Skill",
-    "dice_skill_used": "🎲 Used",
-    "dice_skill_three": "Triple·AOE",
-    "dice_skill_straight": "Straight·Speed",
-    "dice_skill_pair": "Pair·Heal",
-    "dice_skill_label": "Dice Skill",
-    "reward_preview": "Reward coming soon...",
-    "reward_preview_level": "Reward coming soon...\nLevel {0} cleared!"
-  },
-
-  "battle_grid": {
-    "front_row": "← Front (Defense)",
-    "middle_row": "← Middle (Balanced)",
-    "back_row": "← Back (Damage)",
-    "front_label": "Front",
-    "middle_label": "Middle",
-    "back_label": "Back",
-    "start_battle": "Start Battle",
-    "summon_first": "Summon a hero first",
-    "position_info": "Position: {0}\n{1} — {2}",
-    "no_buff": "No special bonus",
-    "warrior_front_buff": "Warrior Front: DEF +30%",
-    "warrior_back_buff": "Warrior Back: No bonus",
-    "mage_front_buff": "Mage Front: No bonus",
-    "mage_back_buff": "Mage Back: ATK +20%",
-    "assassin_front_buff": "Assassin Front: No bonus",
-    "assassin_back_buff": "Assassin Back: No bonus"
-  },
-
-  "settlement": {
-    "victory_title": "🏆 Victory!",
-    "defeat_title": "💀 Defeat...",
-    "next_button": "Continue →",
-    "gold_reward": "💰 Gold +{0}",
-    "gold_reward_balance": "💰 Gold +{0} (Balance: {1})",
-    "star_up": "★ Evolved!",
-    "star_up_detail": "★→{0} Evolved!"
-  },
-
-  "roguelike_reward": {
-    "title": "🎁 Choose a Reward",
-    "confirm_button": "Confirm",
-    "selected": "Selected: {0}"
-  },
-
-  "roguelike_map": {
-    "layer_progress": "Map {0}/{1}",
-    "difficulty": "Difficulty: {0}"
-  },
-
-  "game_over": {
-    "victory_title": "🏆 Cleared!",
-    "defeat_title": "💀 Fallen",
-    "level_reached": "Level {0}",
-    "stat_kills": "Kills",
-    "stat_relics": "Relics",
-    "stat_time": "Time",
-    "stat_streak": "Streak",
-    "stat_damage": "Total DMG",
-    "stat_mvp": "MVP",
-    "warrior_class": "Warrior"
-  },
-
-  "boss_mechanic": {
-    "phase": "Phase {0}/{1}",
-    "phase_1_desc": "🎯 Boss Phase 1, low attack",
-    "phase_2_desc": "⚠ Boss enrages! ATK +50%",
-    "phase_3_desc": "🔥 Boss uses ultimate! Full AOE",
-    "phase_2_banner": "⚠ Phase 2! Boss enraged!",
-    "phase_3_banner": "🔥 Final Phase! AOE incoming!",
-    "phase_banner": "Phase {0}!",
-    "ultimate_warning": "⚠ Boss preparing ultimate AOE!",
-    "rage_warning": "⚠ Boss rages! Attack greatly increased!",
-    "stealth_warning": "⚠ Boss stealthed! Next attack 2x damage!",
-    "curse_warning": "⚠ Boss curses! Continuous HP drain!",
-    "bomb_warning": "💣 Boss planted bomb! Countdown...",
-    "element_switch": "🔄 Boss changed element!",
-    "ultimate_phase_warning": "⚠ Final phase! Boss uses full-screen skill!",
-    "summon_minions": "👾 Boss summoned {0} minions!",
-    "bomb_explode": "💣 Bomb explodes! {0} damage to all!"
-  },
-
-  "card_play": {
-    "free": "Free",
-    "cost_points": "{0} pts",
-    "permanent": "Permanent",
-    "this_battle": "This Battle",
-    "cost_detail": "Cost {0} pts",
-    "combo_link": "Combo:{0} ×{1}",
-    "summon": "Summon ({0} pts)",
-    "population_full": "Population Full",
-    "insufficient_points": "Not Enough Points",
-    "play_permanent": "Play (Free·Permanent)",
-    "play_battle": "Play ({0} pts·Battle)",
-    "evolve_select": "Select Hero to Evolve",
-    "merge": "Merge (2→Star Up)",
-    "merge_unavailable": "No Cards to Merge",
-    "summon_action": "Summon",
-    "attribute_permanent": "Attribute Permanent",
-    "evolve_action": "Evolve",
-    "play_combo": "Play·Dice Combo!",
-    "play": "Play",
-    "population": "Pop: {0}/{1}",
-    "dice_points": "Dice Pts: {0}",
-    "combo_info": "Combo: {0}"
-  },
-
-  "event": {
-    "gold": "Gold {0}{1}"
-  },
-
-  "achievement": {
-    "no_reward": "No Reward",
-    "reward_label": "Reward: {0}",
-    "claim": "Claim 🎁"
-  },
-
-  "settings": {
-    "bgm_volume": "🔊 Music Volume",
-    "sfx_volume": "🔉 SFX Volume",
-    "language_label": "🌐 Language",
-    "language_zh": "中文",
-    "language_en": "English"
-  },
-
-  "tutorial": {
-    "skip": "Skip Tutorial",
-    "hero_select_title": "Choose Your Hero",
-    "hero_select_desc": "Select one of three heroes as your starting character.\nEach hero has unique skills and attributes!",
-    "dice_roll_title": "Roll the Dice",
-    "dice_roll_desc": "Tap the roll button to throw dice for resources.\nDice results determine your battle bonuses!",
-    "dice_lock_title": "Lock Favorable Dice",
-    "dice_lock_desc": "Tap a die to lock it. Locked dice won't be rerolled.\nKeep good results, reroll the rest!",
-    "dice_confirm_title": "Confirm Dice Combo",
-    "dice_confirm_desc": "Confirm your dice results and enter battle.\nTriple, Straight, and Pair each give different bonuses!",
-    "battle_start_title": "Battle Start!",
-    "battle_start_desc": "Battles play automatically. You can speed up or skip.\nWin to earn gold and experience rewards!"
-  },
-
-  "common": {
-    "confirm": "Confirm",
-    "cancel": "Cancel",
-    "close": "Close",
-    "back": "Back",
-    "unknown": "Unknown",
-    "loading": "Loading...",
-    "none": "None"
-  }
+    "main_menu": {
+        "game_title": "Dice Heroes",
+        "start_button": "Start Game",
+        "continue_button": "Continue",
+        "settings_button": "Settings",
+        "quit_button": "Quit",
+        "version": "v{0}"
+    },
+    "hero_select": {
+        "title": "Choose Your Hero",
+        "selected": "Selected: {0}",
+        "confirm_button": "Confirm",
+        "cost": "Cost {0}",
+        "warrior_name": "Warrior",
+        "mage_name": "Mage",
+        "assassin_name": "Assassin",
+        "warrior_desc": "High HP, frontline tank",
+        "mage_desc": "Ranged magic, backline DPS",
+        "assassin_desc": "High crit, burst assassin"
+    },
+    "dice_roll": {
+        "reroll_count": "Rerolls: {0}",
+        "roll_button": "Roll",
+        "reroll_button": "Reroll",
+        "confirm_button": "Confirm",
+        "no_combination": "No Combo",
+        "combo_pair": "Pair",
+        "combo_straight": "Straight",
+        "combo_three": "Three of a Kind"
+    },
+    "battle": {
+        "waiting": "Waiting for battle...",
+        "started": "⚔ Battle Start!",
+        "victory": "🏆 Victory!",
+        "defeat": "💀 Defeat...",
+        "skip": "⏭ Skip Battle",
+        "auto_settlement": ">>> Entering settlement...",
+        "auto_menu": ">>> Returning to menu...",
+        "crit_prefix": "CRIT",
+        "dead": "💀 Dead",
+        "time_used": "Time: {0}s",
+        "heroes_dead": "Heroes have fallen...",
+        "speed_changed": "Speed: {0}",
+        "dice_skill_none": "🎲 No Dice Skill",
+        "dice_skill_used": "🎲 Used",
+        "dice_skill_three": "Triple·AOE",
+        "dice_skill_straight": "Straight·Speed",
+        "dice_skill_pair": "Pair·Heal",
+        "dice_skill_label": "Dice Skill",
+        "reward_preview": "Reward coming soon...",
+        "reward_preview_level": "Reward coming soon...\nLevel {0} cleared!"
+    },
+    "battle_grid": {
+        "front_row": "← Front (Defense)",
+        "middle_row": "← Middle (Balanced)",
+        "back_row": "← Back (Damage)",
+        "front_label": "Front",
+        "middle_label": "Middle",
+        "back_label": "Back",
+        "start_battle": "Start Battle",
+        "summon_first": "Summon a hero first",
+        "position_info": "Position: {0}\n{1} — {2}",
+        "no_buff": "No special bonus",
+        "warrior_front_buff": "Warrior Front: DEF +30%",
+        "warrior_back_buff": "Warrior Back: No bonus",
+        "mage_front_buff": "Mage Front: No bonus",
+        "mage_back_buff": "Mage Back: ATK +20%",
+        "assassin_front_buff": "Assassin Front: No bonus",
+        "assassin_back_buff": "Assassin Back: No bonus"
+    },
+    "settlement": {
+        "victory_title": "🏆 Victory!",
+        "defeat_title": "💀 Defeat...",
+        "next_button": "Continue →",
+        "gold_reward": "💰 Gold +{0}",
+        "gold_reward_balance": "💰 Gold +{0} (Balance: {1})",
+        "star_up": "★ Evolved!",
+        "star_up_detail": "★→{0} Evolved!"
+    },
+    "roguelike_reward": {
+        "title": "🎁 Choose a Reward",
+        "confirm_button": "Confirm",
+        "selected": "Selected: {0}"
+    },
+    "roguelike_map": {
+        "layer_progress": "Map {0}/{1}",
+        "difficulty": "Difficulty: {0}"
+    },
+    "game_over": {
+        "victory_title": "🏆 Cleared!",
+        "defeat_title": "💀 Fallen",
+        "level_reached": "Level {0}",
+        "stat_kills": "Kills",
+        "stat_relics": "Relics",
+        "stat_time": "Time",
+        "stat_streak": "Streak",
+        "stat_damage": "Total DMG",
+        "stat_mvp": "MVP",
+        "warrior_class": "Warrior"
+    },
+    "boss_mechanic": {
+        "phase": "Phase {0}/{1}",
+        "phase_1_desc": "🎯 Boss Phase 1, low attack",
+        "phase_2_desc": "⚠ Boss enrages! ATK +50%",
+        "phase_3_desc": "🔥 Boss uses ultimate! Full AOE",
+        "phase_2_banner": "⚠ Phase 2! Boss enraged!",
+        "phase_3_banner": "🔥 Final Phase! AOE incoming!",
+        "phase_banner": "Phase {0}!",
+        "ultimate_warning": "⚠ Boss preparing ultimate AOE!",
+        "rage_warning": "⚠ Boss rages! Attack greatly increased!",
+        "stealth_warning": "⚠ Boss stealthed! Next attack 2x damage!",
+        "curse_warning": "⚠ Boss curses! Continuous HP drain!",
+        "bomb_warning": "💣 Boss planted bomb! Countdown...",
+        "element_switch": "🔄 Boss changed element!",
+        "ultimate_phase_warning": "⚠ Final phase! Boss uses full-screen skill!",
+        "summon_minions": "👾 Boss summoned {0} minions!",
+        "bomb_explode": "💣 Bomb explodes! {0} damage to all!"
+    },
+    "card_play": {
+        "free": "Free",
+        "cost_points": "{0} pts",
+        "permanent": "Permanent",
+        "this_battle": "This Battle",
+        "cost_detail": "Cost {0} pts",
+        "combo_link": "Combo:{0} ×{1}",
+        "summon": "Summon ({0} pts)",
+        "population_full": "Population Full",
+        "insufficient_points": "Not Enough Points",
+        "play_permanent": "Play (Free·Permanent)",
+        "play_battle": "Play ({0} pts·Battle)",
+        "evolve_select": "Select Hero to Evolve",
+        "merge": "Merge (2→Star Up)",
+        "merge_unavailable": "No Cards to Merge",
+        "summon_action": "Summon",
+        "attribute_permanent": "Attribute Permanent",
+        "evolve_action": "Evolve",
+        "play_combo": "Play·Dice Combo!",
+        "play": "Play",
+        "population": "Pop: {0}/{1}",
+        "dice_points": "Dice Pts: {0}",
+        "combo_info": "Combo: {0}"
+    },
+    "event": {
+        "gold": "Gold {0}{1}"
+    },
+    "achievement": {
+        "no_reward": "No Reward",
+        "reward_label": "Reward: {0}",
+        "claim": "Claim 🎁"
+    },
+    "settings": {
+        "bgm_volume": "🔊 Music Volume",
+        "sfx_volume": "🔉 SFX Volume",
+        "language_label": "🌐 Language",
+        "language_zh": "中文",
+        "language_en": "English"
+    },
+    "tutorial": {
+        "skip": "Skip Tutorial",
+        "hero_select_title": "Choose Your Hero",
+        "hero_select_desc": "Select one of three heroes as your starting character.\nEach hero has unique skills and attributes!",
+        "dice_roll_title": "Roll the Dice",
+        "dice_roll_desc": "Tap the roll button to throw dice for resources.\nDice results determine your battle bonuses!",
+        "dice_lock_title": "Lock Favorable Dice",
+        "dice_lock_desc": "Tap a die to lock it. Locked dice won't be rerolled.\nKeep good results, reroll the rest!",
+        "dice_confirm_title": "Confirm Dice Combo",
+        "dice_confirm_desc": "Confirm your dice results and enter battle.\nTriple, Straight, and Pair each give different bonuses!",
+        "battle_start_title": "Battle Start!",
+        "battle_start_desc": "Battles play automatically. You can speed up or skip.\nWin to earn gold and experience rewards!"
+    },
+    "common": {
+        "confirm": "Confirm",
+        "cancel": "Cancel",
+        "close": "Close",
+        "back": "Back",
+        "unknown": "Unknown",
+        "loading": "Loading...",
+        "none": "None"
+    },
+    "save": {
+        "slot_label": "Slot {0}",
+        "level_info": "Level {0}",
+        "hero_info": "{0} Lv{1}",
+        "time_minutes": "Time: {0}min",
+        "time_hours": "Time: {0}h{1}m",
+        "status_empty": "Empty",
+        "status_occupied": "Saved",
+        "no_hero": "No Hero",
+        "confirm_overwrite": "Archive exists. Overwrite?",
+        "confirm_incompatible": "Archive version incompatible. Still load?",
+        "confirm_delete": "Delete archive? Irreversible."
+    }
 }

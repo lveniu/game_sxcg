@@ -162,6 +162,13 @@ namespace Game.UI
             {
                 backButton.gameObject.SetActive(!won);
             }
+
+            // 自动存档（胜利时保存进度）
+            if (won && SaveSystem.Instance != null)
+            {
+                SaveSystem.Instance.Save();
+                Debug.Log("[SettlementPanel] 胜利结算 → 自动存档完成");
+            }
         }
 
         private void ShowEquipmentDrop(bool won)

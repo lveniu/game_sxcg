@@ -78,6 +78,15 @@ namespace Game.UI
             battleStatsButton?.onClick.AddListener(OnBattleStatsClicked);
 
             PopulateStats();
+
+            // 死亡时保留存档（标记失败状态，不删除）
+            var gsmSave = GameStateMachine.Instance;
+            bool isDefeat = gsmSave == null || !gsmSave.IsGameWon;
+            if (isDefeat && SaveSystem.Instance != null)
+            {
+                SaveSystem.Instance.SaveAsFailed();
+                Debug.Log("[GameOverPanel] 阵亡 → 存档已标记失败状态并保留");
+            }
         }
 
         protected override void OnHide()
