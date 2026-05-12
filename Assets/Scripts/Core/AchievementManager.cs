@@ -516,13 +516,38 @@ public class AchievementManager : MonoBehaviour
                 break;
 
             case "relic":
-                // TODO: 按 item_id 查找遗物数据并发放
-                Debug.Log($"[AchievementManager] 奖励遗物: {reward.item_id}");
+                {
+                    var relicSystem = RelicSystem.Instance;
+                    if (relicSystem != null)
+                    {
+                        relicSystem.AcquireRelic(reward.item_id);
+                        Debug.Log($"[AchievementManager] 奖励遗物: {reward.item_id}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[AchievementManager] RelicSystem 未初始化，无法发放遗物 {reward.item_id}");
+                    }
+                }
                 break;
 
             case "dice_face":
-                // TODO: 解锁骰子面
-                Debug.Log($"[AchievementManager] 奖励骰子面: {reward.item_id}");
+                {
+                    var roller = RoguelikeGameManager.Instance?.DiceRoller;
+                    if (roller != null && roller.Dices != null && roller.Dices.Length > 0)
+                    {
+                        // 随机选择一个骰子，将某一面替换为奖励指定的面效果
+                        int diceIdx = Random.Range(0, roller.Dices.Length);
+                        var dice = roller.Dices[diceIdx];
+                        // 随机选一个面索引挂载特殊效果
+                        int faceIdx = Random.Range(0, dice.Faces.Length);
+                        dice.UpgradeFace(faceIdx, reward.item_id);
+                        Debug.Log($"[AchievementManager] 解锁骰子面: {reward.item_id} → 骰子{diceIdx}面{faceIdx}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[AchievementManager] DiceRoller 未初始化，无法解锁骰子面 {reward.item_id}");
+                    }
+                }
                 break;
 
             default:
