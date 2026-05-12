@@ -51,6 +51,9 @@ public class BattleManager : MonoBehaviour
 
     private Coroutine battleCoroutine;
 
+    // 战斗音效桥接
+    private AudioBattleBridge audioBridge;
+
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -163,6 +166,9 @@ public class BattleManager : MonoBehaviour
 
         OnBattleStarted?.Invoke();
         battleCoroutine = StartCoroutine(BattleLoop());
+
+        // 初始化战斗音效桥接
+        InitAudioBridge();
 
         // 通知特效系统战斗开始
         BattleEffectManager.Instance?.OnBattleStart();
@@ -462,6 +468,9 @@ public class BattleManager : MonoBehaviour
         // 通知特效系统战斗结束
         BattleEffectManager.Instance?.OnBattleEnd();
 
+        // 清理战斗音效桥接
+        CleanupAudioBridge();
+
         // 清理机制怪战斗状态
         if (MechanicEnemySystem.Instance != null)
             MechanicEnemySystem.Instance.ClearBattleState();
@@ -669,5 +678,38 @@ public class BattleManager : MonoBehaviour
     public void NotifyShieldGained(Hero hero, int shieldAmount)
     {
         OnShieldGained?.Invoke(hero, shieldAmount);
+    }
+
+    // ========================================================
+    // 战斗音效桥接
+    // ========================================================
+
+    /// <summary>
+    /// 初始化音效桥接 — 战斗开始时调用
+    /// </summary>
+    private void InitAudioBridge()
+    {
+        if (audioBridge != null) return;
+
+        var bridgeGo = new GameObject("AudioBattleBridge");
+        bridgeGo.transform.SetParent(transform);
+        audioBridge = bridgeGo.AddComponent<AudioBattleBridge>();
+
+        // 获取当前骰子掷骰器
+        DiceRoller roller = RoguelikeGameManager.Instance?.DiceRoller;
+        audioBridge.Initialize(this, roller);
+    }
+
+    /// <summary>
+    /// 清理音效桥接 — 战斗结束时调用
+    /// </summary>
+    private void CleanupAudioBridge()
+    {
+        if (audioBridge != null)
+        {
+            audioBridge.Cleanup();
+            Destroy(audioBridge.gameObject);
+            audioBridge = null;
+        }
     }
 }

@@ -99,6 +99,16 @@ namespace Game.UI
             confirmButton?.onClick.RemoveAllListeners();
             confirmButton?.onClick.AddListener(OnConfirmClicked);
 
+            // 骰子锁定Toggle音效
+            foreach (var tog in keepToggles)
+            {
+                if (tog != null)
+                {
+                    tog.onValueChanged.RemoveAllListeners();
+                    tog.onValueChanged.AddListener(OnKeepToggleChanged);
+                }
+            }
+
             // 订阅骰子事件
             diceRoller.OnDiceRolled += OnDiceRolled;
             diceRoller.OnRerollsExhausted += OnRerollsExhausted;
@@ -126,6 +136,8 @@ namespace Game.UI
         private void OnRollClicked()
         {
             if (isAnimating) return;
+            // 骰子旋转音效
+            PlayDiceAudio("spin");
             StartCoroutine(RollCoroutine(isReroll: false));
         }
 
@@ -137,6 +149,8 @@ namespace Game.UI
             for (int i = 0; i < 3; i++)
                 keepMask[i] = keepToggles[i] != null && keepToggles[i].isOn;
 
+            // 骰子旋转音效
+            PlayDiceAudio("spin");
             StartCoroutine(RollCoroutine(isReroll: true, keepMask));
         }
 
@@ -262,6 +276,35 @@ namespace Game.UI
             // Bug#4 fix: 使用NextState而非ChangeState，保持状态机流程一致
             // ChangeState(Battle)跳过了Settlement等中间状态判断
             GameStateMachine.Instance.NextState(); // DiceRoll → Battle
+        }
+
+        #endregion
+
+        #region 音效辅助
+
+        /// <summary> 锁定Toggle变化回调 </summary>
+        private void OnKeepToggleChanged(bool isOn)
+        {
+            PlayDiceAudio("lock");
+        }
+
+        /// <summary>
+        /// 播放骰子相关音效 — 通过AudioManager播放，无AudioManager时静默
+        /// type: "spin"(旋转) | "lock"(锁定/解锁)
+        /// </summary>
+        private void PlayDiceAudio(string type)
+        {
+            if (AudioManager.Instance == null) return;
+
+            switch (type)
+            {
+                case "spin":
+                    AudioManager.PlaySFX("sfx_dice_spin");
+                    break;
+                case "lock":
+                    AudioManager.PlaySFX("sfx_dice_lock");
+                    break;
+            }
         }
 
         #endregion

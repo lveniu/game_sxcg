@@ -789,7 +789,8 @@ namespace Game.UI
             bgmVolume = Mathf.Round(value * 20f) / 20f;
             if (bgmSlider != null) bgmSlider.value = bgmVolume;
             if (bgmValueText != null) bgmValueText.text = Mathf.RoundToInt(bgmVolume * 100) + "%";
-            AudioListener.volume = bgmVolume;
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.BGMVolume = bgmVolume;
         }
 
         private void OnSFXChanged(float value)

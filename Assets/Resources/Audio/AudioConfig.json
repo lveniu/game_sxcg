@@ -1,0 +1,37 @@
+{
+  "_comment": "音效配置表 — 所有音效ID和参数占位，后续替换真实音频文件即可生效",
+  "_usage": "clipId对应Resources/Audio/下的音频文件名（不含扩展名），null表示占位未配置",
+
+  "bgm": {
+    "menu_bgm":        { "volume": 0.7, "loop": true,  "comment": "主菜单BGM" },
+    "battle_bgm":      { "volume": 0.8, "loop": true,  "comment": "战斗BGM" },
+    "settlement_bgm":  { "volume": 0.6, "loop": true,  "comment": "结算/地图BGM" },
+    "victory_bgm":     { "volume": 0.7, "loop": false, "comment": "胜利BGM" },
+    "defeat_bgm":      { "volume": 0.6, "loop": false, "comment": "失败BGM" },
+    "calm_bgm":        { "volume": 0.5, "loop": true,  "comment": "默认场景BGM" }
+  },
+
+  "sfx_battle": {
+    "sfx_battle_start": { "volume": 1.0, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 0.5,  "comment": "战斗开始号角" },
+    "sfx_hit":          { "volume": 0.8, "pitchMin": 0.9, "pitchMax": 1.1, "minInterval": 0.1,  "comment": "普攻命中" },
+    "sfx_crit":         { "volume": 1.0, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 0.1,  "comment": "暴击命中（主音）" },
+    "sfx_crit_impact":  { "volume": 0.9, "pitchMin": 0.85,"pitchMax": 1.15,"minInterval": 0.1,  "comment": "暴击冲击（随机pitch叠加层）" },
+    "sfx_heal":         { "volume": 0.7, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 0.1,  "comment": "治疗音效" },
+    "sfx_shield":       { "volume": 0.7, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 0.1,  "comment": "护盾音效" },
+    "sfx_death":        { "volume": 0.9, "pitchMin": 0.9, "pitchMax": 1.1, "minInterval": 0.3,  "comment": "单位死亡" },
+    "sfx_victory":      { "volume": 1.0, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 1.0,  "comment": "胜利号角" },
+    "sfx_defeat":       { "volume": 0.8, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 1.0,  "comment": "失败音效" }
+  },
+
+  "sfx_dice": {
+    "sfx_dice_roll":    { "volume": 0.8, "pitchMin": 0.95,"pitchMax": 1.05,"minInterval": 0.05, "comment": "骰子落地单次音" },
+    "sfx_dice_lock":    { "volume": 0.6, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 0.05, "comment": "骰子锁定音效" },
+    "sfx_dice_spin":    { "volume": 0.5, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 0.15, "comment": "骰子旋转音效" }
+  },
+
+  "sfx_combo": {
+    "sfx_combo_pair":   { "volume": 0.9, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 0.2,  "comment": "对子技能触发（常见）" },
+    "sfx_combo_straight":{ "volume": 1.0, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 0.2, "comment": "顺子技能触发（稀有）" },
+    "sfx_combo_three":  { "volume": 1.0, "pitchMin": 1.0, "pitchMax": 1.0, "minInterval": 0.2,  "comment": "三条技能触发（史诗）" }
+  }
+}

@@ -291,6 +291,60 @@ public class AudioManager : MonoBehaviour
     }
 
     // ============================================================
+    // SFX增强方法
+    // ============================================================
+
+    /// <summary>
+    /// 播放音效（随机pitch）— 增加打击感变化
+    /// </summary>
+    public void PlaySFXRandomPitch(string clipName, float minPitch, float maxPitch, float volumeScale = 1f)
+    {
+        var clip = LoadClip(clipName);
+        if (clip == null) return;
+
+        var src = GetAvailableSFXSource();
+        if (src == null) return;
+
+        src.pitch = Random.Range(minPitch, maxPitch);
+        float vol = isMuted ? 0f : volumeScale * sfxVol * masterVol;
+        src.PlayOneShot(clip, vol);
+
+        // 播完恢复pitch
+        StartCoroutine(ResetPitchAfterPlay(src, clip.length));
+    }
+
+    /// <summary>
+    /// BGM交叉淡入淡出 — 供外部系统（如AudioBattleBridge）调用
+    /// </summary>
+    public void CrossFadeBGM(string bgmId, float duration)
+    {
+        if (currentBGM == bgmId && bgmSource.isPlaying) return;
+        PlayBGM(bgmId, duration);
+    }
+
+    /// <summary>
+    /// 停止所有SFX — 战斗结束时调用
+    /// </summary>
+    public void StopAllSFX()
+    {
+        for (int i = 0; i < sfxPool.Count; i++)
+        {
+            if (sfxPool[i] != null && sfxPool[i].isPlaying)
+            {
+                sfxPool[i].Stop();
+                sfxPool[i].pitch = 1f;
+            }
+        }
+    }
+
+    /// <summary> pitch恢复协程 </summary>
+    private IEnumerator ResetPitchAfterPlay(AudioSource src, float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay + 0.05f);
+        if (src != null) src.pitch = 1f;
+    }
+
+    // ============================================================
     // 静态快捷方法 — 供其他系统直接调用
     // ============================================================
 
