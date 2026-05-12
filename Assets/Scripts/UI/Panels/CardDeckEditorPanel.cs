@@ -6,38 +6,10 @@ using DG.Tweening;
 
 namespace Game.UI
 {
-    // ── Mock数据（TODO(Phase2-CardDeckEditor): 后端卡组编辑API完成后替换为真实接口 — 不阻塞Phase1） ──
-    public class MockDeckCard
-    {
-        public string name, description, rarity, cardType;
-        public int cost, starLevel;
-        public bool isInDeck;
-    }
-
-    public static class MockDeckData
-    {
-        public static List<MockDeckCard> GetCards() => new List<MockDeckCard>
-        {
-            // 8张已加入卡组
-            new MockDeckCard{name="斩击",description="造成攻击×150%伤害",rarity="Common",cardType="Battle",cost=3,starLevel=1,isInDeck=true},
-            new MockDeckCard{name="力量训练",description="永久提升攻击+5",rarity="Common",cardType="Attribute",cost=0,starLevel=1,isInDeck=true},
-            new MockDeckCard{name="护盾冲击",description="获得防御×2的护盾",rarity="Rare",cardType="Battle",cost=4,starLevel=2,isInDeck=true},
-            new MockDeckCard{name="火焰斩",description="攻击×180%火伤，联动AOE",rarity="Rare",cardType="Battle",cost=5,starLevel=1,isInDeck=true},
-            new MockDeckCard{name="坚固护甲",description="永久提升防御+5",rarity="Common",cardType="Attribute",cost=0,starLevel=1,isInDeck=true},
-            new MockDeckCard{name="神圣祝福",description="永久提升最大生命+30",rarity="Epic",cardType="Attribute",cost=0,starLevel=2,isInDeck=true},
-            new MockDeckCard{name="疾风步",description="速度×130%，联动+闪避",rarity="Rare",cardType="Battle",cost=4,starLevel=1,isInDeck=true},
-            new MockDeckCard{name="吸血攻击",description="30%伤害转化为生命",rarity="Epic",cardType="Battle",cost=5,starLevel=1,isInDeck=true},
-            // 6张卡池
-            new MockDeckCard{name="冰霜护甲",description="护盾+减速效果",rarity="Rare",cardType="Battle",cost=4,starLevel=1,isInDeck=false},
-            new MockDeckCard{name="致命一击",description="暴击+50%，联动必暴",rarity="Epic",cardType="Battle",cost=6,starLevel=2,isInDeck=false},
-            new MockDeckCard{name="灵敏训练",description="永久提升速度+5",rarity="Common",cardType="Attribute",cost=0,starLevel=1,isInDeck=false},
-            new MockDeckCard{name="连环斩",description="攻击弹射多目标",rarity="Epic",cardType="Battle",cost=5,starLevel=1,isInDeck=false},
-            new MockDeckCard{name="狂暴药水",description="攻击+60%防御-30%",rarity="Legendary",cardType="Battle",cost=7,starLevel=3,isInDeck=false},
-            new MockDeckCard{name="能量爆发",description="攻防速各×20%",rarity="Legendary",cardType="Battle",cost=8,starLevel=2,isInDeck=false},
-        };
-    }
-
     // ── 卡牌UI条目 ────────────────────────────────────────
+    /// <summary>
+    /// 卡组编辑面板中的卡牌条目，持有对 CardInstance 的引用
+    /// </summary>
     public class DeckCardEntry
     {
         public string name, description, rarity, cardType;
@@ -47,6 +19,9 @@ namespace Game.UI
         public CanvasGroup canvasGroup;
         public Image bgImage;
         public Outline outline;
+
+        /// <summary>关联的真实卡牌实例（用于与 CardDeck 交互）</summary>
+        public CardInstance cardInstance;
     }
 
     // ── 卡组编辑面板 ──────────────────────────────────────
@@ -142,25 +117,49 @@ namespace Game.UI
             deckCards.Clear(); poolCards.Clear();
             ClearChildren(deckZone, 1); ClearChildren(poolZone, 1);
 
-            if (CardDeck.Instance != null && CardDeck.Instance.handCards.Count > 0)
+            var deck = CardDeck.Instance;
+            if (deck == null)
             {
-                foreach (var ci in CardDeck.Instance.handCards)
-                {
-                    var e = new DeckCardEntry{name=ci.CardName, description=ci.Data.description??"",
-                        rarity=ci.Data.rarity.ToString(), cardType=ci.Data.cardType.ToString(),
-                        cost=ci.Cost, starLevel=ci.StarLevel, isInDeck=true};
-                    deckCards.Add(e);
-                }
+                Debug.LogWarning("[CardDeckEditorPanel] CardDeck 未就绪，无法加载卡组数据");
+                return;
             }
-            else
+
+            // 确保卡池已从 PlayerInventory 同步
+            deck.SyncFromInventory();
+
+            // 加载已加入卡组的卡牌
+            foreach (var ci in deck.handCards)
             {
-                foreach (var m in MockDeckData.GetCards())
-                {
-                    var e = new DeckCardEntry{name=m.name,description=m.description,rarity=m.rarity,
-                        cardType=m.cardType,cost=m.cost,starLevel=m.starLevel,isInDeck=m.isInDeck};
-                    (e.isInDeck ? deckCards : poolCards).Add(e);
-                }
+                if (ci == null) continue;
+                var e = CreateEntryFromInstance(ci, isInDeck: true);
+                deckCards.Add(e);
             }
+
+            // 加载卡池（未加入卡组的卡牌）
+            foreach (var ci in deck.cardPool)
+            {
+                if (ci == null) continue;
+                var e = CreateEntryFromInstance(ci, isInDeck: false);
+                poolCards.Add(e);
+            }
+        }
+
+        /// <summary>
+        /// 从 CardInstance 创建 DeckCardEntry
+        /// </summary>
+        private static DeckCardEntry CreateEntryFromInstance(CardInstance ci, bool isInDeck)
+        {
+            return new DeckCardEntry
+            {
+                name = ci.CardName,
+                description = ci.Data.description ?? "",
+                rarity = ci.Data.rarity.ToString(),
+                cardType = ci.Data.cardType.ToString(),
+                cost = ci.Cost,
+                starLevel = ci.StarLevel,
+                isInDeck = isInDeck,
+                cardInstance = ci
+            };
         }
 
         // ════════════════════════ 刷新渲染 ════════════════════════
@@ -245,8 +244,24 @@ namespace Game.UI
         private void OnCardClick(DeckCardEntry e)
         {
             if (isDragging) return;
-            if (e.isInDeck) { e.isInDeck=false; deckCards.Remove(e); poolCards.Add(e); }
-            else { if (deckCards.Count>=MAX_DECK) return; e.isInDeck=true; poolCards.Remove(e); deckCards.Add(e); }
+            var deck = CardDeck.Instance;
+            if (deck == null || e.cardInstance == null) return;
+
+            if (e.isInDeck)
+            {
+                deck.RemoveFromDeck(e.cardInstance);
+                e.isInDeck = false;
+                deckCards.Remove(e);
+                poolCards.Add(e);
+            }
+            else
+            {
+                if (deckCards.Count >= MAX_DECK) return;
+                deck.AddToDeck(e.cardInstance);
+                e.isInDeck = true;
+                poolCards.Remove(e);
+                deckCards.Add(e);
+            }
             Refresh();
         }
 

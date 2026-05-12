@@ -8,8 +8,11 @@ public class CardDeck : MonoBehaviour
 {
     public static CardDeck Instance { get; private set; }
 
-    [Header("手牌")]
+    [Header("手牌（当前卡组中已选卡牌）")]
     public List<CardInstance> handCards = new List<CardInstance>();
+
+    [Header("卡池（未加入卡组的卡牌）")]
+    public List<CardInstance> cardPool = new List<CardInstance>();
 
     [Header("场上英雄")]
     public List<Hero> fieldHeroes = new List<Hero>();
@@ -53,6 +56,58 @@ public class CardDeck : MonoBehaviour
     public void RemoveCard(CardInstance card)
     {
         handCards.Remove(card);
+    }
+
+    // ════════════════════════ 卡组编辑：卡组 ↔ 卡池 ════════════════════════
+
+    /// <summary>
+    /// 从 PlayerInventory 同步所有卡牌到卡组编辑系统。
+    /// 在 handCards 中的视为"已加入卡组"，其余放入 cardPool。
+    /// </summary>
+    public void SyncFromInventory()
+    {
+        var inv = PlayerInventory.Instance;
+        if (inv == null) return;
+
+        var deckSet = new HashSet<CardInstance>(handCards);
+        cardPool.Clear();
+        foreach (var card in inv.Cards)
+        {
+            if (card != null && !deckSet.Contains(card))
+                cardPool.Add(card);
+        }
+    }
+
+    /// <summary>
+    /// 将卡牌从卡池加入卡组（handCards）
+    /// </summary>
+    public bool AddToDeck(CardInstance card)
+    {
+        if (card == null || !cardPool.Contains(card)) return false;
+        cardPool.Remove(card);
+        handCards.Add(card);
+        Debug.Log($"加入卡组：{card.CardName}");
+        return true;
+    }
+
+    /// <summary>
+    /// 将卡牌从卡组移回卡池
+    /// </summary>
+    public bool RemoveFromDeck(CardInstance card)
+    {
+        if (card == null || !handCards.Contains(card)) return false;
+        handCards.Remove(card);
+        cardPool.Add(card);
+        Debug.Log($"移出卡组：{card.CardName}");
+        return true;
+    }
+
+    /// <summary>
+    /// 重置卡池（清空，用于新局开始）
+    /// </summary>
+    public void ResetCardPool()
+    {
+        cardPool.Clear();
     }
 
     /// <summary>
@@ -524,6 +579,7 @@ public class CardDeck : MonoBehaviour
     public void ResetForNewGame()
     {
         handCards.Clear();
+        cardPool.Clear();
         ClearField();
         BonusAttack = 0;
         BonusDefense = 0;
