@@ -35,8 +35,8 @@ public static class ItemStackHelper
     /// <returns>剩余未堆叠的数量</returns>
     public static int TryStack(IItem target, IItem incoming, int amount)
     {
-        // 不同ID或不可堆叠 → 直接返回原数量
-        if (!target.IsStackable || target.ItemId != incoming.ItemId)
+        // 不同ID或任一方不可堆叠 → 直接返回原数量
+        if (!target.IsStackable || !incoming.IsStackable || target.ItemId != incoming.ItemId)
             return amount;
 
         int space = target.MaxStack - target.StackCount;

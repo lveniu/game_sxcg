@@ -88,7 +88,7 @@ namespace Game.UI
             KillAllActiveTweens();
 
             // 获取数据 — null时使用Mock
-            RunStats stats = BattleStatsTracker.Instance != null
+            RunBattleStats stats = BattleStatsTracker.Instance != null
                 ? BattleStatsTracker.Instance.GetCurrentRunStats()
                 : MockRunStats();
 
@@ -106,7 +106,7 @@ namespace Game.UI
         // UI构建
         // ================================================================
 
-        private void BuildUI(RunStats stats)
+        private void BuildUI(RunBattleStats stats)
         {
             // 清理旧内容
             if (contentRoot != null)
@@ -205,7 +205,7 @@ namespace Game.UI
 
         // ── 概览区 ──
 
-        private float BuildOverviewSection(RectTransform parent, float startY, RunStats stats)
+        private float BuildOverviewSection(RectTransform parent, float startY, RunBattleStats stats)
         {
             float height = 70f;
             var rt = CreateSection(parent, "Overview", startY, PanelWidth, height);
@@ -262,7 +262,7 @@ namespace Game.UI
 
         // ── 累计数据柱状图 ──
 
-        private float BuildCumulativeDataSection(RectTransform parent, float startY, RunStats stats)
+        private float BuildCumulativeDataSection(RectTransform parent, float startY, RunBattleStats stats)
         {
             var entries = new[]
             {
@@ -295,7 +295,7 @@ namespace Game.UI
 
         // ── 骰子组合统计 ──
 
-        private float BuildComboStatsSection(RectTransform parent, float startY, RunStats stats)
+        private float BuildComboStatsSection(RectTransform parent, float startY, RunBattleStats stats)
         {
             // 默认组合及颜色映射
             var defaultCombos = new[]
@@ -337,7 +337,7 @@ namespace Game.UI
 
         // ── 遗物收集 ──
 
-        private float BuildRelicsSection(RectTransform parent, float startY, RunStats stats)
+        private float BuildRelicsSection(RectTransform parent, float startY, RunBattleStats stats)
         {
             var relics = stats.relicsCollected ?? new List<string>();
             bool hasRelics = relics.Count > 0;
@@ -405,7 +405,7 @@ namespace Game.UI
 
         // ── 英雄成长 ──
 
-        private float BuildHeroGrowthSection(RectTransform parent, float startY, RunStats stats)
+        private float BuildHeroGrowthSection(RectTransform parent, float startY, RunBattleStats stats)
         {
             var g = stats.heroGrowth;
             bool hasData = g != null && !string.IsNullOrEmpty(g.heroName);
@@ -470,7 +470,7 @@ namespace Game.UI
 
         // ── 战斗历史 ──
 
-        private float BuildBattleHistorySection(RectTransform parent, float startY, RunStats stats)
+        private float BuildBattleHistorySection(RectTransform parent, float startY, RunBattleStats stats)
         {
             var history = stats.battleHistory ?? new List<BattleRecord>();
             float collapsedH = 50f;
@@ -535,7 +535,7 @@ namespace Game.UI
 
         // ── 战斗历史列表项 ──
 
-        private void CreateBattleHistoryItems(RectTransform section, RunStats stats)
+        private void CreateBattleHistoryItems(RectTransform section, RunBattleStats stats)
         {
             var history = stats.battleHistory;
             if (history == null) return;
@@ -810,7 +810,7 @@ namespace Game.UI
         /// <summary>
         /// 从RunStats.comboCounts中查找组合计数（支持多种名称匹配）
         /// </summary>
-        private int GetComboCount(RunStats stats, params string[] possibleNames)
+        private int GetComboCount(RunBattleStats stats, params string[] possibleNames)
         {
             if (stats?.comboCounts == null) return 0;
             foreach (var name in possibleNames)
@@ -824,9 +824,9 @@ namespace Game.UI
         /// <summary>
         /// Mock数据 — 编辑器内测试用
         /// </summary>
-        private RunStats MockRunStats()
+        private RunBattleStats MockRunStats()
         {
-            var stats = new RunStats
+            var stats = new RunBattleStats
             {
                 totalBattles = 12,
                 victories = 9,

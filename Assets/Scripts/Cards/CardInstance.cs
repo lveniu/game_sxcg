@@ -51,7 +51,6 @@ public class CardInstance : IItem
     public string CardName => Data.cardName;
     public CardType Type => Data.cardType;
     public int Cost => Data.cost;
-    public Sprite Icon => Data.icon;
 
     /// <summary>根据等级获取效果倍率（等级1=1.0，每级+15%）</summary>
     public float LevelMultiplier => 1f + (Level - 1) * LevelBonusPerLevel;

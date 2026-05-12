@@ -63,6 +63,9 @@ namespace Game.UI
         [Header("子面板 - 战斗回放")]
         public BattleReplaySummary battleReplaySummary;
 
+        [Header("子面板 - 存档")]
+        public SaveLoadPanel saveLoadPanel;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -187,6 +190,7 @@ namespace Game.UI
                 "Collection" => collectionPanel,
                 "BattleStats" => battleStatsPanel,
                 "BattleReplay" => battleReplaySummary,
+                "SaveLoad" => saveLoadPanel,
                 _ => null
             };
             if (panel != null) panel.Show();
@@ -215,6 +219,7 @@ namespace Game.UI
                 "Collection" => collectionPanel as T,
                 "BattleStats" => battleStatsPanel as T,
                 "BattleReplay" => battleReplaySummary as T,
+                "SaveLoad" => saveLoadPanel as T,
                 _ => null
             };
         }

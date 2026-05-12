@@ -151,4 +151,77 @@ public class DiceRoller
     {
         FreeRerolls = count;
     }
+
+    /// <summary>
+    /// 增加免费重摇次数（叠加式，用于面效果/遗物等）
+    /// </summary>
+    /// <param name="count">增加的次数</param>
+    public void AddFreeRerolls(int count)
+    {
+        FreeRerolls += count;
+        Debug.Log($"[DiceRoller] 免费重摇次数 +{count}，当前: {FreeRerolls}");
+    }
+
+    /// <summary>
+    /// 升级指定骰子的面值
+    /// </summary>
+    /// <param name="diceIndex">骰子索引（0-based）</param>
+    /// <param name="faceIndex">面索引（0-based）</param>
+    /// <param name="newValue">新的面值</param>
+    /// <returns>是否升级成功</returns>
+    public bool UpgradeDice(int diceIndex, int faceIndex, int newValue)
+    {
+        if (diceIndex < 0 || diceIndex >= Dices.Length)
+        {
+            Debug.LogWarning($"[DiceRoller] UpgradeDice 失败：diceIndex {diceIndex} 越界（共 {Dices.Length} 颗骰子）");
+            return false;
+        }
+        return Dices[diceIndex].UpgradeFace(faceIndex, newValue);
+    }
+
+    /// <summary>
+    /// 给指定骰子的面添加特殊效果
+    /// </summary>
+    /// <param name="diceIndex">骰子索引（0-based）</param>
+    /// <param name="faceIndex">面索引（0-based）</param>
+    /// <param name="effectId">效果ID（如 "lightning", "shield" 等）</param>
+    /// <returns>是否添加成功</returns>
+    public bool AddEffectToFace(int diceIndex, int faceIndex, string effectId)
+    {
+        if (diceIndex < 0 || diceIndex >= Dices.Length)
+        {
+            Debug.LogWarning($"[DiceRoller] AddEffectToFace 失败：diceIndex {diceIndex} 越界");
+            return false;
+        }
+        return Dices[diceIndex].AddSpecialEffect(faceIndex, effectId);
+    }
+
+    /// <summary>
+    /// 获取指定骰子面从当前值升级到目标值的费用
+    /// 从 dice_system.json 的 face_upgrade 配置计算
+    /// 费用公式：基础费用 × (目标值 - 当前面值)，基础费用从 BalanceProvider 获取
+    /// </summary>
+    /// <param name="diceIndex">骰子索引（0-based）</param>
+    /// <param name="faceIndex">面索引（0-based）</param>
+    /// <param name="targetValue">目标面值</param>
+    /// <returns>升级费用（金币）；如果无法升级返回 -1</returns>
+    public int GetUpgradeCost(int diceIndex, int faceIndex, int targetValue)
+    {
+        if (diceIndex < 0 || diceIndex >= Dices.Length) return -1;
+        var dice = Dices[diceIndex];
+        if (faceIndex < 0 || faceIndex >= dice.Faces.Length) return -1;
+
+        int currentValue = dice.Faces[faceIndex];
+        if (targetValue <= currentValue) return -1; // 目标值必须大于当前值
+
+        // 通过 DiceUpgradeEngine 计算费用（如果存在），否则用默认公式
+        var engine = DiceUpgradeEngine.Instance;
+        if (engine != null)
+        {
+            return engine.CalculateCost(currentValue, targetValue);
+        }
+
+        // 默认费用公式：每级 10 金币
+        return (targetValue - currentValue) * 10;
+    }
 }
