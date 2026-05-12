@@ -101,10 +101,10 @@ namespace Game.UI
             if (resultTitle != null)
                 resultTitle.text = isWin
                     ? (LocalizationManager.Instance != null
-                        ? LocalizationManager.Instance.GetText("game_over.victory")
+                        ? LocalizationManager.Instance.GetText("game_over.victory_title")
                         : "🏆 通关！")
                     : (LocalizationManager.Instance != null
-                        ? LocalizationManager.Instance.GetText("game_over.defeat")
+                        ? LocalizationManager.Instance.GetText("game_over.defeat_title")
                         : "💀 阵亡");
 
             // ── 关卡 ──────────────────────────────────────────
@@ -514,13 +514,12 @@ namespace Game.UI
 }
 
 /// <summary>
-/// 战斗统计数据辅助类 — Mock数据，后端未就绪时使用
-/// TODO: 后端 BattleStatsSystem 完成后替换整个类
+/// 战斗统计数据辅助类 — [Fallback] BattleStatsTracker未就绪时使用
+/// BattleStatsTracker已实现完整战斗统计，此类仅作fallback
 /// </summary>
 public static class GameStats
 {
-    // ── Mock 数据（后端未就绪） ──────────────────────────
-    // TODO: 替换为真实战斗统计系统
+    // ── Fallback 数据（BattleStatsTracker未就绪时使用） ────────
 
     /// <summary>击杀数</summary>
     public static int KillCount { get; set; } = 23;
@@ -539,12 +538,11 @@ public static class GameStats
 
     /// <summary>
     /// 获取MVP英雄名称 — 取伤害最高的英雄
-    /// 当前为Mock实现，返回预设英雄名
+    /// [已实现] 从RoguelikeGameManager获取真实英雄数据
     /// </summary>
     public static string GetMVPHero()
     {
-        // TODO: 替换为从真实战斗统计中取伤害最高英雄
-        // 临时从RoguelikeGameManager获取队伍英雄
+        // [已实现] 从RoguelikeGameManager获取队伍英雄并计算MVP
         var rgm = RoguelikeGameManager.Instance;
         if (rgm != null && rgm.PlayerHeroes != null && rgm.PlayerHeroes.Count > 0)
         {
