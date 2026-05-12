@@ -1,0 +1,174 @@
+{
+  "_version": "1.0",
+  "_description": "随机事件配置 — 宝箱/陷阱/商人/祭坛/医者/竞技场",
+  "trigger_chance": 0.3,
+  "risk_success_rate": 0.5,
+  "events": [
+    {
+      "id": "treasure",
+      "type": "Treasure",
+      "name_cn": "神秘宝箱",
+      "description_template": "发现一个宝箱，获得 {goldReward} 金币！",
+      "gold_formula": "20 + level * 5",
+      "options": [
+        {
+          "optionText": "打开宝箱",
+          "effectType": "AddGold",
+          "effectFormula": "goldReward",
+          "isRiskOption": false
+        },
+        {
+          "optionText": "小心检查再打开",
+          "effectType": "AddGold",
+          "effectFormula": "goldReward / 2",
+          "secondaryEffect": "AddHealth",
+          "secondaryFormula": "10 + level * 2",
+          "isRiskOption": false
+        },
+        {
+          "optionText": "用魔法探测（风险）",
+          "effectType": "AddGold",
+          "effectFormula": "goldReward * 1.5",
+          "isRiskOption": true,
+          "riskFailEffectType": "AddHealth",
+          "riskFailFormula": "-(5 + level * 3)"
+        }
+      ]
+    },
+    {
+      "id": "trap",
+      "type": "Trap",
+      "name_cn": "陷阱",
+      "description_template": "触发陷阱！全体损失 {healthLoss} 生命。",
+      "health_loss_formula": "10 + level * 2",
+      "options": [
+        {
+          "optionText": "硬抗",
+          "effectType": "AddHealth",
+          "effectFormula": "-healthLoss",
+          "isRiskOption": true
+        },
+        {
+          "optionText": "闪避翻滚",
+          "effectType": "AddHealth",
+          "effectFormula": "-healthLoss * 0.5",
+          "isRiskOption": true,
+          "riskFailEffectType": "AddHealth",
+          "riskFailFormula": "-healthLoss * 1.5"
+        },
+        {
+          "optionText": "使用道具抵挡",
+          "effectType": "AddHealth",
+          "effectFormula": "-max(1, healthLoss / 4)",
+          "isRiskOption": false,
+          "goldCost": 10
+        }
+      ]
+    },
+    {
+      "id": "mystery_merchant",
+      "type": "MysteryMerchant",
+      "name_cn": "神秘商人",
+      "description_template": "遇到神秘商人，所有商品5折！",
+      "discount_rate": 0.5,
+      "options": [
+        {
+          "optionText": "购买神秘卡牌（30金币）",
+          "effectType": "AddRandomCard",
+          "effectFormula": "0",
+          "isRiskOption": false,
+          "goldCost": 30
+        },
+        {
+          "optionText": "购买遗物碎片（50金币）",
+          "effectType": "AddRandomRelic",
+          "effectFormula": "0",
+          "isRiskOption": false,
+          "goldCost": 50
+        },
+        {
+          "optionText": "礼貌拒绝",
+          "effectType": "None",
+          "effectFormula": "0",
+          "isRiskOption": false
+        }
+      ]
+    },
+    {
+      "id": "altar",
+      "type": "Altar",
+      "name_cn": "古老祭坛",
+      "description_template": "在古老祭坛祈祷，全体攻击+{buffAttack}（本局永久）。",
+      "buff_attack_formula": "2 + level * 0.3",
+      "options": [
+        {
+          "optionText": "祈祷（献祭生命）",
+          "effectType": "AddAttack",
+          "effectFormula": "buffAttack",
+          "secondaryEffect": "AddHealth",
+          "secondaryFormula": "-(10 + level)",
+          "isRiskOption": false
+        },
+        {
+          "optionText": "虔诚祭拜（献祭金币）",
+          "effectType": "AddAttack",
+          "effectFormula": "max(1, buffAttack - 1)",
+          "isRiskOption": false,
+          "goldCost": 20
+        },
+        {
+          "optionText": "亵渎祭坛（风险）",
+          "effectType": "AddAttack",
+          "effectFormula": "buffAttack * 2",
+          "isRiskOption": true,
+          "riskFailEffectType": "AddHealth",
+          "riskFailFormula": "-(20 + level * 3)"
+        }
+      ]
+    },
+    {
+      "id": "wandering_healer",
+      "type": "WanderingHealer",
+      "name_cn": "流浪医者",
+      "description_template": "流浪医者出现，全体恢复 {healAmount} 生命。",
+      "heal_formula": "20 + level * 3",
+      "options": [
+        {
+          "optionText": "请求治疗",
+          "effectType": "AddHealth",
+          "effectFormula": "healAmount",
+          "isRiskOption": false
+        },
+        {
+          "optionText": "请求强化药水",
+          "effectType": "AddHealth",
+          "effectFormula": "healAmount * 0.3",
+          "secondaryEffect": "AddAttack",
+          "secondaryFormula": "1",
+          "isRiskOption": false
+        }
+      ]
+    },
+    {
+      "id": "arena",
+      "type": "Arena",
+      "name_cn": "竞技场",
+      "description_template": "参加竞技场，胜利可获得 {goldReward} 金币！（直接进入战斗）",
+      "gold_formula": "30 + level * 10",
+      "options": [
+        {
+          "optionText": "参加竞技场",
+          "effectType": "TriggerBattle",
+          "effectFormula": "goldReward",
+          "isRiskOption": false
+        },
+        {
+          "optionText": "放弃",
+          "effectType": "None",
+          "effectFormula": "0",
+          "isRiskOption": false
+        }
+      ]
+    }
+  ]
+}

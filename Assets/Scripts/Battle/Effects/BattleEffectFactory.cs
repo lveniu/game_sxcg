@@ -210,27 +210,59 @@ public class BattleEffectFactory : IBattleEffectProvider
     // ================================================================
 
     /// <summary>
-    /// 创建特效基础 GameObject（带 Canvas + CanvasRenderer + Image）
+    /// 创建特效基础 GameObject — 优先从对象池获取，池空时才创建新对象
     /// </summary>
-    /// <param name="worldPos">世界坐标</param>
-    /// <param name="name">对象名称</param>
-    /// <param name="sortingOrder">Canvas排序层级</param>
-    /// <returns>特效 GameObject</returns>
     private GameObject CreateEffectBase(Vector3 worldPos, string name, int sortingOrder)
     {
-        var go = new GameObject(name);
+        GameObject go;
+
+        // 优先从对象池获取
+        if (BattleEffectManager.Instance != null)
+        {
+            go = BattleEffectManager.Instance.GetFromPool(name);
+            if (go != null)
+            {
+                // 复用已有对象，重置状态
+                go.name = name;
+                go.transform.position = worldPos;
+                go.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+                go.transform.localRotation = Quaternion.identity;
+
+                var rt = go.GetComponent<RectTransform>();
+                if (rt != null)
+                {
+                    rt.sizeDelta = new Vector2(100, 100);
+                    rt.localPosition = worldPos;
+                }
+
+                var canvas = go.GetComponent<Canvas>();
+                if (canvas != null) canvas.sortingOrder = sortingOrder;
+
+                var img = go.GetComponent<Image>();
+                if (img != null)
+                {
+                    img.color = Color.white;
+                    img.raycastTarget = false;
+                }
+
+                return go;
+            }
+        }
+
+        // 池空，创建新对象
+        go = new GameObject(name);
         go.transform.position = worldPos;
 
         // WorldSpace Canvas
-        var canvas = go.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.WorldSpace;
-        canvas.sortingOrder = sortingOrder;
-        canvas.overrideSorting = true;
+        var newCanvas = go.AddComponent<Canvas>();
+        newCanvas.renderMode = RenderMode.WorldSpace;
+        newCanvas.sortingOrder = sortingOrder;
+        newCanvas.overrideSorting = true;
 
         // CanvasRenderer + Image
         go.AddComponent<CanvasRenderer>();
-        var img = go.AddComponent<Image>();
-        img.raycastTarget = false;
+        var newImg = go.AddComponent<Image>();
+        newImg.raycastTarget = false;
 
         // 设置 Canvas 大小和缩放
         var canvasRt = go.GetComponent<RectTransform>();

@@ -237,14 +237,25 @@ public class BattleEffectManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 预创建一个池化特效对象
+    /// 预创建一个池化特效对象（带 Canvas + CanvasRenderer + Image 组件，便于复用）
     /// </summary>
-    /// <param name="effectType">特效类型</param>
-    /// <returns>创建的 GameObject</returns>
     private GameObject CreatePooledObject(string effectType)
     {
         var go = new GameObject($"PooledEffect_{effectType}");
         go.transform.SetParent(effectsContainer);
+
+        // 预挂载组件以便复用
+        var canvas = go.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        canvas.overrideSorting = true;
+
+        go.AddComponent<CanvasRenderer>();
+        var img = go.AddComponent<Image>();
+        img.raycastTarget = false;
+
+        var rt = go.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(100, 100);
+
         go.SetActive(false);
         return go;
     }
