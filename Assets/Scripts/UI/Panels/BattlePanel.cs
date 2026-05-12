@@ -944,8 +944,29 @@ namespace Game.UI
 
         private void OnSkipClicked()
         {
+            // 跳过战斗前，先弹出战斗回放摘要
+            var uiManager = NewUIManager.Instance;
+            if (uiManager != null)
+            {
+                var replay = uiManager.GetSubPanel<BattleReplaySummary>("BattleReplay");
+                if (replay != null)
+                {
+                    replay.onReplayComplete = OnReplayComplete;
+                    uiManager.ShowSubPanel("BattleReplay");
+                }
+            }
+
             BattleManager.Instance?.SkipBattle();
             AddLog("⏭ 跳过战斗");
+        }
+
+        /// <summary>
+        /// 回放完成/跳过回调 — 进入结算流程
+        /// </summary>
+        private void OnReplayComplete()
+        {
+            // 回放结束，正常进入结算（GameStateMachine会处理跳转）
+            GameStateMachine.Instance?.NextState();
         }
 
         private void OnDiceSkillClicked()

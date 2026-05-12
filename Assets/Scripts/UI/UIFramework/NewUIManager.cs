@@ -60,6 +60,9 @@ namespace Game.UI
         [Header("子面板 - 战报")]
         public BattleStatsPanel battleStatsPanel;
 
+        [Header("子面板 - 战斗回放")]
+        public BattleReplaySummary battleReplaySummary;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -183,10 +186,37 @@ namespace Game.UI
                 "Achievement" => achievementPanel,
                 "Collection" => collectionPanel,
                 "BattleStats" => battleStatsPanel,
+                "BattleReplay" => battleReplaySummary,
                 _ => null
             };
             if (panel != null) panel.Show();
             else Debug.LogWarning($"[UIManager] 未找到子面板：{panelId}");
+        }
+
+        /// <summary>
+        /// 获取子面板实例（泛型）
+        /// </summary>
+        public T GetSubPanel<T>(string panelId) where T : UIPanel
+        {
+            return panelId switch
+            {
+                "CardPlay" => cardPlayPanel as T,
+                "BattleGrid" => battleGridPanel as T,
+                "Event" => eventPanel as T,
+                "Shop" => shopPanel as T,
+                "Equip" => equipPanel as T,
+                "RoguelikeMap" => roguelikeMapPanel as T,
+                "Inventory" => inventoryPanel as T,
+                "CardDeckEditor" => cardDeckEditorPanel as T,
+                "DiceUpgrade" => diceUpgradePanel as T,
+                "Relic" => relicPanel as T,
+                "Settings" => settingsPanel as T,
+                "Achievement" => achievementPanel as T,
+                "Collection" => collectionPanel as T,
+                "BattleStats" => battleStatsPanel as T,
+                "BattleReplay" => battleReplaySummary as T,
+                _ => null
+            };
         }
 
         /// <summary>隐藏子面板</summary>
