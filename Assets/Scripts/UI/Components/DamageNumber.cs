@@ -6,6 +6,7 @@ namespace Game.UI
 {
     /// <summary>
     /// 伤害飘字可复用组件 — FE-04.2
+    /// FE-30: 使用 ObjectPool 管理，避免运行时 Instantiate/Destroy
     /// 
     /// 动画序列：
     /// 1. 缩放弹入（OutBack）
@@ -36,10 +37,6 @@ namespace Game.UI
         /// <summary>
         /// 播放伤害飘字动画
         /// </summary>
-        /// <param name="text">显示文本（如 "-32" 或 "暴击 -80"）</param>
-        /// <param name="color">文字颜色</param>
-        /// <param name="isCrit">是否暴击</param>
-        /// <param name="fontSize">字体大小</param>
         public void Play(string text, Color color, bool isCrit = false, int fontSize = 0)
         {
             // 清理旧动画
@@ -82,12 +79,29 @@ namespace Game.UI
                 animSequence.Insert(fadeStartTime, numberText.DOFade(0f, riseDuration - fadeStartTime));
             }
 
-            // 完成后销毁
+            // 完成后回收（不是销毁）
             animSequence.OnComplete(() =>
             {
                 if (gameObject != null)
-                    Destroy(gameObject);
+                {
+                    Recycle();
+                }
             });
+        }
+
+        /// <summary>
+        /// 回收对象到池中
+        /// </summary>
+        void Recycle()
+        {
+            KillAnimation();
+            gameObject.SetActive(false);
+
+            var pool = ObjectPoolManager.Instance;
+            if (pool != null)
+                pool.ReleaseDamageNumber(this);
+            else
+                Destroy(gameObject);
         }
 
         /// <summary>
@@ -103,7 +117,7 @@ namespace Game.UI
         /// </summary>
         public void PlayCrit(int damage)
         {
-            Play($"暴击 -{damage}", new Color(1f, 0.2f, 0.2f), true);
+            Play($\"暴击 -{damage}\", new Color(1f, 0.2f, 0.2f), true);
         }
 
         /// <summary>
@@ -111,7 +125,7 @@ namespace Game.UI
         /// </summary>
         public void PlayDamage(int damage)
         {
-            Play($"-{damage}", new Color(1f, 0.6f, 0.4f), false);
+            Play($\"-{damage}\", new Color(1f, 0.6f, 0.4f), false);
         }
 
         private void KillAnimation()
@@ -128,10 +142,10 @@ namespace Game.UI
             KillAnimation();
         }
 
-        // ========== 程序化创建 ==========
+        // ========== 程序化创建（旧版） ==========
 
         /// <summary>
-        /// 创建一个伤害飘字实例
+        /// 创建一个伤害飘字实例（使用对象池）
         /// </summary>
         /// <param name="parent">父容器</param>
         /// <param name="position">初始位置（局部坐标）</param>
@@ -141,6 +155,35 @@ namespace Game.UI
         /// <param name="staggerDelay">延迟时间（用于多个飘字依次出现）</param>
         public static DamageNumber Spawn(RectTransform parent, Vector2 position, int damage, Color color, bool isCrit = false, float staggerDelay = 0f)
         {
+            var pool = ObjectPoolManager.Instance;
+            DamageNumber dmgNum;
+
+            if (pool != null)
+            {
+                dmgNum = pool.GetDamageNumber();
+                if (dmgNum != null)
+                {
+                    dmgNum.transform.SetParent(parent, false);
+                    dmgNum.transform.localPosition = position;
+                    dmgNum.gameObject.SetActive(true);
+                    // Play 会在 OnComplete 时自动回收
+                    if (staggerDelay > 0f)
+                    {
+                        DOVirtual.DelayedCall(staggerDelay, () =>
+                        {
+                            if (dmgNum != null && dmgNum.gameObject != null)
+                                dmgNum.Play(isCrit ? $"暴击 -{damage}" : $"-{damage}", color, isCrit);
+                        });
+                    }
+                    else
+                    {
+                        dmgNum.Play(isCrit ? $"暴击 -{damage}" : $"-{damage}", color, isCrit);
+                    }
+                    return dmgNum;
+                }
+            }
+
+            // 回退：旧版程序化创建（直接 Destroy）
             var go = new GameObject("DmgNum");
             go.transform.SetParent(parent, false);
 
@@ -151,7 +194,6 @@ namespace Game.UI
             rect.sizeDelta = new Vector2(200, 60);
             rect.localScale = Vector3.one;
 
-            // 文本
             var text = go.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = isCrit ? 42 : 32;
@@ -160,17 +202,14 @@ namespace Game.UI
             text.text = isCrit ? $"暴击 -{damage}" : $"-{damage}";
             text.raycastTarget = false;
 
-            // 描边
             var outline = go.AddComponent<Outline>();
             outline.effectColor = Color.black;
             outline.effectDistance = new Vector2(2, -2);
 
-            // 组件
-            var dmgNum = go.AddComponent<DamageNumber>();
-            dmgNum.numberText = text;
-            dmgNum.outline = outline;
+            var dmgNumOld = go.AddComponent<DamageNumber>();
+            dmgNumOld.numberText = text;
+            dmgNumOld.outline = outline;
 
-            // 延迟播放
             if (staggerDelay > 0f)
             {
                 go.SetActive(false);
@@ -179,16 +218,16 @@ namespace Game.UI
                     if (go != null)
                     {
                         go.SetActive(true);
-                        dmgNum.Play(isCrit ? $"暴击 -{damage}" : $"-{damage}", color, isCrit);
+                        dmgNumOld.Play(isCrit ? $"暴击 -{damage}" : $"-{damage}", color, isCrit);
                     }
                 });
             }
             else
             {
-                dmgNum.Play(isCrit ? $"暴击 -{damage}" : $"-{damage}", color, isCrit);
+                dmgNumOld.Play(isCrit ? $"暴击 -{damage}" : $"-{damage}", color, isCrit);
             }
 
-            return dmgNum;
+            return dmgNumOld;
         }
     }
 }
