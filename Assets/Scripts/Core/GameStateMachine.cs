@@ -157,6 +157,21 @@ public class GameStateMachine : MonoBehaviour
         ChangeState(GameState.HeroSelect);
     }
 
+    /// <summary>
+    /// BE-10: 战斗结算 — 给存活英雄分配经验
+    /// </summary>
+    private void GrantBattleExp()
+    {
+        var heroes = RoguelikeGameManager.Instance?.PlayerHeroes;
+        if (heroes == null || heroes.Count == 0) return;
+
+        int level = CurrentLevel;
+        bool isBoss = (level % 5 == 0); // 每5关Boss
+        int baseExp = 10; // 通关基础经验
+
+        HeroExpSystem.Instance?.GainExpForTeam(heroes, baseExp, level, isBoss);
+    }
+
     private void HandleStateEntered(GameState state)
     {
         switch (state)
@@ -203,6 +218,8 @@ public class GameStateMachine : MonoBehaviour
                 break;
 
             case GameState.Settlement:
+                // BE-10: 战斗结算经验
+                GrantBattleExp();
                 // Settlement面板自行处理子面板流程
                 Debug.Log($"[StateMachine] 进入结算 — 第{CurrentLevel}关");
                 break;

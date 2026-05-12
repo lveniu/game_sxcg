@@ -55,6 +55,11 @@ public class RoguelikeGameManager : MonoBehaviour
         DiceRoller = new DiceRoller(3);
         LevelGenerator = new LevelGenerator();
 
+        // BE-10: 初始化经验系统
+        if (HeroExpSystem.Instance != null)
+            HeroExpSystem.Destroy();
+        HeroExpSystem.Create();
+
         // 清除旧存档
         if (SaveSystem.Instance != null)
             SaveSystem.Instance.DeleteSave();
