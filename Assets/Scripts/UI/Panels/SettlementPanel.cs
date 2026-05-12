@@ -49,6 +49,8 @@ namespace Game.UI
         public Button nextButton;
         public Text nextButtonText;
         public Button backButton;
+        [Tooltip("查看战报按钮")]
+        public Button battleStatsButton;
 
         [Header("英雄经验区")]
         [Tooltip("英雄经验卡片容器，用于排列经验卡片")]
@@ -71,9 +73,11 @@ namespace Game.UI
         {
             nextButton?.onClick.RemoveAllListeners();
             backButton?.onClick.RemoveAllListeners();
+            battleStatsButton?.onClick.RemoveAllListeners();
 
             nextButton?.onClick.AddListener(OnNextClicked);
             backButton?.onClick.AddListener(OnBackClicked);
+            battleStatsButton?.onClick.AddListener(OnBattleStatsClicked);
 
             ShowSettlement();
         }
@@ -82,6 +86,7 @@ namespace Game.UI
         {
             nextButton?.onClick.RemoveAllListeners();
             backButton?.onClick.RemoveAllListeners();
+            battleStatsButton?.onClick.RemoveAllListeners();
 
             // 清理经验卡片区域
             ClearHeroExpArea();
@@ -839,6 +844,18 @@ namespace Game.UI
         {
             // 失败：跳转游戏结束
             GameStateMachine.Instance?.NextState();
+        }
+
+        /// <summary>
+        /// 查看战报 — 打开战报统计面板
+        /// </summary>
+        private void OnBattleStatsClicked()
+        {
+            var uiManager = NewUIManager.Instance;
+            if (uiManager != null)
+                uiManager.ShowSubPanel("BattleStats");
+            else
+                Debug.LogWarning("[SettlementPanel] NewUIManager实例不存在，无法打开战报面板");
         }
     }
 }

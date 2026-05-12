@@ -57,6 +57,9 @@ namespace Game.UI
         [Header("子面板 - 图鉴")]
         public CollectionPanel collectionPanel;
 
+        [Header("子面板 - 战报")]
+        public BattleStatsPanel battleStatsPanel;
+
         private Dictionary<GameState, UIPanel> panelMap;
         private UIPanel currentPanel;
 
@@ -179,6 +182,7 @@ namespace Game.UI
                 "Settings" => settingsPanel,
                 "Achievement" => achievementPanel,
                 "Collection" => collectionPanel,
+                "BattleStats" => battleStatsPanel,
                 _ => null
             };
             if (panel != null) panel.Show();

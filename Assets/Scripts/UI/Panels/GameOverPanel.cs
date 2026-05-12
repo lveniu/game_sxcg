@@ -31,6 +31,8 @@ namespace Game.UI
         public Text killCountText;
         public Button restartButton;
         public Button shareButton;
+        [Tooltip("查看战报按钮")]
+        public Button battleStatsButton;
 
         [Header("统计面板布局")]
         [Tooltip("统计卡片容器（挂载VerticalLayoutGroup的RectTransform）")]
@@ -68,10 +70,12 @@ namespace Game.UI
             // Remove old listeners first to avoid duplicates
             restartButton?.onClick.RemoveAllListeners();
             shareButton?.onClick.RemoveAllListeners();
+            battleStatsButton?.onClick.RemoveAllListeners();
 
             // Bind fresh listeners
             restartButton?.onClick.AddListener(OnRestartClicked);
             shareButton?.onClick.AddListener(OnShareClicked);
+            battleStatsButton?.onClick.AddListener(OnBattleStatsClicked);
 
             PopulateStats();
         }
@@ -80,6 +84,7 @@ namespace Game.UI
         {
             restartButton?.onClick.RemoveAllListeners();
             shareButton?.onClick.RemoveAllListeners();
+            battleStatsButton?.onClick.RemoveAllListeners();
 
             // 清理动画
             cardAnimSequence?.Kill();
@@ -453,6 +458,18 @@ namespace Game.UI
         {
             // TODO(Phase2-WeChat): 调用微信分享API — 不阻塞Phase1
             Debug.Log("[GameOverPanel] 分享功能待接入微信SDK");
+        }
+
+        /// <summary>
+        /// 查看战报 — 打开完整战报统计面板
+        /// </summary>
+        private void OnBattleStatsClicked()
+        {
+            var uiManager = NewUIManager.Instance;
+            if (uiManager != null)
+                uiManager.ShowSubPanel("BattleStats");
+            else
+                Debug.LogWarning("[GameOverPanel] NewUIManager实例不存在，无法打开战报面板");
         }
 
         /// <summary>
