@@ -132,7 +132,7 @@ public class BattleReport
     public void BeforeSerialize()
     {
         // snapshots 可能很大，按需裁剪（保留最多100个关键回合）
-        if (snapshots.Count > 100)
+        if (snapshots != null && snapshots.Count > 100)
         {
             // 保留第一个、最后一个、和有事件的回合
             var important = new List<BattleSnapshot>();
@@ -142,9 +142,17 @@ public class BattleReport
                 if (snapshots[i].events != null && snapshots[i].events.Count > 0)
                     important.Add(snapshots[i]);
             }
-            important.Add(snapshots[snapshots.Count - 1]);
+            // 避免单元素时重复添加
+            if (snapshots.Count > 1)
+                important.Add(snapshots[snapshots.Count - 1]);
             snapshots = important;
         }
+
+        // 清理空列表避免序列化问题
+        if (diceSkillsTriggered == null)
+            diceSkillsTriggered = new List<string>();
+        if (heroRankings == null)
+            heroRankings = new List<HeroReportEntry>();
     }
 }
 

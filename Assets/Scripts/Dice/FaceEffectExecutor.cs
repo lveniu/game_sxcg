@@ -67,13 +67,17 @@ public class FaceEffectExecutor
             // 检查面效果触发（特殊面）
             if (dice != null && i < dice.Length && dice[i]?.FaceEffects != null)
             {
-                string faceEffect = dice[i].FaceEffects[diceValues[i] - 1];
-                if (!string.IsNullOrEmpty(faceEffect))
+                int faceIdx = diceValues[i] - 1;
+                if (faceIdx >= 0 && faceIdx < dice[i].FaceEffects.Length)
                 {
-                    var faceEffectData = FindEffectById(faceEffect);
-                    if (faceEffectData != null)
+                    string faceEffect = dice[i].FaceEffects[faceIdx];
+                    if (!string.IsNullOrEmpty(faceEffect))
                     {
-                        ApplyFaceEffect(faceEffectData);
+                        var faceEffectData = FindEffectById(faceEffect);
+                        if (faceEffectData != null)
+                        {
+                            ApplyFaceEffect(faceEffectData);
+                        }
                     }
                 }
             }

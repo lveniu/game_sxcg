@@ -329,24 +329,4 @@ public class SetBonusSystem : MonoBehaviour
                 break;
         }
     }
-
-    /// <summary>
-    /// 获取指定套装ID的所有定义（用于UI展示）
-    /// </summary>
-    /// <param name="setId">套装ID</param>
-    /// <returns>该套装的所有阈值定义</returns>
-    public List<SetDefinition> GetSetDefinitions(string setId)
-    {
-        if (setDefinitions.TryGetValue(setId, out var defs))
-            return defs;
-        return new List<SetDefinition>();
-    }
-
-    /// <summary>
-    /// 获取所有套装ID列表
-    /// </summary>
-    public List<string> GetAllSetIds()
-    {
-        return new List<string>(setDefinitions.Keys);
-    }
 }
