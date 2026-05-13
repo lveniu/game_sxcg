@@ -484,6 +484,7 @@ namespace Game.UI
 
             if (confirmDialogCG != null)
             {
+                confirmDialogCG.DOKill();
                 confirmDialogCG.alpha = 0f;
                 confirmDialogCG.DOFade(1f, dialogAnimDuration).SetEase(Ease.OutQuad);
             }
@@ -492,6 +493,7 @@ namespace Game.UI
             var rt = confirmDialog.transform as RectTransform;
             if (rt != null)
             {
+                rt.DOKill();
                 rt.localScale = Vector3.one * 0.8f;
                 rt.DOScale(Vector3.one, dialogAnimDuration).SetEase(Ease.OutBack);
             }

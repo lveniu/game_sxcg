@@ -198,10 +198,6 @@ public class MemorySnapshotTool : EditorWindow
             {
                 totalTexMemory += (long)t2d.width * t2d.height * 4; // RGBA32
             }
-            else if (tex is AudioTexture)
-            {
-                // AudioTexture
-            }
         }
 
         sampleCount++;

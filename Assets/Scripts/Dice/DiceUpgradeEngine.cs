@@ -360,7 +360,7 @@ public class DiceUpgradeEngine
 
         // 填充当前状态
         preview.CurrentValue = dice.Faces[faceIndex];
-        preview.CurrentEffect = dice.FaceEffects[faceIndex];
+        preview.CurrentEffect = dice.GetFaceEffect(faceIndex);
 
         // 计算下一级
         preview.NextValue = preview.CurrentValue + 1;

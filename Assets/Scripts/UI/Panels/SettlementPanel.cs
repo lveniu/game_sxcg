@@ -1045,6 +1045,17 @@ public static class MockHeroExpData
     private static void EnsureHeroData(Hero hero)
     {
         if (hero == null) return;
+
+        // 清理已销毁 Hero 的脏 key（防内存泄漏）
+        var keysToRemove = new List<Hero>();
+        foreach (var kvp in expMap)
+        {
+            if (kvp.Key == null)
+                keysToRemove.Add(kvp.Key);
+        }
+        foreach (var k in keysToRemove)
+            expMap.Remove(k);
+
         if (!expMap.ContainsKey(hero))
         {
             expMap[hero] = new MockExpState

@@ -129,6 +129,16 @@ public class Dice
     }
 
     /// <summary>
+    /// 获取指定面效果字符串（安全访问）
+    /// </summary>
+    public string GetFaceEffect(int faceIndex)
+    {
+        if (faceIndex >= 0 && faceIndex < FaceEffects.Length)
+            return FaceEffects[faceIndex];
+        return null;
+    }
+
+    /// <summary>
     /// 重置骰子到初始状态（面值+效果全部还原）
     /// </summary>
     public void Reset()

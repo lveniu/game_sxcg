@@ -484,7 +484,7 @@ public static class BuildOptimizer
                       $"最大: {stats.LargestFile} ({FormatSize(stats.LargestSize)})");
         }
 
-        Debug.Log($"  {'总计',12} {'','5}        {FormatSize(grandTotal),10}");
+        Debug.Log($"  {'总计',12} {' ',12}        {FormatSize(grandTotal),10}");
         Debug.Log("============================================");
     }
 
