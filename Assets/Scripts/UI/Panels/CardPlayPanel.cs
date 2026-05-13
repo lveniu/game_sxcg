@@ -724,15 +724,33 @@ namespace Game.UI
             };
         }
 
+        /// <summary>
+        /// 稀有度色标（统一：灰/绿/蓝/金）
+        /// </summary>
         private static Color GetRarityColor(CardRarity rarity)
         {
             return rarity switch
             {
-                CardRarity.White => new Color(0.85f, 0.85f, 0.85f),
-                CardRarity.Blue => new Color(0.3f, 0.5f, 0.9f),
-                CardRarity.Purple => new Color(0.6f, 0.2f, 0.9f),
-                CardRarity.Gold => new Color(1f, 0.8f, 0.2f),
-                _ => Color.gray
+                CardRarity.White  => new Color(0.75f, 0.75f, 0.75f), // 灰 - 普通
+                CardRarity.Blue   => new Color(0.2f, 0.85f, 0.3f),   // 绿 - 精良
+                CardRarity.Purple => new Color(0.3f, 0.5f, 0.9f),    // 蓝 - 史诗
+                CardRarity.Gold   => new Color(1f, 0.75f, 0.1f),     // 金 - 传说
+                _ => new Color(0.75f, 0.75f, 0.75f)
+            };
+        }
+
+        /// <summary>
+        /// 稀有度显示名称（统一：普通/精良/史诗/传说）
+        /// </summary>
+        private static string GetRarityLabel(CardRarity rarity)
+        {
+            return rarity switch
+            {
+                CardRarity.White  => "● 普通",
+                CardRarity.Blue   => "● 精良",
+                CardRarity.Purple => "● 史诗",
+                CardRarity.Gold   => "● 传说",
+                _ => "● 未知"
             };
         }
 

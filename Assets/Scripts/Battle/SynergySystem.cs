@@ -11,32 +11,39 @@ public static class SynergySystem
 {
     /// <summary>
     /// 应用连携技 — 遍历JSON配置中的所有连携规则，满足条件则触发
+    /// v3: 增加阵营连携检测（BE-19）
     /// </summary>
     public static void ApplySynergies(List<Hero> heroes)
     {
         if (heroes == null || heroes.Count == 0) return;
 
-        // 统计各职业数量
+        // 1. 职业连携（原有逻辑）
         var classCounts = CountHeroClasses(heroes);
+        ApplyClassSynergies(heroes, classCounts);
 
-        // 从 JSON 配置读取连携规则
+        // 2. 阵营连携（BE-19 新增）
+        var factionCounts = CountHeroFactions(heroes);
+        ApplyFactionSynergies(heroes, factionCounts);
+    }
+
+    /// <summary>
+    /// 职业连携逻辑（从 ApplySynergies 拆出）
+    /// </summary>
+    static void ApplyClassSynergies(List<Hero> heroes, Dictionary<HeroClass, int> classCounts)
+    {
+        // 从 JSON 配置读取职业连携规则
         var synergies = BalanceProvider.GetSynergies();
         if (synergies == null || synergies.Count == 0)
         {
-            // fallback: JSON无配置时用默认值
             ApplyFallbackSynergies(heroes, classCounts);
             return;
         }
 
-        // 遍历每条连携规则
         foreach (var syn in synergies)
         {
             if (syn == null) continue;
-
             if (IsConditionMet(syn.condition, classCounts))
-            {
                 ApplySynergyEffect(syn, heroes);
-            }
         }
     }
 
@@ -247,6 +254,163 @@ public static class SynergySystem
                 hero.BattleDefense = Mathf.RoundToInt(hero.BattleDefense * 1.1f);
                 hero.BattleSpeed = Mathf.RoundToInt(hero.BattleSpeed * 1.1f);
                 Debug.Log($"[连携技] 均衡阵容：{hero.Data.heroName} 全属性+10%");
+            }
+        }
+    }
+
+    // ====================================================
+    // BE-19: 阵营连携系统
+    // ====================================================
+
+    /// <summary>
+    /// 统计各阵营英雄数量（排除 None）
+    /// </summary>
+    static Dictionary<HeroFaction, int> CountHeroFactions(List<Hero> heroes)
+    {
+        var counts = new Dictionary<HeroFaction, int>();
+        foreach (var hero in heroes)
+        {
+            if (hero == null || hero.Data == null) continue;
+            var f = hero.Data.faction;
+            if (f == HeroFaction.None) continue;
+            if (!counts.ContainsKey(f)) counts[f] = 0;
+            counts[f]++;
+        }
+        return counts;
+    }
+
+    /// <summary>
+    /// 应用阵营连携效果
+    /// </summary>
+    static void ApplyFactionSynergies(List<Hero> heroes, Dictionary<HeroFaction, int> factionCounts)
+    {
+        var configs = BalanceProvider.GetFactionSynergies();
+        if (configs == null || configs.Count == 0)
+        {
+            ApplyFallbackFactionSynergies(heroes, factionCounts);
+            return;
+        }
+
+        foreach (var kvp in factionCounts)
+        {
+            var factionName = kvp.Key.ToString();
+            int count = kvp.Value;
+
+            // 获取该阵营所有满足人数条件的连携
+            var activated = BalanceProvider.GetActivatedFactionSynergies(factionName, count);
+            foreach (var entry in activated)
+            {
+                ApplyFactionSynergyEffect(entry, heroes, kvp.Key);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 应用单条阵营连携效果
+    /// </summary>
+    static void ApplyFactionSynergyEffect(FactionSynergyEntry entry, List<Hero> heroes, HeroFaction faction)
+    {
+        List<Hero> targets;
+
+        if (entry.target == "all_allies")
+        {
+            targets = heroes;
+        }
+        else // self_faction
+        {
+            targets = heroes.FindAll(h => h != null && h.Data != null && h.Data.faction == faction);
+        }
+
+        foreach (var hero in targets)
+        {
+            if (hero == null) continue;
+
+            if (entry.attack_bonus_pct > 0)
+                hero.BattleAttack = Mathf.RoundToInt(hero.BattleAttack * (1f + entry.attack_bonus_pct));
+            if (entry.defense_bonus_pct > 0)
+                hero.BattleDefense = Mathf.RoundToInt(hero.BattleDefense * (1f + entry.defense_bonus_pct));
+            if (entry.speed_bonus_pct > 0)
+                hero.BattleSpeed = Mathf.RoundToInt(hero.BattleSpeed * (1f + entry.speed_bonus_pct));
+            if (entry.crit_rate_bonus_pct > 0)
+                hero.BattleCritRate += entry.crit_rate_bonus_pct;
+            if (entry.hp_regen_pct > 0)
+            {
+                // 每回合回血 — 存储在临时buff中（BattleManager tick 时检查）
+                // 简单实现：直接加一次
+                int heal = Mathf.RoundToInt(hero.MaxHealth * entry.hp_regen_pct);
+                hero.Heal(heal);
+            }
+            if (entry.all_stats_bonus_pct > 0)
+            {
+                hero.BattleAttack = Mathf.RoundToInt(hero.BattleAttack * (1f + entry.all_stats_bonus_pct));
+                hero.BattleDefense = Mathf.RoundToInt(hero.BattleDefense * (1f + entry.all_stats_bonus_pct));
+                hero.BattleSpeed = Mathf.RoundToInt(hero.BattleSpeed * (1f + entry.all_stats_bonus_pct));
+            }
+        }
+
+        Debug.Log($"[阵营连携] {entry.name_cn}({entry.faction} x{entry.required_count}) 已触发 — {entry.effect}");
+    }
+
+    /// <summary>
+    /// Fallback: JSON无阵营配置时的默认值
+    /// </summary>
+    static void ApplyFallbackFactionSynergies(List<Hero> heroes, Dictionary<HeroFaction, int> factionCounts)
+    {
+        foreach (var kvp in factionCounts)
+        {
+            if (kvp.Value < 2) continue;
+
+            switch (kvp.Key)
+            {
+                case HeroFaction.Human:
+                    // 人类联盟：2+人类 → 全体攻击+10%
+                    foreach (var h in heroes)
+                    {
+                        if (h == null) continue;
+                        h.BattleAttack = Mathf.RoundToInt(h.BattleAttack * 1.1f);
+                    }
+                    Debug.Log("[阵营连携] 人类联盟：全体攻击+10%");
+                    break;
+
+                case HeroFaction.Elf:
+                    // 精灵共鸣：2+精灵 → 精灵速度+15%
+                    foreach (var h in heroes)
+                    {
+                        if (h?.Data?.faction == HeroFaction.Elf)
+                            h.BattleSpeed = Mathf.RoundToInt(h.BattleSpeed * 1.15f);
+                    }
+                    Debug.Log("[阵营连携] 精灵共鸣：精灵速度+15%");
+                    break;
+
+                case HeroFaction.Orc:
+                    // 兽人狂暴：2+兽人 → 兽人攻击+20%
+                    foreach (var h in heroes)
+                    {
+                        if (h?.Data?.faction == HeroFaction.Orc)
+                            h.BattleAttack = Mathf.RoundToInt(h.BattleAttack * 1.2f);
+                    }
+                    Debug.Log("[阵营连携] 兽人狂暴：兽人攻击+20%");
+                    break;
+
+                case HeroFaction.Undead:
+                    // 亡灵侵蚀：2+亡灵 → 亡灵暴击+15%
+                    foreach (var h in heroes)
+                    {
+                        if (h?.Data?.faction == HeroFaction.Undead)
+                            h.BattleCritRate += 0.15f;
+                    }
+                    Debug.Log("[阵营连携] 亡灵侵蚀：亡灵暴击+15%");
+                    break;
+
+                case HeroFaction.Mech:
+                    // 机械过载：2+机械 → 机械防御+25%
+                    foreach (var h in heroes)
+                    {
+                        if (h?.Data?.faction == HeroFaction.Mech)
+                            h.BattleDefense = Mathf.RoundToInt(h.BattleDefense * 1.25f);
+                    }
+                    Debug.Log("[阵营连携] 机械过载：机械防御+25%");
+                    break;
             }
         }
     }

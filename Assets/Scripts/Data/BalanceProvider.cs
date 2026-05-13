@@ -30,6 +30,9 @@ public static class BalanceProvider
     private static RoguelikeMapFileConfig _roguelikeMap;
     private static RandomEventsFileConfig _randomEvents;
 
+    // BE-19: 阵营连携
+    private static FactionSynergiesConfig _factionSynergies;
+
     // 懒加载属性
     public static HeroClassesConfig HeroClasses => _heroClasses ?? (_heroClasses = ConfigLoader.LoadHeroClasses());
     public static EnemiesConfig Enemies => _enemies ?? (_enemies = ConfigLoader.LoadEnemies());
@@ -45,6 +48,9 @@ public static class BalanceProvider
     public static HeroExpFileConfig HeroExpConfig => _heroExpConfig ?? (_heroExpConfig = ConfigLoader.LoadHeroExpConfig());
     public static RoguelikeMapFileConfig RoguelikeMapConfig => _roguelikeMap ?? (_roguelikeMap = ConfigLoader.LoadRoguelikeMap());
     public static RandomEventsFileConfig RandomEventsConfig => _randomEvents ?? (_randomEvents = ConfigLoader.LoadRandomEvents());
+
+    // BE-19: 阵营连携
+    public static FactionSynergiesConfig FactionSynergies => _factionSynergies ?? (_factionSynergies = ConfigLoader.LoadFactionSynergies());
 
     /// <summary>
     /// 热重载所有配置（策划调数值后调用）
@@ -66,6 +72,7 @@ public static class BalanceProvider
         _heroExpConfig = null;
         _roguelikeMap = null;
         _randomEvents = null;
+        _factionSynergies = null;  // BE-19
         GameBalance.ReloadConfigs();
         Debug.Log("[BalanceProvider] 所有配置已重新加载");
     }
@@ -257,6 +264,34 @@ public static class BalanceProvider
     public static List<SynergyEntry> GetSynergies()
     {
         return BattleFormulas?.synergy_system?.synergies ?? new List<SynergyEntry>();
+    }
+
+    // ========== BE-19: 阵营连携 ==========
+
+    /// <summary>
+    /// 获取所有阵营连携配置
+    /// </summary>
+    public static List<FactionSynergyEntry> GetFactionSynergies()
+    {
+        return FactionSynergies?.synergies ?? new List<FactionSynergyEntry>();
+    }
+
+    /// <summary>
+    /// 获取指定阵营的连携配置
+    /// </summary>
+    public static List<FactionSynergyEntry> GetFactionSynergies(string factionName)
+    {
+        var all = GetFactionSynergies();
+        if (string.IsNullOrEmpty(factionName)) return all;
+        return all.FindAll(s => s.faction.Equals(factionName, System.StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// 获取满足激活条件的阵营连携（按人数阈值）
+    /// </summary>
+    public static List<FactionSynergyEntry> GetActivatedFactionSynergies(string factionName, int count)
+    {
+        return GetFactionSynergies(factionName).FindAll(s => s.required_count <= count);
     }
 
     // ========== 技能相关 ==========

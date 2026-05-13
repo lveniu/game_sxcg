@@ -21,6 +21,9 @@ public class BattleStatsTracker : MonoBehaviour
 
     // ─── 当前战斗临时数据 ──────────────────────────
     private BattleStatsRecord currentBattle;
+    private BattleReport currentReport;     // BE-17: 当前战斗报告
+    private List<BattleSnapshot> turnSnapshots; // BE-17: 回合快照序列
+    private int turnCounter;                    // BE-17: 回合计数器
     private float battleStartTime;
     private Dictionary<int, int> heroHPBeforeBattle = new Dictionary<int, int>();
     private bool isTracking;
@@ -85,6 +88,9 @@ public class BattleStatsTracker : MonoBehaviour
         bm.OnHealDone += HandleHealDone;
         bm.OnShieldGained += HandleShieldGained;
 
+        // BE-17: 回合快照采集
+        bm.OnTurnEnded += HandleTurnEnded;
+
         subscribed = true;
     }
 
@@ -102,6 +108,8 @@ public class BattleStatsTracker : MonoBehaviour
         bm.OnDamageDealt -= HandleDamageDealt;
         bm.OnHealDone -= HandleHealDone;
         bm.OnShieldGained -= HandleShieldGained;
+
+        bm.OnTurnEnded -= HandleTurnEnded;
 
         subscribed = false;
     }
@@ -145,6 +153,17 @@ public class BattleStatsTracker : MonoBehaviour
     {
         battleStartTime = Time.time;
         battleActive = true;
+        turnCounter = 0;
+
+        // BE-17: 初始化快照序列
+        turnSnapshots = new List<BattleSnapshot>();
+        currentReport = new BattleReport
+        {
+            battleIndex = currentRun.totalBattles + 1,
+            snapshots = new List<BattleSnapshot>(),
+            damageBreakdown = new DamageBreakdown(),
+            mechanicStats = new MechanicStats()
+        };
 
         var bm = BattleManager.Instance;
         if (bm == null) return;
@@ -313,6 +332,9 @@ public class BattleStatsTracker : MonoBehaviour
 
         currentRun.battleHistory.Add(currentBattle);
 
+        // BE-17: 生成战斗报告
+        FinalizeReport(victory, duration);
+
         // 通知
         OnBattleRecorded?.Invoke(currentBattle);
         OnRunStatsUpdated?.Invoke(currentRun);
@@ -334,6 +356,22 @@ public class BattleStatsTracker : MonoBehaviour
         {
             currentBattle.diceSkillsTriggered.Add(skillName);
         }
+
+        // BE-17: 记录骰子技能时间轴事件
+        if (currentReport != null)
+        {
+            currentReport.mechanicStats.diceSkillUses++;
+            currentReport.mechanicStats.timelineEvents.Add(new TimelineEvent
+            {
+                turnIndex = turnCounter,
+                timestamp = Time.time - battleStartTime,
+                eventType = "dice_skill",
+                description = $"骰子技能: {skillName}",
+                sourceUnit = "",
+                targetUnit = "",
+                value = 0
+            });
+        }
     }
 
     /// <summary>单位被击杀</summary>
@@ -348,6 +386,21 @@ public class BattleStatsTracker : MonoBehaviour
             {
                 hs.kills++;
             }
+        }
+
+        // BE-17: 记录击杀时间轴事件
+        if (currentReport != null)
+        {
+            currentReport.mechanicStats.timelineEvents.Add(new TimelineEvent
+            {
+                turnIndex = turnCounter,
+                timestamp = Time.time - battleStartTime,
+                eventType = "kill",
+                description = $"{killer?.Data?.heroName ?? "??"} 击杀 {victim?.Data?.heroName ?? "??"}",
+                sourceUnit = killer?.Data?.heroName ?? "??",
+                targetUnit = victim?.Data?.heroName ?? "??",
+                value = 0
+            });
         }
     }
 
@@ -364,8 +417,32 @@ public class BattleStatsTracker : MonoBehaviour
         {
             hs.damageDealt += damage;
             // 暴击判定（伤害 > 攻击力视为暴击）
-            if (damage > attacker.BattleAttack)
+            bool isCrit = damage > attacker.BattleAttack;
+            if (isCrit)
+            {
                 hs.critCount++;
+                // BE-17: 记录暴击时间轴事件
+                if (currentReport != null)
+                {
+                    currentReport.damageBreakdown.critDamage += damage;
+                    currentReport.mechanicStats.critCount++;
+                    currentReport.mechanicStats.timelineEvents.Add(new TimelineEvent
+                    {
+                        turnIndex = turnCounter,
+                        timestamp = Time.time - battleStartTime,
+                        eventType = "crit",
+                        description = $"{attacker.Data?.heroName ?? "??"} 暴击 {target?.Data?.heroName ?? "??"} {damage}点",
+                        sourceUnit = attacker.Data?.heroName ?? "??",
+                        targetUnit = target?.Data?.heroName ?? "??",
+                        value = damage
+                    });
+                }
+            }
+            else
+            {
+                if (currentReport != null)
+                    currentReport.damageBreakdown.physicalDamage += damage;
+            }
         }
     }
 
@@ -461,6 +538,176 @@ public class BattleStatsTracker : MonoBehaviour
             };
         }
     }
+
+    // ====================================================
+    // BE-17: 战斗回放 — 回合快照 + 报告生成
+    // ====================================================
+
+    /// <summary>每回合结束 — 采集双方状态快照</summary>
+    private void HandleTurnEnded(int turnIdx)
+    {
+        if (!battleActive || currentReport == null) return;
+
+        turnCounter = turnIdx;
+        var bm = BattleManager.Instance;
+        if (bm == null) return;
+
+        var snapshot = new BattleSnapshot
+        {
+            turnIndex = turnIdx,
+            timestamp = Time.time - battleStartTime,
+            playerUnits = CaptureUnitSnapshots(bm.playerUnits),
+            enemyUnits = CaptureUnitSnapshots(bm.enemyUnits)
+        };
+
+        turnSnapshots.Add(snapshot);
+    }
+
+    /// <summary>采集一组单位的快照</summary>
+    private List<UnitSnapshot> CaptureUnitSnapshots(List<Hero> units)
+    {
+        var result = new List<UnitSnapshot>();
+        if (units == null) return result;
+
+        foreach (var unit in units)
+        {
+            if (unit == null) continue;
+            result.Add(new UnitSnapshot
+            {
+                unitName = unit.Data != null ? unit.Data.heroName : "??",
+                hp = unit.CurrentHealth,
+                maxHp = unit.MaxHealth,
+                shield = 0,  // 护盾直接加到HP，无法区分
+                isDead = unit.IsDead,
+                buffCount = unit.RelicBuffs?.Count ?? 0,
+                debuffCount = 0
+            });
+        }
+        return result;
+    }
+
+    /// <summary>战斗结束 — 生成完整 BattleReport</summary>
+    private void FinalizeReport(bool victory, float duration)
+    {
+        if (currentReport == null) return;
+
+        currentReport.isVictory = victory;
+        currentReport.totalTurns = turnCounter + 1;
+        currentReport.duration = duration;
+
+        // 填入汇总数据（来自 currentBattle，已由 HandleBattleEnded 计算）
+        currentReport.totalDamageDealt = currentBattle?.totalDamageDealt ?? 0;
+        currentReport.totalDamageTaken = currentBattle?.totalDamageTaken ?? 0;
+        currentReport.totalHealing = currentBattle?.totalHealing ?? 0;
+        currentReport.totalShield = currentBattle?.totalShield ?? 0;
+        currentReport.totalKills = currentBattle?.totalKills ?? 0;
+
+        // 骰子信息
+        currentReport.diceComboType = currentBattle?.diceComboType ?? "None";
+        currentReport.diceSkillsTriggered = currentBattle?.diceSkillsTriggered ?? new List<string>();
+
+        // 回合快照（采样：最多保存60个关键帧）
+        currentReport.snapshots = SampleSnapshots(turnSnapshots, 60);
+
+        // 英雄排名
+        BuildHeroRankings();
+
+        // 时间轴按时间排序
+        if (currentReport.mechanicStats.timelineEvents != null)
+        {
+            currentReport.mechanicStats.timelineEvents =
+                currentReport.mechanicStats.timelineEvents
+                    .OrderBy(e => e.timestamp)
+                    .ToList();
+        }
+
+        Debug.Log($"[BattleStatsTracker] BattleReport生成 回合={currentReport.totalTurns} " +
+                  $"伤害构成=[物理:{currentReport.damageBreakdown.physicalDamage} 暴击:{currentReport.damageBreakdown.critDamage}] " +
+                  $"MVP={currentReport.mvpHeroName}");
+    }
+
+    /// <summary>采样快照（保留关键帧，控制内存）</summary>
+    private List<BattleSnapshot> SampleSnapshots(List<BattleSnapshot> all, int maxCount)
+    {
+        if (all == null || all.Count <= maxCount) return all ?? new List<BattleSnapshot>();
+
+        // 保留第一个、最后一个、有事件的、和均匀采样的
+        var result = new List<BattleSnapshot>();
+        result.Add(all[0]);
+
+        // 有事件的快照优先
+        var eventSnapshots = all.Where(s => s.events != null && s.events.Count > 0).ToList();
+
+        // 均匀采样填充
+        int remaining = maxCount - 2; // 减去首尾
+        float step = (float)(all.Count - 2) / remaining;
+        for (int i = 0; i < remaining; i++)
+        {
+            int idx = 1 + (int)(i * step);
+            if (idx < all.Count - 1)
+                result.Add(all[idx]);
+        }
+
+        result.Add(all[all.Count - 1]);
+        return result.OrderBy(s => s.turnIndex).ToList();
+    }
+
+    /// <summary>构建英雄表现排名</summary>
+    private void BuildHeroRankings()
+    {
+        if (currentBattle == null || currentReport == null) return;
+
+        currentReport.heroRankings = new List<HeroReportEntry>();
+        int totalDmg = Mathf.Max(1, currentBattle.totalDamageDealt);
+
+        foreach (var kv in currentBattle.heroStatsMap)
+        {
+            var hs = kv.Value;
+            currentReport.heroRankings.Add(new HeroReportEntry
+            {
+                heroName = hs.heroName,
+                damageDealt = hs.damageDealt,
+                damageTaken = hs.damageTaken,
+                healingDone = hs.healingDone,
+                shieldGained = hs.shieldGained,
+                kills = hs.kills,
+                critCount = hs.critCount,
+                score = hs.Score,
+                damagePercent = (float)hs.damageDealt / totalDmg * 100f
+            });
+        }
+
+        // 按评分降序排列
+        currentReport.heroRankings = currentReport.heroRankings
+            .OrderByDescending(h => h.score)
+            .ToList();
+
+        // 设置 MVP
+        if (currentReport.heroRankings.Count > 0)
+        {
+            currentReport.mvpHeroName = currentReport.heroRankings[0].heroName;
+            currentReport.mvpScore = currentReport.heroRankings[0].score;
+        }
+    }
+
+    // ====================================================
+    // 外部接口
+    // ====================================================
+
+    /// <summary>获取最近一场战斗的 BattleReport（BE-17 核心接口）</summary>
+    public BattleReport GenerateReport()
+    {
+        return currentReport;
+    }
+
+    /// <summary>获取当前Run所有已完成的战斗报告列表</summary>
+    public List<BattleReport> GetAllBattleReports()
+    {
+        // 从 battleHistory 重建（暂不持久化 BattleReport）
+        return runReports ?? new List<BattleReport>();
+    }
+
+    private List<BattleReport> runReports = new List<BattleReport>();
 
     // ====================================================
     // 持久化

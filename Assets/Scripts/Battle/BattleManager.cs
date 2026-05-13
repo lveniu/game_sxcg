@@ -49,6 +49,9 @@ public class BattleManager : MonoBehaviour
     public event System.Action<Hero, Hero, int> OnHealDone;    // (healer, target, healAmount)
     public event System.Action<Hero, int> OnShieldGained;      // (hero, shieldAmount)
 
+    // BE-17: 回合结束事件（每tick触发，用于快照采集）
+    public event System.Action<int> OnTurnEnded;               // (turnIndex)
+
     private Coroutine battleCoroutine;
 
     // 战斗音效桥接
@@ -380,6 +383,9 @@ public class BattleManager : MonoBehaviour
             }
 
             BattleTimer += battleTickInterval;
+
+            // BE-17: 通知回合结束（用于快照采集）
+            OnTurnEnded?.Invoke((int)(BattleTimer / battleTickInterval) - 1);
         }
 
         EndBattle();

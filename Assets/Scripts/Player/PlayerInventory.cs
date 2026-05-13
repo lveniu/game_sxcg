@@ -234,4 +234,164 @@ public class PlayerInventory : MonoBehaviour
     public void ForceSetGold(int amount) { Gold = amount; OnInventoryChanged?.Invoke(); }
     public void ClearEquipmentsForLoad() { Equipments.Clear(); OnInventoryChanged?.Invoke(); }
     public void ClearCardsForLoad() { Cards.Clear(); OnInventoryChanged?.Invoke(); }
+
+    // ===== BE-18 堆叠 + 分类 + 排序 =====
+
+    /// <summary>
+    /// 通用添加物品 — 自动识别类型，可堆叠物品尝试合并
+    /// </summary>
+    /// <returns>剩余未添加的数量（0=全部添加成功）</returns>
+    public int AddItem(IItem item, int amount = 1)
+    {
+        if (item == null || amount <= 0) return amount;
+
+        // 装备类
+        if (item is EquipmentData eq)
+        {
+            // 装备不可堆叠（同名装备是独立实例）
+            for (int i = 0; i < amount; i++)
+                AddEquipment(eq);
+            return 0;
+        }
+
+        // 卡牌类
+        if (item is CardInstance card)
+        {
+            // 卡牌尝试堆叠：查找已有同ID卡牌
+            if (card.IsStackable && card.MaxStack > 1)
+            {
+                int remaining = amount;
+                foreach (var existing in Cards)
+                {
+                    if (existing == null || !ItemStackHelper.CanStack(existing, card)) continue;
+                    remaining = ItemStackHelper.TryStack(existing, card, remaining);
+                    if (remaining <= 0) break;
+                }
+                if (remaining > 0)
+                {
+                    card.StackCount = remaining;
+                    AddCard(card);
+                }
+                return 0;
+            }
+            // 不可堆叠：直接添加
+            AddCard(card);
+            return 0;
+        }
+
+        return amount;
+    }
+
+    /// <summary>
+    /// 按物品类型筛选（细粒度类型，如武器/护甲/法术卡等）
+    /// </summary>
+    public List<IItem> GetItemsByType(string itemType)
+    {
+        if (string.IsNullOrEmpty(itemType) || itemType == "All")
+            return GetAllItems();
+
+        var result = new List<IItem>();
+
+        // 装备类型匹配（按槽位/子类名）
+        foreach (var eq in Equipments)
+        {
+            if (eq == null) continue;
+            if (eq.slot.ToString().Equals(itemType, System.StringComparison.OrdinalIgnoreCase) ||
+                eq.equipmentName.Contains(itemType))
+                result.Add(eq);
+        }
+
+        // 卡牌类型匹配
+        foreach (var card in Cards)
+        {
+            if (card == null || card.Data == null) continue;
+            if (card.Data.cardType.ToString().Equals(itemType, System.StringComparison.OrdinalIgnoreCase) ||
+                card.Data.cardName.Contains(itemType))
+                result.Add(card);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 排序接口 — 支持多种排序标准
+    /// </summary>
+    public enum SortCriteria
+    {
+        Name,           // 按名称字典序
+        Rarity,         // 按稀有度降序
+        Type,           // 按类型分组
+        Power,          // 按战力/效果降序
+        AcquireTime     // 按获取时间（列表顺序）
+    }
+
+    /// <summary>
+    /// 对物品列表按指定标准排序
+    /// </summary>
+    public List<IItem> SortBy(List<IItem> items, SortCriteria criteria, bool descending = true)
+    {
+        if (items == null || items.Count <= 1) return items ?? new List<IItem>();
+
+        var sorted = new List<IItem>(items);
+        switch (criteria)
+        {
+            case SortCriteria.Name:
+                sorted.Sort((a, b) => descending
+                    ? string.Compare(b.DisplayName, a.DisplayName, System.StringComparison.Ordinal)
+                    : string.Compare(a.DisplayName, b.DisplayName, System.StringComparison.Ordinal));
+                break;
+
+            case SortCriteria.Rarity:
+                sorted.Sort((a, b) => descending
+                    ? ((int)b.Rarity).CompareTo((int)a.Rarity)
+                    : ((int)a.Rarity).CompareTo((int)b.Rarity));
+                break;
+
+            case SortCriteria.Type:
+                sorted.Sort((a, b) => descending
+                    ? b.Category.ToString().CompareTo(a.Category.ToString())
+                    : a.Category.ToString().CompareTo(b.Category.ToString()));
+                break;
+
+            case SortCriteria.Power:
+                sorted.Sort((a, b) =>
+                {
+                    int powerA = GetItemPower(a);
+                    int powerB = GetItemPower(b);
+                    return descending ? powerB.CompareTo(powerA) : powerA.CompareTo(powerB);
+                });
+                break;
+
+            case SortCriteria.AcquireTime:
+                // 保持原始顺序（descending则反转）
+                if (descending) sorted.Reverse();
+                break;
+        }
+        return sorted;
+    }
+
+    /// <summary>获取物品战力评分（通用版本）</summary>
+    public static int GetItemPower(IItem item)
+    {
+        if (item is EquipmentData eq) return GetEquipmentPower(eq);
+        if (item is CardInstance card && card.Data != null)
+            return card.Data.manaCost > 0 ? card.Data.damage * 3 : card.Data.damage;
+        return 0;
+    }
+
+    /// <summary>背包容量限制 — 默认装备20+卡牌20</summary>
+    public int MaxEquipSlots = 20;
+    public int MaxCardSlots = 20;
+
+    /// <summary>检查是否可以添加装备</summary>
+    public bool CanAddEquipment() => Equipments.Count < MaxEquipSlots;
+
+    /// <summary>检查是否可以添加卡牌</summary>
+    public bool CanAddCard() => Cards.Count < MaxCardSlots;
+
+    /// <summary>获取装备槽占用数（堆叠物品按1个slot计）</summary>
+    public int EquipmentSlotUsage => Equipments.Count;
+
+    /// <summary>获取卡牌槽占用数（堆叠物品按1个slot计）</summary>
+    public int CardSlotUsage => Cards.Count;
 }

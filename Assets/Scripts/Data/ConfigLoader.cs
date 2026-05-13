@@ -109,6 +109,9 @@ public static class ConfigLoader
 
     /// <summary>加载装备套装配置</summary>
     public static EquipmentSetsFileConfig LoadEquipmentSets() => Load<EquipmentSetsFileConfig>("equipment_sets");
+
+    // BE-19: 阵营连携配置
+    public static FactionSynergiesConfig LoadFactionSynergies() => Load<FactionSynergiesConfig>("synergy_factions");
 }
 
 // =====================================================================
@@ -258,6 +261,37 @@ public class SynergyEntry
     public float crit_rate_bonus_pct;
     public float all_stats_bonus_pct;
     public string target; // self_class / all_allies
+}
+
+/// <summary>
+/// 阵营连携配置（BE-19 新增）— synergy_factions.json
+/// </summary>
+public class FactionSynergiesConfig
+{
+    public string _version;
+    public string _description;
+    public List<FactionSynergyEntry> synergies;
+}
+
+/// <summary>
+/// 阵营连携条目 — 2/3/4人激活
+/// </summary>
+public class FactionSynergyEntry
+{
+    public string id;
+    public string name_cn;
+    public string faction;              // Human/Elf/Orc/Undead/Mech
+    public int required_count;          // 激活所需人数（2/3/4）
+    public string effect;               // 可读效果描述
+    public string target;               // "all_allies" / "self_faction"
+
+    // 效果数值
+    public float attack_bonus_pct;
+    public float defense_bonus_pct;
+    public float speed_bonus_pct;
+    public float crit_rate_bonus_pct;
+    public float hp_regen_pct;          // 每回合回血比例
+    public float all_stats_bonus_pct;
 }
 
 public class BattleTimingConfig
