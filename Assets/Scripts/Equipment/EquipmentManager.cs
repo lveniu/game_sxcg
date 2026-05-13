@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 装备管理器 — 生成装备、管理掉落池
+/// 装备管理器 — 生成装备、管理掉落池、套装效果
 /// </summary>
 public static class EquipmentManager
 {
@@ -17,6 +17,51 @@ public static class EquipmentManager
         ("set_wind",  "疾风套装"),
         ("set_fate",  "命运套装")
     };
+
+    // 套装效果定义（2件激活）
+    static readonly Dictionary<string, (string name, int attackBonus, int defenseBonus, int healthBonus, float critBonus)> setBonuses = new()
+    {
+        ["set_flame"] = ("烈焰之力", 8, 0, 0, 0.05f),    // +8攻击 +5%暴击
+        ["set_rock"]  = ("磐石之盾", 0, 10, 30, 0f),       // +10防御 +30生命
+        ["set_wind"]  = ("疾风之速", 4, 0, 0, 0.03f),      // +4攻击 +3%暴击
+        ["set_fate"]  = ("命运之轮", 5, 5, 20, 0.02f),     // 全属性小加
+    };
+
+    /// <summary>
+    /// 统计指定英雄各套装的件数
+    /// </summary>
+    public static Dictionary<string, int> CountSetPieces(Hero hero)
+    {
+        var counts = new Dictionary<string, int>();
+        foreach (var kvp in hero.EquippedItems)
+        {
+            var equip = kvp.Value;
+            if (equip != null && equip.BelongsToSet)
+            {
+                if (!counts.ContainsKey(equip.setId))
+                    counts[equip.setId] = 0;
+                counts[equip.setId]++;
+            }
+        }
+        return counts;
+    }
+
+    /// <summary>
+    /// 获取已激活的套装效果列表（2件以上激活）
+    /// </summary>
+    public static List<(string setId, string bonusName, int count, int atk, int def, int hp, float crit)> GetActiveSetBonuses(Hero hero)
+    {
+        var result = new List<(string, string, int, int, int, int, float)>();
+        var counts = CountSetPieces(hero);
+        foreach (var kvp in counts)
+        {
+            if (kvp.Value >= 2 && setBonuses.TryGetValue(kvp.Key, out var bonus))
+            {
+                result.Add((kvp.Key, bonus.name, kvp.Value, bonus.attackBonus, bonus.defenseBonus, bonus.healthBonus, bonus.critBonus));
+            }
+        }
+        return result;
+    }
 
     /// <summary>
     /// 随关卡获得装备掉落

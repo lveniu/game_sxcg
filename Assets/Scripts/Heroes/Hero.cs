@@ -168,13 +168,18 @@ public class Hero : MonoBehaviour
 
     /// <summary>
     /// 应用套装效果（由 RecalculateStats 调用）
+    /// 2件同套装激活加成，不足2件不激活
     /// </summary>
     private void ApplySetBonuses()
     {
-        var setSystem = SetBonusSystem.Instance;
-        if (setSystem != null)
+        var bonuses = EquipmentManager.GetActiveSetBonuses(this);
+        foreach (var bonus in bonuses)
         {
-            setSystem.CheckSetBonus(this);
+            Attack += bonus.atk;
+            Defense += bonus.def;
+            MaxHealth += bonus.hp;
+            CritRate = Mathf.Clamp01(CritRate + bonus.crit);
+            Debug.Log($"[套装] {Data.heroName} 激活 {bonus.bonusName}（{bonus.count}件）：攻+{bonus.atk} 防+{bonus.def} 血+{bonus.hp} 暴击+{bonus.crit}");
         }
     }
 

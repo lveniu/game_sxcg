@@ -1,0 +1,85 @@
+{
+  "_version": "1.0",
+  "_description": "装备套装效果配置 — 2件套/4件套阈值",
+  "set_equip_chance": 0.3,
+  "set_equip_chance_elite": 0.5,
+  "sets": [
+    {
+      "setId": "set_flame",
+      "setName": "烈焰套装",
+      "tiers": [
+        {
+          "requiredCount": 2,
+          "bonuses": [
+            { "type": "AttackPercent", "value": 0.15, "description": "攻击力+15%" }
+          ]
+        },
+        {
+          "requiredCount": 4,
+          "bonuses": [
+            { "type": "AttackPercent", "value": 0.15, "description": "攻击力+15%" },
+            { "type": "LifeStealFlat", "value": 0.08, "description": "吸血+8%" }
+          ]
+        }
+      ]
+    },
+    {
+      "setId": "set_rock",
+      "setName": "磐石套装",
+      "tiers": [
+        {
+          "requiredCount": 2,
+          "bonuses": [
+            { "type": "DefensePercent", "value": 0.20, "description": "防御力+20%" }
+          ]
+        },
+        {
+          "requiredCount": 4,
+          "bonuses": [
+            { "type": "DefensePercent", "value": 0.20, "description": "防御力+20%" },
+            { "type": "HealthPercent", "value": 0.15, "description": "生命值+15%" },
+            { "type": "ThornsFlat", "value": 0.10, "description": "荆棘反伤+10%" }
+          ]
+        }
+      ]
+    },
+    {
+      "setId": "set_wind",
+      "setName": "疾风套装",
+      "tiers": [
+        {
+          "requiredCount": 2,
+          "bonuses": [
+            { "type": "SpeedPercent", "value": 0.20, "description": "速度+20%" }
+          ]
+        },
+        {
+          "requiredCount": 4,
+          "bonuses": [
+            { "type": "SpeedPercent", "value": 0.20, "description": "速度+20%" },
+            { "type": "DodgeFlat", "value": 0.12, "description": "闪避率+12%" }
+          ]
+        }
+      ]
+    },
+    {
+      "setId": "set_fate",
+      "setName": "命运套装",
+      "tiers": [
+        {
+          "requiredCount": 2,
+          "bonuses": [
+            { "type": "CritRateFlat", "value": 0.15, "description": "暴击率+15%" }
+          ]
+        },
+        {
+          "requiredCount": 4,
+          "bonuses": [
+            { "type": "CritRateFlat", "value": 0.15, "description": "暴击率+15%" },
+            { "type": "CritDamageFlat", "value": 0.30, "description": "暴击伤害+30%" }
+          ]
+        }
+      ]
+    }
+  ]
+}

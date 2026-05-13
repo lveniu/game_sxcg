@@ -106,6 +106,9 @@ public static class ConfigLoader
 
     /// <summary>加载随机事件配置</summary>
     public static RandomEventsFileConfig LoadRandomEvents() => Load<RandomEventsFileConfig>("random_events");
+
+    /// <summary>加载装备套装配置</summary>
+    public static EquipmentSetsFileConfig LoadEquipmentSets() => Load<EquipmentSetsFileConfig>("equipment_sets");
 }
 
 // =====================================================================
@@ -1015,4 +1018,36 @@ public class RandomEventOptionEntry
     public string riskFailEffectType;   // 可选
     public string riskFailFormula;      // 可选
     public int goldCost;                // 可选
+}
+
+// =====================================================================
+// equipment_sets.json — 装备套装效果
+// =====================================================================
+
+public class EquipmentSetsFileConfig
+{
+    public string _version;
+    public float set_equip_chance;
+    public float set_equip_chance_elite;
+    public List<EquipmentSetEntry> sets;
+}
+
+public class EquipmentSetEntry
+{
+    public string setId;
+    public string setName;
+    public List<EquipmentSetTier> tiers;
+}
+
+public class EquipmentSetTier
+{
+    public int requiredCount;
+    public List<EquipmentSetBonus> bonuses;
+}
+
+public class EquipmentSetBonus
+{
+    public string type;           // AttackPercent / DefensePercent / HealthPercent / SpeedPercent / CritRateFlat / CritDamageFlat / LifeStealFlat / DodgeFlat / ThornsFlat
+    public float value;
+    public string description;
 }

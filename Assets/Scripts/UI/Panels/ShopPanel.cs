@@ -50,6 +50,21 @@ namespace Game.UI
 
         #endregion
 
+        #region 后端对接新增：Tab切换 + 空状态
+
+        [Header("商品Tab切换")]
+        public Button tabAllButton;        // Tab: 全部
+        public Button tabEquipButton;      // Tab: 装备
+        public Button tabCardButton;       // Tab: 卡牌
+        public Text tabAllText;            // Tab文字: "全部"
+        public Text tabEquipText;          // Tab文字: "装备"
+        public Text tabCardText;           // Tab文字: "卡牌"
+
+        [Header("空状态")]
+        public Text emptyStateText;        // 空商店提示文字
+
+        #endregion
+
         // 商品卡片缓存（增强版）
         private class ShopItemCard
         {
@@ -72,6 +87,21 @@ namespace Game.UI
         }
 
         private List<ShopItemCard> itemCards = new List<ShopItemCard>();
+
+        /// <summary>商品Tab筛选类型</summary>
+        private enum ShopTabFilter { All, Equipment, Card }
+
+        /// <summary>当前Tab筛选</summary>
+        private ShopTabFilter currentTabFilter = ShopTabFilter.All;
+
+        /// <summary>当前关卡ID（用于调用ShopManager.GenerateShop）</summary>
+        private int currentLevelId = 1;
+
+        /// <summary>筛选后的商品索引缓存（Tab过滤后的有效索引映射到CurrentItems的真实索引）</summary>
+        private List<int> filteredItemIndices = new List<int>();
+
+        /// <summary>空状态提示GameObject（程序化创建时缓存）</summary>
+        private GameObject emptyStateGo;
 
         #region FE-13 Mock数据系统
 
@@ -238,6 +268,18 @@ namespace Game.UI
         private int currentGold => useMockData ? MockShopData.PlayerGold :
             (PlayerInventory.Instance != null ? PlayerInventory.Instance.Gold : 0);
 
+        // 当前刷新费用（真实模式从BalanceProvider读取，Mock模式用固定值）
+        private int refreshCost => useMockData ? MockShopData.RefreshCost :
+            BalanceProvider.GetRerollCostBase();
+
+        /// <summary>
+        /// 设置当前关卡ID（由外部调用，用于ShopManager.GenerateShop）
+        /// </summary>
+        public void SetCurrentLevel(int levelId)
+        {
+            currentLevelId = levelId;
+        }
+
         protected override void Awake()
         {
             base.Awake();
@@ -257,6 +299,24 @@ namespace Game.UI
             }
             #endregion
 
+            #region 后端对接：Tab按钮绑定
+            if (tabAllButton != null)
+            {
+                tabAllButton.onClick.RemoveAllListeners();
+                tabAllButton.onClick.AddListener(() => OnTabClicked(ShopTabFilter.All));
+            }
+            if (tabEquipButton != null)
+            {
+                tabEquipButton.onClick.RemoveAllListeners();
+                tabEquipButton.onClick.AddListener(() => OnTabClicked(ShopTabFilter.Equipment));
+            }
+            if (tabCardButton != null)
+            {
+                tabCardButton.onClick.RemoveAllListeners();
+                tabCardButton.onClick.AddListener(() => OnTabClicked(ShopTabFilter.Card));
+            }
+            #endregion
+
             #region FE-13 初始化Mock数据
             if (useMockData && currentMockItems == null)
             {
@@ -264,10 +324,16 @@ namespace Game.UI
             }
             #endregion
 
+            // 初始化商店等级显示
             RefreshGoldDisplay();
             RefreshShopLevelDisplay();
             RefreshRefreshButtonDisplay();
-            RefreshShopItems();
+
+            // 加载商品（核心后端对接入口）
+            LoadShopItems();
+
+            // 更新Tab高亮
+            UpdateTabHighlight();
 
             // 入场动画
             if (rectTransform != null)
@@ -284,7 +350,13 @@ namespace Game.UI
             if (refreshButton != null)
                 refreshButton.onClick.RemoveAllListeners();
             #endregion
+            #region 后端对接：清理Tab按钮
+            if (tabAllButton != null) tabAllButton.onClick.RemoveAllListeners();
+            if (tabEquipButton != null) tabEquipButton.onClick.RemoveAllListeners();
+            if (tabCardButton != null) tabCardButton.onClick.RemoveAllListeners();
+            #endregion
             ClearItemCards();
+            HideEmptyState();
         }
 
         // ========== 商品刷新 ==========
@@ -292,6 +364,7 @@ namespace Game.UI
         private void RefreshShopItems()
         {
             ClearItemCards();
+            HideEmptyState();
 
             #region FE-13 Mock数据优先
             if (useMockData)
@@ -314,13 +387,50 @@ namespace Game.UI
                 if (shop == null || shop.CurrentItems == null)
                 {
                     Debug.LogWarning("[Shop] ShopManager未初始化");
+                    ShowEmptyState("商店数据加载中...");
                     return;
                 }
 
                 var items = shop.CurrentItems;
+
+                // 构建筛选后的索引映射
+                filteredItemIndices.Clear();
                 for (int i = 0; i < items.Count; i++)
                 {
-                    var card = CreateShopItemCard(items[i], i);
+                    if (items[i].isSold) continue; // 跳过已售商品
+                    if (currentTabFilter == ShopTabFilter.All)
+                    {
+                        filteredItemIndices.Add(i);
+                    }
+                    else if (currentTabFilter == ShopTabFilter.Equipment && items[i].type == ShopItemType.Equipment)
+                    {
+                        filteredItemIndices.Add(i);
+                    }
+                    else if (currentTabFilter == ShopTabFilter.Card && items[i].type == ShopItemType.Card)
+                    {
+                        filteredItemIndices.Add(i);
+                    }
+                }
+
+                // 空状态处理
+                if (filteredItemIndices.Count == 0)
+                {
+                    if (items.Count == 0 || items.TrueForAll(it => it.isSold))
+                    {
+                        ShowEmptyState("商店已售罄，点击刷新获取新商品");
+                    }
+                    else
+                    {
+                        ShowEmptyState("当前分类无可用商品");
+                    }
+                    return;
+                }
+
+                // 创建筛选后的商品卡片
+                for (int displayIdx = 0; displayIdx < filteredItemIndices.Count; displayIdx++)
+                {
+                    int realIdx = filteredItemIndices[displayIdx];
+                    var card = CreateShopItemCard(items[realIdx], realIdx);
                     itemCards.Add(card);
                 }
             }
@@ -872,21 +982,33 @@ namespace Game.UI
             if (card.statText != null)
                 card.statText.text = stats;
 
-            // 价格
+            // 价格（含折扣显示）
             if (card.priceText != null)
             {
                 if (shopItem.isDiscounted)
-                    card.priceText.text = $"💰 {shopItem.price} (折扣!)";
+                {
+                    int discountedPrice = CalculateDiscountedPrice(shopItem.price);
+                    // 显示原价（删除线效果通过颜色变灰暗示）+ 折扣价
+                    card.priceText.text = $"<s>💰{shopItem.price}</s>  💰{discountedPrice}";
+                    card.priceText.color = new Color(1f, 0.5f, 0.2f); // 橙色强调折扣
+                }
                 else
+                {
                     card.priceText.text = $"💰 {shopItem.price}";
+                }
             }
 
-            // 折扣标签
+            // 折扣标签（显示实际折扣百分比）
             if (card.discountTag != null)
             {
                 card.discountTag.gameObject.SetActive(shopItem.isDiscounted);
                 if (shopItem.isDiscounted)
-                    card.discountTag.text = "-30%";
+                {
+                    float discountRate = BalanceProvider.GetShopDiscountRate();
+                    int discountPct = Mathf.RoundToInt((1f - discountRate) * 100f);
+                    card.discountTag.text = $"-{discountPct}%";
+                    card.discountTag.color = new Color(1f, 0.3f, 0.3f); // 红色醒目
+                }
             }
 
             #region FE-13: 限购标记（默认1/1）
@@ -921,9 +1043,34 @@ namespace Game.UI
                 card.buyButton.onClick.AddListener(() => OnBuyClicked(index));
 
                 if (card.buyButtonText != null)
-                    card.buyButtonText.text = shopItem.isSold ? "✓ 已购" : "购买";
+                {
+                    if (shopItem.isSold)
+                    {
+                        card.buyButtonText.text = "✓ 已购";
+                    }
+                    else
+                    {
+                        // 金币不足时显示灰色提示
+                        int finalPrice = shopItem.isDiscounted
+                            ? CalculateDiscountedPrice(shopItem.price)
+                            : shopItem.price;
+                        card.buyButtonText.text = currentGold < finalPrice ? "💰不足" : "购买";
+                    }
+                }
 
                 card.buyButton.interactable = !shopItem.isSold;
+
+                // 金币不足时按钮变暗（但仍可点击，点击后会有金币不足提示）
+                if (!shopItem.isSold && card.buyButton.image != null)
+                {
+                    int finalPrice = shopItem.isDiscounted
+                        ? CalculateDiscountedPrice(shopItem.price)
+                        : shopItem.price;
+                    if (currentGold < finalPrice)
+                    {
+                        card.buyButton.image.color = new Color(0.4f, 0.4f, 0.3f, 0.8f);
+                    }
+                }
             }
 
             // 已售灰化
@@ -934,61 +1081,7 @@ namespace Game.UI
             }
         }
 
-        // ========== 购买逻辑 ==========
-
-        private void OnBuyClicked(int index)
-        {
-            var shop = ShopManager.Instance;
-            var inventory = PlayerInventory.Instance;
-            if (shop == null || inventory == null) return;
-
-            bool success = shop.BuyItem(index, inventory);
-            if (success)
-            {
-                Debug.Log($"[Shop] 购买成功：商品#{index}");
-
-                // 刷新金币
-                RefreshGoldDisplay();
-
-                // 刷新商品卡片状态
-                var items = shop.CurrentItems;
-                if (index < itemCards.Count && index < items.Count)
-                {
-                    var card = itemCards[index];
-                    var item = items[index];
-
-                    // 已购灰化动画
-                    if (card.canvasGroup != null)
-                        card.canvasGroup.DOFade(0.4f, 0.3f);
-
-                    if (card.buyButton != null)
-                    {
-                        card.buyButton.interactable = false;
-                        if (card.buyButtonText != null)
-                            card.buyButtonText.text = "✓ 已购";
-                    }
-
-                    // 闪烁效果
-                    if (card.bgImage != null)
-                    {
-                        card.bgImage.DOColor(new Color(0.2f, 0.6f, 0.3f), 0.15f)
-                            .SetLoops(2, LoopType.Yoyo);
-                    }
-                }
-            }
-            else
-            {
-                Debug.Log($"[Shop] 购买失败：金币不足或商品已售");
-
-                // 金币不足闪烁红色
-                if (goldText != null)
-                {
-                    goldText.DOColor(Color.red, 0.15f)
-                        .SetLoops(3, LoopType.Yoyo).SetLink(gameObject)
-                        .OnComplete(() => { if (goldText != null) goldText.color = new Color(1f, 0.85f, 0.2f); });
-                }
-            }
-        }
+        // ========== 购买逻辑（已移至后端对接区域 OnBuyClicked） ==========
 
         #region FE-13 Mock购买逻辑 + 飞行动画
 
@@ -1233,19 +1326,21 @@ namespace Game.UI
         #region FE-13 刷新按钮
 
         /// <summary>
-        /// 刷新按钮显示 "🔄 刷新 20💰"
+        /// 刷新按钮显示（真实模式从BalanceProvider读取刷新费用）
         /// </summary>
         private void RefreshRefreshButtonDisplay()
         {
+            int cost = refreshCost;
+
             if (refreshButtonText != null)
             {
-                refreshButtonText.text = $"🔄 刷新 {MockShopData.RefreshCost}💰";
+                refreshButtonText.text = $"🔄 刷新 {cost}💰";
             }
 
             if (refreshButton != null)
             {
                 // 金币不足时禁用
-                refreshButton.interactable = currentGold >= MockShopData.RefreshCost;
+                refreshButton.interactable = currentGold >= cost;
 
                 // 禁用时颜色变灰
                 if (refreshButton.image != null)
@@ -1258,30 +1353,71 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// FE-13: 刷新按钮点击 — 旧卡片缩小消失 → 新卡片放大出现（0.3s交错）
+        /// 刷新按钮点击 — 旧卡片缩小消失 → 新卡片放大出现（0.3s交错）
+        /// 真实模式调用ShopManager.GenerateShop重新生成商品
         /// </summary>
         private void OnRefreshClicked()
         {
+            int cost = refreshCost;
+
             // 检查金币
-            if (currentGold < MockShopData.RefreshCost)
+            if (currentGold < cost)
             {
                 Debug.Log("[Shop] 金币不足，无法刷新");
+                // 金币不足闪烁
+                if (goldText != null)
+                {
+                    goldText.DOColor(Color.red, 0.15f)
+                        .SetLoops(3, LoopType.Yoyo).SetLink(gameObject)
+                        .OnComplete(() => { if (goldText != null) goldText.color = new Color(1f, 0.85f, 0.2f); });
+                }
                 return;
             }
 
-            // 扣除刷新费用
-            MockShopData.PlayerGold -= MockShopData.RefreshCost;
+            if (useMockData)
+            {
+                // Mock模式：扣Mock金币
+                MockShopData.PlayerGold -= cost;
+            }
+            else
+            {
+                // 真实模式：通过PlayerInventory扣金币
+                var inventory = PlayerInventory.Instance;
+                if (inventory != null)
+                {
+                    if (!inventory.SpendGold(cost))
+                    {
+                        Debug.Log("[Shop] 扣除刷新费用失败");
+                        return;
+                    }
+                }
+            }
+
             RefreshGoldDisplay();
 
-            // 生成新Mock数据
-            currentMockItems = MockShopData.GetShopItems();
+            if (useMockData)
+            {
+                // 生成新Mock数据
+                currentMockItems = MockShopData.GetShopItems();
+            }
+            else
+            {
+                // 真实模式：调用ShopManager重新生成商品
+                var shop = ShopManager.Instance;
+                if (shop != null)
+                {
+                    shop.GenerateShop(currentLevelId);
+                    Debug.Log($"[Shop] 商店已刷新，共{shop.CurrentItems.Count}件商品");
+                }
+            }
 
             // 刷新动画：旧→缩小消失 → 新→放大出现
             PlayRefreshAnimation();
         }
 
         /// <summary>
-        /// FE-13: 刷新动画（0.3s交错：旧缩小消失→新放大出现）
+        /// 刷新动画（0.3s交错：旧缩小消失→新放大出现）
+        /// 支持Mock和真实模式
         /// </summary>
         private void PlayRefreshAnimation()
         {
@@ -1313,13 +1449,52 @@ namespace Game.UI
                     if (card.rect != null) Destroy(card.rect.gameObject);
                 }
 
-                // 创建新Mock卡片
-                if (currentMockItems != null)
+                if (useMockData)
                 {
-                    for (int i = 0; i < currentMockItems.Count; i++)
+                    // 创建新Mock卡片
+                    if (currentMockItems != null)
                     {
-                        var card = CreateMockShopItemCard(currentMockItems[i], i);
-                        itemCards.Add(card);
+                        for (int i = 0; i < currentMockItems.Count; i++)
+                        {
+                            var card = CreateMockShopItemCard(currentMockItems[i], i);
+                            itemCards.Add(card);
+                        }
+                    }
+                }
+                else
+                {
+                    // 真实模式：重建筛选并创建卡片
+                    var shop = ShopManager.Instance;
+                    if (shop != null && shop.CurrentItems != null)
+                    {
+                        var items = shop.CurrentItems;
+                        filteredItemIndices.Clear();
+                        for (int i = 0; i < items.Count; i++)
+                        {
+                            if (items[i].isSold) continue;
+                            if (currentTabFilter == ShopTabFilter.All)
+                                filteredItemIndices.Add(i);
+                            else if (currentTabFilter == ShopTabFilter.Equipment && items[i].type == ShopItemType.Equipment)
+                                filteredItemIndices.Add(i);
+                            else if (currentTabFilter == ShopTabFilter.Card && items[i].type == ShopItemType.Card)
+                                filteredItemIndices.Add(i);
+                        }
+
+                        // 空状态
+                        if (filteredItemIndices.Count == 0)
+                        {
+                            ShowEmptyState("商店已售罄，点击刷新获取新商品");
+                        }
+                        else
+                        {
+                            HideEmptyState();
+                            for (int displayIdx = 0; displayIdx < filteredItemIndices.Count; displayIdx++)
+                            {
+                                int realIdx = filteredItemIndices[displayIdx];
+                                var card = CreateShopItemCard(items[realIdx], realIdx);
+                                itemCards.Add(card);
+                            }
+                        }
                     }
                 }
 
@@ -1429,5 +1604,481 @@ namespace Game.UI
             }
             return "";
         }
+
+        // ================================================================
+        // ========== 后端对接新增方法 ==========
+        // ================================================================
+
+        #region 后端对接：商品加载
+
+        /// <summary>
+        /// 从ShopManager获取商品列表并显示
+        /// 核心入口：商店初始化时调用
+        /// - 真实模式：调用ShopManager.GenerateShop生成商品
+        /// - Mock模式：使用MockShopData
+        /// </summary>
+        public void LoadShopItems()
+        {
+            if (useMockData)
+            {
+                // Mock模式：初始化Mock数据
+                if (currentMockItems == null)
+                    currentMockItems = MockShopData.GetShopItems();
+                Debug.Log($"[Shop] Mock模式加载商品，共{currentMockItems.Count}件");
+            }
+            else
+            {
+                // 真实模式：调用ShopManager生成商品
+                var shop = ShopManager.Instance;
+                if (shop == null)
+                {
+                    Debug.LogError("[Shop] ShopManager.Instance为空，无法加载商品");
+                    ShowEmptyState("商店系统未就绪");
+                    return;
+                }
+
+                // 如果当前没有商品，生成新商品
+                if (shop.CurrentItems == null || shop.CurrentItems.Count == 0)
+                {
+                    shop.GenerateShop(currentLevelId);
+                    Debug.Log($"[Shop] 生成新商品，关卡={currentLevelId}，共{shop.CurrentItems.Count}件");
+                }
+                else
+                {
+                    Debug.Log($"[Shop] 使用已有商品，共{shop.CurrentItems.Count}件");
+                }
+            }
+
+            // 刷新商品显示
+            RefreshShopItems();
+        }
+
+        #endregion
+
+        #region 后端对接：购买流程
+
+        /// <summary>
+        /// 购买商品（真实模式）
+        /// 流程：检查金币 → 调用ShopManager.BuyItem → 扣金币+添加物品 → 更新UI
+        /// </summary>
+        public void OnBuyClicked(int itemIndex)
+        {
+            var shop = ShopManager.Instance;
+            var inventory = PlayerInventory.Instance;
+            if (shop == null || inventory == null) return;
+
+            // 验证索引在当前筛选中有效
+            if (itemIndex < 0 || itemIndex >= shop.CurrentItems.Count)
+            {
+                Debug.LogWarning($"[Shop] 商品索引无效: {itemIndex}");
+                return;
+            }
+
+            var shopItem = shop.CurrentItems[itemIndex];
+            if (shopItem.isSold)
+            {
+                Debug.Log("[Shop] 商品已售出");
+                return;
+            }
+
+            // 计算最终价格（含折扣）
+            int finalPrice = shopItem.isDiscounted
+                ? CalculateDiscountedPrice(shopItem.price)
+                : shopItem.price;
+
+            // 预检查金币是否足够（BuyItem内部也会检查，但提前给出提示）
+            if (inventory.Gold < finalPrice)
+            {
+                Debug.Log($"[Shop] 金币不足：需要{finalPrice}，持有{inventory.Gold}");
+                PlayInsufficientGoldAnimation();
+                return;
+            }
+
+            // 调用后端购买接口
+            bool success = shop.BuyItem(itemIndex, inventory);
+            if (success)
+            {
+                Debug.Log($"[Shop] 购买成功：{shopItem.GetName()}，花费{finalPrice}金币");
+
+                // 刷新金币显示
+                RefreshGoldDisplay();
+
+                // 播放购买飞行动画
+                int displayIdx = filteredItemIndices.IndexOf(itemIndex);
+                if (displayIdx >= 0 && displayIdx < itemCards.Count)
+                {
+                    PlayPurchaseFlyAnimationReal(itemCards[displayIdx], finalPrice, displayIdx);
+                }
+                else
+                {
+                    // 无法找到显示索引，直接刷新
+                    UpdateItemDisplay();
+                }
+            }
+            else
+            {
+                Debug.Log("[Shop] 购买失败：金币不足或商品已售");
+                PlayInsufficientGoldAnimation();
+            }
+        }
+
+        /// <summary>
+        /// 真实模式购买飞行动画
+        /// </summary>
+        private void PlayPurchaseFlyAnimationReal(ShopItemCard card, int price, int displayIdx)
+        {
+            if (card.rect == null)
+            {
+                UpdateItemDisplay();
+                return;
+            }
+
+            var originalPos = card.rect.anchoredPosition;
+            var originalScale = card.rect.localScale;
+
+            // 目标位置：金币文字
+            Vector2 targetPos = new Vector2(300f, 500f);
+            if (goldText != null)
+            {
+                Vector3 goldWorldPos = goldText.rectTransform.position;
+                Vector2 localPos;
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    itemsContainer, goldWorldPos, null, out localPos);
+                targetPos = localPos;
+            }
+
+            var seq = DOTween.Sequence();
+            seq.Append(card.rect.DOScale(new Vector3(0.8f, 0.8f, 1f), 0.1f).SetEase(Ease.InQuad));
+            seq.Append(card.rect.DOAnchorPos(targetPos, 0.4f).SetEase(Ease.InBack));
+            seq.Join(card.rect.DOScale(new Vector3(0.3f, 0.3f, 1f), 0.4f).SetEase(Ease.InQuad));
+            if (card.canvasGroup != null)
+                seq.Join(card.canvasGroup.DOFade(0.3f, 0.4f));
+
+            seq.AppendCallback(() =>
+            {
+                ShowGoldChangeFloat($"-{price}");
+                RefreshGoldDisplay();
+            });
+
+            seq.Append(card.rect.DOAnchorPos(originalPos, 0.2f).SetEase(Ease.OutCubic));
+            seq.Join(card.rect.DOScale(originalScale, 0.2f).SetEase(Ease.OutBack));
+
+            seq.OnComplete(() =>
+            {
+                // 更新为已购状态
+                if (card.canvasGroup != null) card.canvasGroup.alpha = 0.4f;
+                if (card.bgImage != null) card.bgImage.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+                if (card.buyButton != null)
+                {
+                    card.buyButton.interactable = false;
+                    if (card.buyButtonText != null)
+                        card.buyButtonText.text = "✓ 已购";
+                }
+
+                // 闪烁效果
+                if (card.bgImage != null)
+                {
+                    card.bgImage.DOColor(new Color(0.2f, 0.6f, 0.3f), 0.15f)
+                        .SetLoops(2, LoopType.Yoyo);
+                }
+
+                RefreshRefreshButtonDisplay();
+            });
+
+            seq.Play();
+        }
+
+        /// <summary>
+        /// 金币不足动画（金币文字闪红）
+        /// </summary>
+        private void PlayInsufficientGoldAnimation()
+        {
+            if (goldText != null)
+            {
+                goldText.DOColor(Color.red, 0.15f)
+                    .SetLoops(3, LoopType.Yoyo).SetLink(gameObject)
+                    .OnComplete(() => { if (goldText != null) goldText.color = new Color(1f, 0.85f, 0.2f); });
+            }
+        }
+
+        #endregion
+
+        #region 后端对接：刷新商店
+
+        // OnRefreshClicked 已在上方更新，此处补充说明
+        // 刷新逻辑已整合到 OnRefreshClicked() 中：
+        // - Mock模式：重新生成MockShopData
+        // - 真实模式：调用ShopManager.GenerateShop(currentLevelId)
+
+        #endregion
+
+        #region 后端对接：折扣计算
+
+        /// <summary>
+        /// 计算折扣价
+        /// 从BalanceProvider获取折扣率（默认0.7），计算最终价格
+        /// </summary>
+        /// <param name="originalPrice">原价</param>
+        /// <returns>折扣后价格</returns>
+        public int CalculateDiscountedPrice(int originalPrice)
+        {
+            float discountRate = BalanceProvider.GetShopDiscountRate();
+            return Mathf.RoundToInt(originalPrice * discountRate);
+        }
+
+        #endregion
+
+        #region 后端对接：商品UI更新
+
+        /// <summary>
+        /// 更新所有商品卡片的显示状态
+        /// 用于购买后刷新、金币变化后更新可购买状态
+        /// </summary>
+        public void UpdateItemDisplay()
+        {
+            if (useMockData) return; // Mock模式由自己的逻辑处理
+
+            var shop = ShopManager.Instance;
+            if (shop == null || shop.CurrentItems == null) return;
+
+            var items = shop.CurrentItems;
+
+            for (int displayIdx = 0; displayIdx < itemCards.Count && displayIdx < filteredItemIndices.Count; displayIdx++)
+            {
+                int realIdx = filteredItemIndices[displayIdx];
+                if (realIdx >= items.Count) continue;
+
+                var card = itemCards[displayIdx];
+                var item = items[realIdx];
+
+                // 更新购买按钮状态
+                if (card.buyButton != null)
+                {
+                    if (item.isSold)
+                    {
+                        card.buyButton.interactable = false;
+                        if (card.buyButtonText != null)
+                            card.buyButtonText.text = "✓ 已购";
+                        // 灰化
+                        if (card.canvasGroup != null) card.canvasGroup.alpha = 0.4f;
+                        if (card.bgImage != null) card.bgImage.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+                    }
+                    else
+                    {
+                        int finalPrice = item.isDiscounted
+                            ? CalculateDiscountedPrice(item.price)
+                            : item.price;
+                        bool canAfford = currentGold >= finalPrice;
+
+                        if (card.buyButtonText != null)
+                            card.buyButtonText.text = canAfford ? "购买" : "💰不足";
+
+                        card.buyButton.interactable = true;
+
+                        // 金币不足时按钮变暗
+                        if (card.buyButton.image != null)
+                        {
+                            card.buyButton.image.color = canAfford
+                                ? new Color(0.2f, 0.6f, 0.3f)
+                                : new Color(0.4f, 0.4f, 0.3f, 0.8f);
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region 后端对接：Tab切换
+
+        /// <summary>
+        /// Tab切换点击处理
+        /// </summary>
+        private void OnTabClicked(ShopTabFilter filter)
+        {
+            if (currentTabFilter == filter) return; // 已经是当前Tab
+
+            currentTabFilter = filter;
+            Debug.Log($"[Shop] 切换Tab: {filter}");
+
+            UpdateTabHighlight();
+            RefreshShopItems();
+        }
+
+        /// <summary>
+        /// 更新Tab按钮高亮状态
+        /// </summary>
+        private void UpdateTabHighlight()
+        {
+            // 高亮色
+            Color activeColor = new Color(0.3f, 0.8f, 1f);
+            Color inactiveColor = new Color(0.5f, 0.5f, 0.5f);
+
+            // 更新按钮文字颜色
+            if (tabAllText != null)
+                tabAllText.color = (currentTabFilter == ShopTabFilter.All) ? activeColor : inactiveColor;
+            if (tabEquipText != null)
+                tabEquipText.color = (currentTabFilter == ShopTabFilter.Equipment) ? activeColor : inactiveColor;
+            if (tabCardText != null)
+                tabCardText.color = (currentTabFilter == ShopTabFilter.Card) ? activeColor : inactiveColor;
+
+            // 更新按钮图片颜色（如有）
+            if (tabAllButton != null && tabAllButton.image != null)
+                tabAllButton.image.color = (currentTabFilter == ShopTabFilter.All)
+                    ? new Color(0.15f, 0.25f, 0.35f, 0.9f)
+                    : new Color(0.1f, 0.1f, 0.15f, 0.7f);
+            if (tabEquipButton != null && tabEquipButton.image != null)
+                tabEquipButton.image.color = (currentTabFilter == ShopTabFilter.Equipment)
+                    ? new Color(0.15f, 0.25f, 0.35f, 0.9f)
+                    : new Color(0.1f, 0.1f, 0.15f, 0.7f);
+            if (tabCardButton != null && tabCardButton.image != null)
+                tabCardButton.image.color = (currentTabFilter == ShopTabFilter.Card)
+                    ? new Color(0.15f, 0.25f, 0.35f, 0.9f)
+                    : new Color(0.1f, 0.1f, 0.15f, 0.7f);
+
+            // 程序化创建Tab（如果Inspector未赋值）
+            EnsureTabButtonsCreated();
+        }
+
+        /// <summary>
+        /// 程序化创建Tab按钮（如果Inspector中未手动赋值）
+        /// </summary>
+        private bool _tabsCreated = false;
+        private void EnsureTabButtonsCreated()
+        {
+            if (_tabsCreated) return;
+            if (tabAllButton != null || tabEquipButton != null || tabCardButton != null)
+            {
+                _tabsCreated = true; // Inspector中已有赋值，不需要程序化创建
+                return;
+            }
+
+            // 找到itemsContainer的父级来放置Tab
+            var parent = itemsContainer?.parent;
+            if (parent == null) return;
+
+            // 创建Tab容器
+            var tabContainerGo = new GameObject("TabContainer");
+            var tabContainerRect = tabContainerGo.AddComponent<RectTransform>();
+            tabContainerRect.SetParent(parent, false);
+
+            // 放在商品区上方
+            tabContainerRect.anchorMin = new Vector2(0.05f, 0.82f);
+            tabContainerRect.anchorMax = new Vector2(0.95f, 0.88f);
+            tabContainerRect.offsetMin = tabContainerRect.offsetMax = Vector2.zero;
+
+            var tabBg = tabContainerGo.AddComponent<Image>();
+            tabBg.color = new Color(0.1f, 0.1f, 0.15f, 0.8f);
+
+            // 创建三个Tab按钮
+            CreateTabButton("TabAll", "全部", 0f, 0.33f, tabContainerRect, out tabAllButton, out tabAllText, ShopTabFilter.All);
+            CreateTabButton("TabEquip", "⚔ 装备", 0.33f, 0.66f, tabContainerRect, out tabEquipButton, out tabEquipText, ShopTabFilter.Equipment);
+            CreateTabButton("TabCard", "🃏 卡牌", 0.66f, 1f, tabContainerRect, out tabCardButton, out tabCardText, ShopTabFilter.Card);
+
+            // 绑定事件
+            if (tabAllButton != null)
+            {
+                tabAllButton.onClick.RemoveAllListeners();
+                tabAllButton.onClick.AddListener(() => OnTabClicked(ShopTabFilter.All));
+            }
+            if (tabEquipButton != null)
+            {
+                tabEquipButton.onClick.RemoveAllListeners();
+                tabEquipButton.onClick.AddListener(() => OnTabClicked(ShopTabFilter.Equipment));
+            }
+            if (tabCardButton != null)
+            {
+                tabCardButton.onClick.RemoveAllListeners();
+                tabCardButton.onClick.AddListener(() => OnTabClicked(ShopTabFilter.Card));
+            }
+
+            _tabsCreated = true;
+        }
+
+        /// <summary>
+        /// 创建单个Tab按钮
+        /// </summary>
+        private void CreateTabButton(string name, string label, float anchorMinX, float anchorMaxX,
+            RectTransform parent, out Button outButton, out Text outText, ShopTabFilter filter)
+        {
+            var go = new GameObject(name);
+            var rect = go.AddComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = new Vector2(anchorMinX, 0f);
+            rect.anchorMax = new Vector2(anchorMaxX, 1f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+
+            outButton = go.AddComponent<Button>();
+            var img = go.AddComponent<Image>();
+            img.color = new Color(0.1f, 0.1f, 0.15f, 0.7f);
+
+            var txtGo = new GameObject("Text");
+            txtGo.transform.SetParent(go.transform, false);
+            var txtRect = txtGo.AddComponent<RectTransform>();
+            txtRect.anchorMin = Vector2.zero;
+            txtRect.anchorMax = Vector2.one;
+            txtRect.offsetMin = txtRect.offsetMax = Vector2.zero;
+
+            outText = txtGo.AddComponent<Text>();
+            outText.text = label;
+            outText.fontSize = 14;
+            outText.alignment = TextAnchor.MiddleCenter;
+            outText.color = new Color(0.5f, 0.5f, 0.5f);
+        }
+
+        #endregion
+
+        #region 后端对接：空状态处理
+
+        /// <summary>
+        /// 显示空商店状态
+        /// </summary>
+        private void ShowEmptyState(string message)
+        {
+            // 优先使用Inspector赋值的emptyStateText
+            if (emptyStateText != null)
+            {
+                emptyStateText.text = message;
+                emptyStateText.gameObject.SetActive(true);
+                return;
+            }
+
+            // 程序化创建空状态提示
+            if (emptyStateGo == null && itemsContainer != null)
+            {
+                emptyStateGo = new GameObject("EmptyState");
+                var rect = emptyStateGo.AddComponent<RectTransform>();
+                rect.SetParent(itemsContainer, false);
+                rect.anchorMin = new Vector2(0.1f, 0.2f);
+                rect.anchorMax = new Vector2(0.9f, 0.8f);
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
+
+                var txt = emptyStateGo.AddComponent<Text>();
+                txt.fontSize = 18;
+                txt.alignment = TextAnchor.MiddleCenter;
+                txt.color = new Color(0.6f, 0.6f, 0.6f, 0.8f);
+                emptyStateText = txt; // 缓存引用以便后续更新文字
+            }
+
+            if (emptyStateGo != null)
+            {
+                emptyStateGo.SetActive(true);
+                if (emptyStateText != null)
+                    emptyStateText.text = message;
+            }
+        }
+
+        /// <summary>
+        /// 隐藏空状态提示
+        /// </summary>
+        private void HideEmptyState()
+        {
+            if (emptyStateText != null)
+                emptyStateText.gameObject.SetActive(false);
+            if (emptyStateGo != null)
+                emptyStateGo.SetActive(false);
+        }
+
+        #endregion
     }
 }
