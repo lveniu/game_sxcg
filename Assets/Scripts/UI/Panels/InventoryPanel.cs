@@ -584,8 +584,42 @@ namespace Game.UI
 
         private void OnUseCard(CardInstance card)
         {
-            // TODO: 卡牌使用逻辑（等待后端 CardUseSystem）
-            Debug.Log($"[Inventory] 使用卡牌: {card.DisplayName} (等待后端 CardUseSystem)");
+            if (card == null) return;
+
+            var battleMgr = BattleManager.Instance;
+
+            // 战斗中 → 直接执行卡牌效果
+            if (battleMgr != null && battleMgr.IsBattleActive)
+            {
+                if (CardEffectEngine.Instance == null)
+                {
+                    Debug.LogWarning("[Inventory] CardEffectEngine 未初始化，无法使用卡牌");
+                    return;
+                }
+
+                // 取场上英雄作为友方/施法者
+                var allies = battleMgr.playerUnits;
+                var enemies = battleMgr.enemyUnits;
+                Hero caster = allies != null && allies.Count > 0 ? allies[0] : null;
+
+                bool success = CardEffectEngine.Instance.ExecuteCardEffect(card, caster, allies, enemies);
+                if (success)
+                {
+                    Debug.Log($"[Inventory] 卡牌 [{card.DisplayName}] 在战斗中使用成功");
+                    // 从背包移除已使用的卡牌
+                    PlayerInventory.Instance?.RemoveCard(card);
+                    Refresh();
+                }
+                else
+                {
+                    Debug.LogWarning($"[Inventory] 卡牌 [{card.DisplayName}] 效果执行失败");
+                }
+            }
+            // 非战斗中 → 提示
+            else
+            {
+                Debug.Log($"[Inventory] 卡牌 [{card.DisplayName}] 只能在战斗中使用，请将其加入预设快捷栏");
+            }
         }
 
         // ══════════════════════════════════════
