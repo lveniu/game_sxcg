@@ -60,6 +60,26 @@ public class CardInstance : IItem
         Data = data;
         StarLevel = 1;
         Level = 1;
+
+        // 自动关联持有英雄：如果是英雄卡但尚未设置ownerHero，通过卡牌名称查找HeroData
+        if (data.cardType == CardType.Hero && data.ownerHero == null)
+        {
+            data.ownerHero = GameData.CreateHeroByJsonId(CardNameToClassId(data.cardName));
+        }
+    }
+
+    /// <summary>
+    /// 英雄卡中文名 → JSON classId 映射
+    /// </summary>
+    private static string CardNameToClassId(string cardName)
+    {
+        return cardName switch
+        {
+            "战士" => "warrior",
+            "法师" => "mage",
+            "刺客" => "assassin",
+            _ => "warrior" // 默认战士
+        };
     }
 
     /// <summary>

@@ -451,8 +451,8 @@ namespace Game.UI
             // 从手牌移除英雄卡
             deck.RemoveCard(selectedCard);
 
-            // 根据卡牌名称映射到HeroData
-            var heroData = ResolveHeroData(selectedCard.CardName);
+            // 直接从CardData获取关联的HeroData
+            var heroData = selectedCard.Data.ownerHero;
             if (heroData != null)
             {
                 var hero = deck.SummonHero(heroData);
@@ -468,23 +468,6 @@ namespace Game.UI
 
             selectedCard = null;
             RefreshAfterAction();
-        }
-
-        /// <summary>
-        /// 根据卡牌名称解析对应的HeroData
-        /// TODO(Phase2-CardData): 后端在CardData上增加heroData引用字段后改用直接引用 — 不阻塞Phase1
-        /// </summary>
-        private HeroData ResolveHeroData(string cardName)
-        {
-            // 中文名 → JSON classId 映射
-            string classId = cardName switch
-            {
-                "战士" => "warrior",
-                "法师" => "mage",
-                "刺客" => "assassin",
-                _ => "warrior" // 默认战士
-            };
-            return GameData.CreateHeroByJsonId(classId);
         }
 
         /// <summary>打出属性卡</summary>

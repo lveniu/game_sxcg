@@ -75,6 +75,9 @@ public class CardData : ScriptableObject
     [Header("效果引擎")]
     public string effectIdStr;     // 效果引擎用的字符串ID（与face_effects.json等配置关联）
 
+    [Header("持有英雄（英雄卡专用）")]
+    public HeroData ownerHero; // 英雄卡对应的目标HeroData，发到手中时自动关联
+
     [Header("外观")]
     public Sprite icon;
 
