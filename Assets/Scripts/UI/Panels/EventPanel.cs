@@ -519,14 +519,22 @@ namespace Game.UI
             // 隐藏旧确认按钮
             if (confirmButton != null) confirmButton.interactable = false;
 
-            // 应用事件效果（后端处理）
+            // 应用事件效果（双轨：EventEffectEngine精确执行 + RandomEventSystem兜底）
             var inventory = PlayerInventory.Instance;
             var deck = CardDeck.Instance;
             var heroes = deck?.fieldHeroes;
-            if (inventory != null)
+            string effectResult = "";
+            if (option != null && option.effects != null && option.effects.Count > 0)
             {
+                // 优先使用EventEffectEngine执行精确效果
+                effectResult = EventEffectEngine.ExecuteEffects(option.effects);
+                Debug.Log($"[Event] EventEffectEngine执行效果：{effectResult}");
+            }
+            else if (inventory != null)
+            {
+                // 兜底：使用RandomEventSystem
                 RandomEventSystem.ApplyEvent(currentEvent, inventory, heroes);
-                Debug.Log($"[Event] 应用事件效果：{currentEvent.description}");
+                Debug.Log($"[Event] RandomEventSystem兜底执行：{currentEvent.description}");
             }
 
             // 显示结果（打字机效果 + 效果反馈）

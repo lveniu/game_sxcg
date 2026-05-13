@@ -481,6 +481,14 @@ namespace Game.UI
             if (selectedCard.Type == CardType.Attribute)
             {
                 deck.PlayAttributeCard(selectedCard);
+                // 执行卡牌效果引擎
+                var engine = CardEffectEngine.Instance;
+                if (engine != null && deck.fieldHeroes != null && deck.fieldHeroes.Count > 0)
+                {
+                    var caster = deck.fieldHeroes[0];
+                    bool applied = engine.ExecuteCardEffect(selectedCard, caster, deck.fieldHeroes, null);
+                    Debug.Log($"[CardPlay] 属性卡效果执行: {applied}");
+                }
                 PlayCardPlayAnimation(selectedCard, "属性永久生效");
             }
             else if (selectedCard.Type == CardType.Evolution)
@@ -516,6 +524,18 @@ namespace Game.UI
 
             // 打出战斗卡（联动当前骰子组合）
             bool hasCombo = deck.PlayBattleCard(selectedCard, currentCombo);
+
+            // 执行战斗卡效果引擎
+            var engine = CardEffectEngine.Instance;
+            if (engine != null && deck.fieldHeroes != null && deck.fieldHeroes.Count > 0)
+            {
+                var caster = deck.fieldHeroes[0];
+                // 获取当前敌人列表
+                var bm = BattleManager.Instance;
+                var enemies = bm != null ? bm.enemyUnits : null;
+                bool applied = engine.ExecuteCardEffect(selectedCard, caster, deck.fieldHeroes, enemies);
+                Debug.Log($"[CardPlay] 战斗卡效果执行: {applied}, 联动: {hasCombo}");
+            }
 
             string label = hasCombo ? "打出·骰子联动！" : "打出";
             PlayCardPlayAnimation(selectedCard, label);

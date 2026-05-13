@@ -198,6 +198,24 @@ public class SetBonusSystem : MonoBehaviour
     }
 
     /// <summary>
+    /// 获取所有套装ID列表
+    /// </summary>
+    public List<string> GetAllSetIds()
+    {
+        return new List<string>(setDefinitions.Keys);
+    }
+
+    /// <summary>
+    /// 获取指定套装ID的所有定义（含不同阈值的2件/4件效果）
+    /// </summary>
+    public List<SetDefinition> GetSetDefinitions(string setId)
+    {
+        if (setDefinitions.TryGetValue(setId, out var defs))
+            return defs;
+        return new List<SetDefinition>();
+    }
+
+    /// <summary>
     /// 检查英雄装备的套装件数，应用对应加成
     /// 在 Hero.RecalculateStats() 中调用
     /// </summary>

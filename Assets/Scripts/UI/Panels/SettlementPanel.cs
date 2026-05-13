@@ -118,9 +118,25 @@ namespace Game.UI
                 resultTitleText.rectTransform.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutBack).SetLink(gameObject);
             }
 
-            // 关卡（从UIConfigBridge获取关卡标题）
+            // 关卡进度显示
+            var rgm = RoguelikeGameManager.Instance;
+            int totalLevels = (BalanceProvider.Levels != null && BalanceProvider.Levels.level_templates != null)
+                ? BalanceProvider.Levels.level_templates.Count : 10;
+            int currentLevelProgress = rgm != null ? rgm.CurrentLevel : level;
+
             if (levelText != null)
-                levelText.text = UIConfigBridge.GetLevelTitle(level);
+            {
+                string levelTitle = UIConfigBridge.GetLevelTitle(level);
+                string progress = $"({currentLevelProgress}/{totalLevels})";
+                levelText.text = $"{levelTitle} {progress}";
+            }
+
+            // 当前金币显示
+            var inventory = PlayerInventory.Instance;
+            if (inventory != null)
+            {
+                Debug.Log($"[SettlementPanel] 当前金币: {inventory.Gold}");
+            }
 
             // 装备掉落（胜利时）
             ShowEquipmentDrop(won);
@@ -1003,7 +1019,15 @@ namespace Game.UI
 
         private void OnNextClicked()
         {
-            // 胜利：跳转肉鸽奖励（NextState在Settlement状态下会跳到RoguelikeReward）
+            // 通知肉鸽管理器进入下一关
+            var rgm = RoguelikeGameManager.Instance;
+            if (rgm != null)
+            {
+                rgm.EnterNextLevel();
+                Debug.Log($"[SettlementPanel] 进入下一关，当前关卡: {rgm.CurrentLevel}");
+            }
+
+            // 跳转肉鸽奖励（NextState在Settlement状态下会跳到RoguelikeReward）
             GameStateMachine.Instance?.NextState();
         }
 

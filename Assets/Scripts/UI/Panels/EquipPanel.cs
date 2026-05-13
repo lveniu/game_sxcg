@@ -88,6 +88,19 @@ namespace Game.UI
         public RectTransform setBonusContainer;
         #endregion
 
+        #region 强化系统UI
+        [Header("强化系统（可留空，程序化创建）")]
+        public Button enhanceButton;
+        public Text enhancePreviewText;      // 强化预览信息
+        public RectTransform enhancePanel;   // 强化区域容器
+        #endregion
+
+        #region 装备对比UI
+        [Header("装备对比（可留空，程序化创建）")]
+        public RectTransform comparePanel;   // 对比区域容器
+        public Text compareText;             // 对比文字
+        #endregion
+
         // 内部缓存
         private class HeroItemUI
         {
@@ -116,6 +129,9 @@ namespace Game.UI
         private Hero selectedHero;
         private EquipmentData selectedEquipment;
         private int selectedBackpackIndex = -1;
+
+        // 当前查看/操作的装备（用于强化预览），可以是背包选中或已装备的
+        private EquipmentData enhanceTarget;
 
         #region 套装UI内部缓存
         // 套装进度条/效果行的UI引用
@@ -256,6 +272,10 @@ namespace Game.UI
             accessorySlotButton?.onClick.RemoveAllListeners();
             accessorySlotButton?.onClick.AddListener(() => OnSlotClicked(EquipmentSlot.Accessory));
 
+            // 绑定强化按钮
+            enhanceButton?.onClick.RemoveAllListeners();
+            enhanceButton?.onClick.AddListener(OnEnhanceClicked);
+
             // 初始化
             RefreshHeroList();
             SelectHeroByDefault();
@@ -263,6 +283,15 @@ namespace Game.UI
 
             selectedEquipment = null;
             selectedBackpackIndex = -1;
+            enhanceTarget = null;
+
+            // 确保强化区域容器存在
+            EnsureEnhancePanel();
+            // 确保对比区域容器存在
+            EnsureComparePanel();
+
+            // 初始化强化预览为空
+            UpdateEnhancePreview(null);
         }
 
         protected override void OnHide()
@@ -271,6 +300,7 @@ namespace Game.UI
             weaponSlotButton?.onClick.RemoveAllListeners();
             armorSlotButton?.onClick.RemoveAllListeners();
             accessorySlotButton?.onClick.RemoveAllListeners();
+            enhanceButton?.onClick.RemoveAllListeners();
             ClearHeroItems();
             ClearBackpackItems();
             ClearSetBonusUIs();
@@ -394,13 +424,18 @@ namespace Game.UI
             RefreshSlots();
             RefreshStats();
 
-            // 刷新套装信息
-            RefreshSetBonuses();
+            // 刷新套装信息 — 对接 SetBonusSystem
+            ShowSetBonusInfo(selectedHero);
 
             // 重置背包选中
             selectedEquipment = null;
             selectedBackpackIndex = -1;
+            enhanceTarget = null;
             RefreshBackpackSelection();
+
+            // 重置强化预览和装备对比
+            UpdateEnhancePreview(null);
+            UpdateCompareDisplay(null);
         }
 
         private void SelectHeroByDefault()
@@ -450,16 +485,15 @@ namespace Game.UI
 
             if (equipped != null)
             {
+                // 设置强化目标为当前已装备的装备（用于查看强化信息）
+                enhanceTarget = equipped;
+                UpdateEnhancePreview(equipped);
+
                 // 记录卸下前的套装件数
                 var beforeCounts = GetCurrentSetPieceCounts();
 
-                // 卸下装备
-                var inventory = PlayerInventory.Instance;
-                if (inventory != null)
-                {
-                    inventory.UnequipFromHero(slot, selectedHero);
-                    Debug.Log($"[Equip] 卸下 {equipped.equipmentName}");
-                }
+                // 卸下装备 — 对接 OnUnequipFromHero
+                OnUnequipFromHero(selectedHero, slot);
 
                 // 刷新
                 RefreshSlots();
@@ -468,35 +502,56 @@ namespace Game.UI
 
                 // 刷新套装信息（含卸下检测动画）
                 RefreshSetBonusesWithDeactivateCheck(beforeCounts);
+                // 同时更新 SetBonusSystem 的显示
+                ShowSetBonusInfo(selectedHero);
+
+                // 重置强化目标
+                enhanceTarget = null;
+                UpdateEnhancePreview(null);
             }
             else if (selectedEquipment != null && selectedEquipment.slot == slot)
             {
                 // 记录穿戴前的套装件数
                 var beforeCounts = GetCurrentSetPieceCounts();
 
-                // 穿戴选中的装备
-                var inventory = PlayerInventory.Instance;
-                if (inventory != null && inventory.EquipToHero(selectedEquipment, selectedHero))
-                {
-                    Debug.Log($"[Equip] 穿戴 {selectedEquipment.equipmentName} → {selectedHero.Data.heroName}");
+                // 获取当前槽位装备（用于对比），如果为空则为null
+                EquipmentData currentEquip = GetEquippedItem(slot);
 
-                    // 穿戴动画
-                    PlayEquipAnimation(slot);
+                // 穿戴选中的装备 — 对接 OnEquipToHero
+                OnEquipToHero(selectedHero, selectedEquipment);
 
-                    selectedEquipment = null;
-                    selectedBackpackIndex = -1;
-                    RefreshSlots();
-                    RefreshStats();
-                    RefreshBackpack();
+                // 穿戴动画
+                PlayEquipAnimation(slot);
 
-                    // 刷新套装信息（含激活检测动画）
-                    RefreshSetBonusesWithActivateCheck(beforeCounts);
-                }
+                selectedEquipment = null;
+                selectedBackpackIndex = -1;
+                enhanceTarget = null;
+                RefreshSlots();
+                RefreshStats();
+                RefreshBackpack();
+
+                // 刷新套装信息（含激活检测动画）
+                RefreshSetBonusesWithActivateCheck(beforeCounts);
+                // 同时更新 SetBonusSystem 的显示
+                ShowSetBonusInfo(selectedHero);
+
+                // 重置对比
+                UpdateCompareDisplay(null);
             }
             else if (selectedEquipment != null && selectedEquipment.slot != slot)
             {
                 // 槽位不匹配提示
                 Debug.Log($"[Equip] 该装备需要{selectedEquipment.slot}槽位，当前点击的是{slot}");
+            }
+            else
+            {
+                // 空槽位且无选中装备 — 如果有已装备项则设为强化目标
+                var slotEquip = GetEquippedItem(slot);
+                if (slotEquip != null)
+                {
+                    enhanceTarget = slotEquip;
+                    UpdateEnhancePreview(slotEquip);
+                }
             }
         }
 
@@ -694,6 +749,17 @@ namespace Game.UI
 
             // 自动高亮对应槽位
             HighlightMatchingSlot(selectedEquipment.slot);
+
+            // 设置强化目标为选中的背包装备
+            enhanceTarget = selectedEquipment;
+            UpdateEnhancePreview(selectedEquipment);
+
+            // 如果有选中英雄，显示装备对比
+            if (selectedHero != null)
+            {
+                EquipmentData currentEquipped = GetEquippedItem(selectedEquipment.slot);
+                UpdateCompareDisplay(CompareEquipments(currentEquipped, selectedEquipment));
+            }
         }
 
         private void RefreshBackpackSelection()
@@ -788,6 +854,7 @@ namespace Game.UI
         /// <summary>
         /// 获取当前英雄所有已装备装备的套装件数统计
         /// 返回 Dictionary<setId, pieceCount>
+        /// 使用 EquipmentData.setId 真实套装归属（不再依赖Mock映射）
         /// </summary>
         private Dictionary<string, int> GetCurrentSetPieceCounts()
         {
@@ -797,12 +864,10 @@ namespace Game.UI
             foreach (EquipmentSlot slot in System.Enum.GetValues(typeof(EquipmentSlot)))
             {
                 var eq = GetEquippedItem(slot);
-                if (eq == null) continue;
-                string setId = GetSetIdForEquipment(eq.equipmentName);
-                if (setId == null) continue;
-                if (!counts.ContainsKey(setId))
-                    counts[setId] = 0;
-                counts[setId]++;
+                if (eq == null || !eq.BelongsToSet) continue;
+                if (!counts.ContainsKey(eq.setId))
+                    counts[eq.setId] = 0;
+                counts[eq.setId]++;
             }
             return counts;
         }
@@ -828,17 +893,37 @@ namespace Game.UI
             // 记录快照
             lastSetPieceCount = new Dictionary<string, int>(counts);
 
-            // 为每个有件的套装创建UI（也处理已装备0件但有套装装备在背包的情况）
-            // 这里只显示当前英雄有装备关联的套装
-            foreach (var setData in MOCK_SET_DATABASE)
+            // 尝试使用 SetBonusSystem 的真实数据
+            var setBonusSystem = SetBonusSystem.Instance;
+            if (setBonusSystem != null)
             {
-                int pieceCount = counts.TryGetValue(setData.setId, out var c) ? c : 0;
-
-                // 只显示有至少1件装备的套装（或者总是显示也可以，这里选择总是显示以演示）
-                if (pieceCount > 0 || HasSetEquipmentInBackpack(setData.setId))
+                // 使用真实套装系统数据
+                var allSetIds = setBonusSystem.GetAllSetIds();
+                foreach (var setId in allSetIds)
                 {
-                    var ui = CreateSetBonusUI(setData, pieceCount);
-                    setBonusUIs.Add(ui);
+                    int pieceCount = counts.TryGetValue(setId, out var c) ? c : 0;
+                    if (pieceCount > 0 || HasSetEquipmentInBackpack(setId))
+                    {
+                        var defs = setBonusSystem.GetSetDefinitions(setId);
+                        if (defs.Count > 0)
+                        {
+                            var ui = CreateSetBonusUIFromSystem(setId, defs, pieceCount);
+                            setBonusUIs.Add(ui);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // 降级：使用Mock数据
+                foreach (var setData in MOCK_SET_DATABASE)
+                {
+                    int pieceCount = counts.TryGetValue(setData.setId, out var c) ? c : 0;
+                    if (pieceCount > 0 || HasSetEquipmentInBackpack(setData.setId))
+                    {
+                        var ui = CreateSetBonusUI(setData, pieceCount);
+                        setBonusUIs.Add(ui);
+                    }
                 }
             }
         }
@@ -858,27 +943,65 @@ namespace Game.UI
             var afterCounts = GetCurrentSetPieceCounts();
             lastSetPieceCount = new Dictionary<string, int>(afterCounts);
 
+            var setBonusSystem = SetBonusSystem.Instance;
+
             // 创建UI并检测激活
-            foreach (var setData in MOCK_SET_DATABASE)
+            void ProcessSet(string setId, int before, int after)
             {
-                int before = beforeCounts.TryGetValue(setData.setId, out var b) ? b : 0;
-                int after = afterCounts.TryGetValue(setData.setId, out var a) ? a : 0;
-
-                if (after > 0 || HasSetEquipmentInBackpack(setData.setId))
+                if (setBonusSystem != null)
                 {
-                    var ui = CreateSetBonusUI(setData, after);
-                    setBonusUIs.Add(ui);
+                    var defs = setBonusSystem.GetSetDefinitions(setId);
+                    if (defs.Count > 0)
+                    {
+                        var ui = CreateSetBonusUIFromSystem(setId, defs, after);
+                        setBonusUIs.Add(ui);
 
-                    // 检测是否跨过阈值 → 播放激活动画
-                    if (after >= setData.threshold2 && before < setData.threshold2)
-                    {
-                        PlaySetActivateAnimation(ui, setData, 2);
+                        // 检测是否跨过任意阈值 → 播放激活动画
+                        defs.Sort((a, b) => a.requiredCount.CompareTo(b.requiredCount));
+                        foreach (var def in defs)
+                        {
+                            if (after >= def.requiredCount && before < def.requiredCount)
+                            {
+                                PlaySetActivateAnimationFromSystem(ui, def);
+                            }
+                        }
                     }
-                    // 4件效果（如果有4件阈值）
-                    if (after >= setData.totalPieces && before < setData.totalPieces)
+                }
+                else
+                {
+                    // Mock降级
+                    var mockData = GetSetDataById(setId);
+                    if (mockData != null)
                     {
-                        PlaySetActivateAnimation(ui, setData, 4);
+                        var ui = CreateSetBonusUI(mockData, after);
+                        setBonusUIs.Add(ui);
+                        if (after >= mockData.threshold2 && before < mockData.threshold2)
+                            PlaySetActivateAnimation(ui, mockData, 2);
+                        if (after >= mockData.totalPieces && before < mockData.totalPieces)
+                            PlaySetActivateAnimation(ui, mockData, 4);
                     }
+                }
+            }
+
+            if (setBonusSystem != null)
+            {
+                var allSetIds = setBonusSystem.GetAllSetIds();
+                foreach (var setId in allSetIds)
+                {
+                    int before = beforeCounts.TryGetValue(setId, out var b) ? b : 0;
+                    int after = afterCounts.TryGetValue(setId, out var a) ? a : 0;
+                    if (after > 0 || HasSetEquipmentInBackpack(setId))
+                        ProcessSet(setId, before, after);
+                }
+            }
+            else
+            {
+                foreach (var setData in MOCK_SET_DATABASE)
+                {
+                    int before = beforeCounts.TryGetValue(setData.setId, out var b) ? b : 0;
+                    int after = afterCounts.TryGetValue(setData.setId, out var a) ? a : 0;
+                    if (after > 0 || HasSetEquipmentInBackpack(setData.setId))
+                        ProcessSet(setData.setId, before, after);
                 }
             }
         }
@@ -898,28 +1021,70 @@ namespace Game.UI
             var afterCounts = GetCurrentSetPieceCounts();
             lastSetPieceCount = new Dictionary<string, int>(afterCounts);
 
+            var setBonusSystem = SetBonusSystem.Instance;
+
             // 创建UI并检测取消
-            foreach (var setData in MOCK_SET_DATABASE)
+            void ProcessSetDeactivate(string setId, int before, int after)
             {
-                int before = beforeCounts.TryGetValue(setData.setId, out var b) ? b : 0;
-                int after = afterCounts.TryGetValue(setData.setId, out var a) ? a : 0;
-
-                if (after > 0 || before > 0 || HasSetEquipmentInBackpack(setData.setId))
+                if (setBonusSystem != null)
                 {
-                    var ui = CreateSetBonusUI(setData, after);
-                    setBonusUIs.Add(ui);
-
-                    // 检测是否掉过阈值 → 播放取消动画（红色闪烁）
-                    if (before >= setData.threshold2 && after < setData.threshold2 && after > 0)
+                    var defs = setBonusSystem.GetSetDefinitions(setId);
+                    if (defs.Count > 0)
                     {
-                        PlaySetDeactivateAnimation(ui, setData);
+                        var ui = CreateSetBonusUIFromSystem(setId, defs, after);
+                        setBonusUIs.Add(ui);
+
+                        // 检测是否掉过任意阈值 → 播放取消动画
+                        defs.Sort((a, b) => a.requiredCount.CompareTo(b.requiredCount));
+                        foreach (var def in defs)
+                        {
+                            if (before >= def.requiredCount && after < def.requiredCount && after > 0)
+                            {
+                                PlaySetDeactivateAnimationFromSystem(ui, def);
+                            }
+                        }
                     }
+                }
+                else
+                {
+                    // Mock降级
+                    var mockData = GetSetDataById(setId);
+                    if (mockData != null)
+                    {
+                        var ui = CreateSetBonusUI(mockData, after);
+                        setBonusUIs.Add(ui);
+                        if (before >= mockData.threshold2 && after < mockData.threshold2 && after > 0)
+                            PlaySetDeactivateAnimation(ui, mockData);
+                    }
+                }
+            }
+
+            if (setBonusSystem != null)
+            {
+                var allSetIds = setBonusSystem.GetAllSetIds();
+                foreach (var setId in allSetIds)
+                {
+                    int before = beforeCounts.TryGetValue(setId, out var b) ? b : 0;
+                    int after = afterCounts.TryGetValue(setId, out var a) ? a : 0;
+                    if (after > 0 || before > 0 || HasSetEquipmentInBackpack(setId))
+                        ProcessSetDeactivate(setId, before, after);
+                }
+            }
+            else
+            {
+                foreach (var setData in MOCK_SET_DATABASE)
+                {
+                    int before = beforeCounts.TryGetValue(setData.setId, out var b) ? b : 0;
+                    int after = afterCounts.TryGetValue(setData.setId, out var a) ? a : 0;
+                    if (after > 0 || before > 0 || HasSetEquipmentInBackpack(setData.setId))
+                        ProcessSetDeactivate(setData.setId, before, after);
                 }
             }
         }
 
         /// <summary>
         /// 检查背包装备中是否有属于指定套装的装备
+        /// 使用 EquipmentData.setId 真实套装归属
         /// </summary>
         private bool HasSetEquipmentInBackpack(string setId)
         {
@@ -927,7 +1092,7 @@ namespace Game.UI
             if (inventory == null || inventory.Equipments == null) return false;
             foreach (var eq in inventory.Equipments)
             {
-                if (eq != null && GetSetIdForEquipment(eq.equipmentName) == setId)
+                if (eq != null && eq.BelongsToSet && eq.setId == setId)
                     return true;
             }
             return false;
@@ -1188,6 +1353,72 @@ namespace Game.UI
         }
 
         /// <summary>
+        /// 套装效果激活动画（使用 SetDefinition 真实数据）
+        /// 金色脉冲 + 闪光 + 飘字
+        /// </summary>
+        private void PlaySetActivateAnimationFromSystem(SetBonusUI ui, SetDefinition def)
+        {
+            if (ui.rect == null) return;
+
+            // 1. Scale脉冲：1 → 1.1 → 1
+            ui.rect.localScale = Vector3.one;
+            ui.rect.DOScale(Vector3.one * 1.1f, 0.2f)
+                .SetEase(Ease.OutQuad)
+                .OnComplete(() =>
+                {
+                    ui.rect.DOScale(Vector3.one, 0.3f).SetEase(Ease.InOutSine);
+                });
+
+            // 2. 颜色脉冲（背景金色闪烁）
+            var bgImage = ui.rect.GetComponent<Image>();
+            if (bgImage != null)
+            {
+                Color originalBg = bgImage.color;
+                bgImage.DOColor(new Color(1f, 0.85f, 0.2f, 0.9f), 0.15f)
+                    .OnComplete(() =>
+                    {
+                        bgImage.DOColor(originalBg, 0.5f).SetEase(Ease.InOutSine);
+                    });
+            }
+
+            // 3. 进度条闪烁
+            if (ui.progressBarFill != null)
+            {
+                ui.progressBarFill.DOColor(new Color(1f, 1f, 0.6f), 0.15f)
+                    .SetLoops(4, LoopType.Yoyo)
+                    .SetEase(Ease.InOutSine);
+            }
+
+            // 4. 飘字动画
+            string flyText = $"{def.setName} {def.requiredCount}件效果激活！";
+            Color flyColor = GetSetColor(def.setId);
+            PlayFlyingText(flyText, ui.rect, flyColor);
+        }
+
+        /// <summary>
+        /// 套装效果取消动画（使用 SetDefinition 真实数据）
+        /// 红色闪烁提示
+        /// </summary>
+        private void PlaySetDeactivateAnimationFromSystem(SetBonusUI ui, SetDefinition def)
+        {
+            if (ui.rect == null) return;
+
+            // 红色闪烁
+            var bgImage = ui.rect.GetComponent<Image>();
+            if (bgImage != null)
+            {
+                Color originalBg = bgImage.color;
+                bgImage.DOColor(new Color(0.8f, 0.15f, 0.15f, 0.9f), 0.15f)
+                    .SetLoops(4, LoopType.Yoyo)
+                    .SetEase(Ease.InOutSine);
+            }
+
+            // 飘字
+            string flyText = $"{def.setName} 效果失效！";
+            PlayFlyingText(flyText, ui.rect, new Color(1f, 0.3f, 0.2f));
+        }
+
+        /// <summary>
         /// 飘字动画：在指定位置创建文字，向上飘动后消失
         /// </summary>
         private void PlayFlyingText(string text, RectTransform origin, Color textColor)
@@ -1283,5 +1514,725 @@ namespace Game.UI
             if (eq.speedBonus != 0) parts.Add($"💨{eq.speedBonus:+#;-#;0}");
             return string.Join(" ", parts);
         }
+
+        // ================================================================
+        // 强化系统对接 — EquipmentEnhancer
+        // ================================================================
+
+        #region 强化系统
+
+        /// <summary>
+        /// 强化按钮点击回调 — 对接 EquipmentEnhancer.Instance.Enhance(equip)
+        /// 消耗金币进行强化，5级以上有失败概率，失败不掉级
+        /// </summary>
+        public void OnEnhanceClicked()
+        {
+            if (enhanceTarget == null)
+            {
+                Debug.Log("[EquipPanel] 没有选中可强化的装备");
+                return;
+            }
+
+            var enhancer = EquipmentEnhancer.Instance;
+            if (enhancer == null)
+            {
+                Debug.LogError("[EquipPanel] EquipmentEnhancer 实例不存在！");
+                return;
+            }
+
+            // 再次检查是否可以强化（金币/等级）
+            if (!enhancer.CanEnhance(enhanceTarget))
+            {
+                Debug.Log($"[EquipPanel] 无法强化 {enhanceTarget.equipmentName}（金币不足或已满级）");
+                UpdateEnhancePreview(enhanceTarget);
+                return;
+            }
+
+            // 执行强化
+            EnhanceResult result = enhancer.Enhance(enhanceTarget);
+
+            // 根据结果显示反馈
+            switch (result)
+            {
+                case EnhanceResult.Success:
+                    Debug.Log($"[EquipPanel] 强化成功！{enhanceTarget.equipmentName} → +{enhanceTarget.enhanceLevel}");
+                    PlayEnhanceSuccessAnimation();
+                    break;
+                case EnhanceResult.Failed:
+                    Debug.Log($"[EquipPanel] 强化失败！{enhanceTarget.equipmentName} 保持 +{enhanceTarget.enhanceLevel}");
+                    PlayEnhanceFailAnimation();
+                    break;
+                case EnhanceResult.MaxLevel:
+                    Debug.Log($"[EquipPanel] {enhanceTarget.equipmentName} 已达最大强化等级");
+                    break;
+                case EnhanceResult.NotEnoughGold:
+                    Debug.Log($"[EquipPanel] 金币不足，强化 {enhanceTarget.equipmentName} 需要 {enhancer.GetEnhanceCost(enhanceTarget)} 金币");
+                    break;
+                case EnhanceResult.InvalidEquipment:
+                    Debug.Log("[EquipPanel] 无效装备");
+                    break;
+            }
+
+            // 更新强化预览
+            UpdateEnhancePreview(enhanceTarget);
+
+            // 刷新属性面板（强化可能改变装备属性）
+            RefreshStats();
+            RefreshSlots();
+        }
+
+        /// <summary>
+        /// 更新强化预览显示
+        /// 显示：当前等级 → 下一等级、费用、成功率、属性增量
+        /// 5级以上标红成功率，提醒玩家有失败风险
+        /// </summary>
+        public void UpdateEnhancePreview(EquipmentData equip)
+        {
+            // 确保强化区域容器存在
+            EnsureEnhancePanel();
+
+            if (enhancePreviewText == null) return;
+
+            if (equip == null)
+            {
+                enhancePreviewText.text = "选择装备查看强化信息";
+                enhancePreviewText.color = new Color(0.5f, 0.5f, 0.5f);
+                if (enhanceButton != null) enhanceButton.interactable = false;
+                return;
+            }
+
+            var enhancer = EquipmentEnhancer.Instance;
+            if (enhancer == null)
+            {
+                enhancePreviewText.text = "强化系统未就绪";
+                enhancePreviewText.color = STAT_DOWN;
+                if (enhanceButton != null) enhanceButton.interactable = false;
+                return;
+            }
+
+            bool canEnhance = enhancer.CanEnhance(equip);
+            bool isMaxLevel = equip.enhanceLevel >= equip.maxEnhanceLevel;
+            int cost = enhancer.GetEnhanceCost(equip);
+            float successRate = enhancer.GetSuccessRate(equip);
+
+            // 构建预览文本
+            string preview = $"<b>{equip.equipmentName}</b>\n";
+
+            if (isMaxLevel)
+            {
+                preview += $"<color=#FFD700>已满级 +{equip.enhanceLevel}/{equip.maxEnhanceLevel}</color>";
+                enhancePreviewText.color = new Color(1f, 0.85f, 0.2f);
+                if (enhanceButton != null) enhanceButton.interactable = false;
+            }
+            else
+            {
+                // 等级进度
+                preview += $"强化等级：+{equip.enhanceLevel} → +{equip.enhanceLevel + 1}\n";
+
+                // 属性增量预览
+                float delta = 0.1f; // 每级+10%
+                int atkDelta = Mathf.RoundToInt(equip.attackBonus * delta);
+                int defDelta = Mathf.RoundToInt(equip.defenseBonus * delta);
+                int hpDelta = Mathf.RoundToInt(equip.healthBonus * delta);
+                int spdDelta = Mathf.RoundToInt(equip.speedBonus * delta);
+
+                if (atkDelta > 0) preview += $"⚔攻击 +{atkDelta} ";
+                if (defDelta > 0) preview += $"🛡防御 +{defDelta} ";
+                if (hpDelta > 0) preview += $"❤生命 +{hpDelta} ";
+                if (spdDelta > 0) preview += $"💨速度 +{spdDelta} ";
+                preview += "\n";
+
+                // 费用
+                var inventory = PlayerInventory.Instance;
+                bool goldEnough = inventory != null && inventory.Gold >= cost;
+                string costColor = goldEnough ? "#FFFFFF" : "#FF4444";
+                preview += $"<color={costColor}>费用：{cost} 金币</color>\n";
+
+                // 成功率（5级以上标红警告）
+                if (equip.enhanceLevel >= 5)
+                {
+                    // 5级以上有失败概率，用红色显示成功率
+                    preview += $"<color=#FF6644>成功率：{successRate * 100:F0}%（有失败风险）</color>";
+                }
+                else
+                {
+                    preview += $"<color=#44FF44>成功率：100%</color>";
+                }
+
+                enhancePreviewText.color = Color.white;
+                if (enhanceButton != null) enhanceButton.interactable = canEnhance;
+            }
+
+            enhancePreviewText.text = preview;
+        }
+
+        /// <summary>
+        /// 确保强化区域容器存在（程序化创建）
+        /// </summary>
+        private void EnsureEnhancePanel()
+        {
+            if (enhancePanel != null) return;
+
+            Transform parent = statsPanel != null ? statsPanel.parent : transform;
+            GameObject go = new GameObject("EnhancePanel");
+            go.transform.SetParent(parent, false);
+            enhancePanel = go.AddComponent<RectTransform>();
+
+            // 定位在套装信息下方
+            var rect = enhancePanel;
+            rect.anchorMin = new Vector2(0.22f, 0.18f);
+            rect.anchorMax = new Vector2(0.98f, 0.28f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+
+            // 背景图
+            var bg = go.AddComponent<Image>();
+            bg.color = new Color(0.08f, 0.08f, 0.12f, 0.9f);
+            bg.raycastTarget = false;
+
+            // 垂直布局
+            var vlg = go.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = 4f;
+            vlg.padding = new RectOffset(8, 8, 6, 6);
+            vlg.childAlignment = TextAnchor.UpperCenter;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+
+            // 预览文字
+            var textGo = new GameObject("EnhancePreviewText");
+            textGo.transform.SetParent(go.transform, false);
+            enhancePreviewText = textGo.AddComponent<Text>();
+            enhancePreviewText.fontSize = 11;
+            enhancePreviewText.alignment = TextAnchor.UpperLeft;
+            enhancePreviewText.color = new Color(0.5f, 0.5f, 0.5f);
+            enhancePreviewText.text = "选择装备查看强化信息";
+            var textRect = textGo.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = textRect.offsetMax = Vector2.zero;
+
+            // 强化按钮（程序化创建，如果Inspector未指定）
+            if (enhanceButton == null)
+            {
+                var btnGo = new GameObject("EnhanceButton");
+                btnGo.transform.SetParent(go.transform, false);
+                var btnRect = btnGo.AddComponent<RectTransform>();
+                btnRect.sizeDelta = new Vector2(120, 30);
+                var btnBg = btnGo.AddComponent<Image>();
+                btnBg.color = new Color(0.2f, 0.6f, 0.3f, 0.9f);
+                enhanceButton = btnGo.AddComponent<Button>();
+
+                var btnTextGo = new GameObject("Text");
+                btnTextGo.transform.SetParent(btnGo.transform, false);
+                var btnTextRect = btnTextGo.AddComponent<RectTransform>();
+                btnTextRect.anchorMin = Vector2.zero;
+                btnTextRect.anchorMax = Vector2.one;
+                btnTextRect.offsetMin = btnTextRect.offsetMax = Vector2.zero;
+                var btnText = btnTextGo.AddComponent<Text>();
+                btnText.text = "⚡ 强化";
+                btnText.fontSize = 14;
+                btnText.fontStyle = FontStyle.Bold;
+                btnText.alignment = TextAnchor.MiddleCenter;
+                btnText.color = Color.white;
+            }
+        }
+
+        /// <summary>
+        /// 强化成功动画 — 绿色脉冲 + 缩放弹跳
+        /// </summary>
+        private void PlayEnhanceSuccessAnimation()
+        {
+            if (enhancePanel == null) return;
+
+            var bg = enhancePanel.GetComponent<Image>();
+            if (bg != null)
+            {
+                Color orig = bg.color;
+                bg.DOColor(new Color(0.15f, 0.5f, 0.2f, 0.95f), 0.15f)
+                    .OnComplete(() => bg.DOColor(orig, 0.4f).SetEase(Ease.InOutSine));
+            }
+
+            enhancePanel.localScale = Vector3.one * 0.95f;
+            enhancePanel.DOScale(Vector3.one * 1.05f, 0.15f)
+                .SetEase(Ease.OutQuad)
+                .OnComplete(() => enhancePanel.DOScale(Vector3.one, 0.2f).SetEase(Ease.InOutSine));
+
+            // 飘字
+            PlayFlyingText("强化成功！", enhancePanel, new Color(0.3f, 1f, 0.4f));
+        }
+
+        /// <summary>
+        /// 强化失败动画 — 红色闪烁 + 抖动
+        /// </summary>
+        private void PlayEnhanceFailAnimation()
+        {
+            if (enhancePanel == null) return;
+
+            var bg = enhancePanel.GetComponent<Image>();
+            if (bg != null)
+            {
+                Color orig = bg.color;
+                bg.DOColor(new Color(0.6f, 0.1f, 0.1f, 0.95f), 0.1f)
+                    .SetLoops(4, LoopType.Yoyo)
+                    .SetEase(Ease.InOutSine)
+                    .OnComplete(() => bg.color = orig);
+            }
+
+            // 抖动效果
+            enhancePanel.DOShakeAnchorPos(0.4f, 8f, 20, 90f, false, true, ShakeRandomnessMode.Harmonic);
+
+            // 飘字
+            PlayFlyingText("强化失败！", enhancePanel, new Color(1f, 0.3f, 0.2f));
+        }
+
+        #endregion
+
+        // ================================================================
+        // 套装效果展示对接 — SetBonusSystem
+        // ================================================================
+
+        #region 套装效果展示
+
+        /// <summary>
+        /// 显示当前英雄的套装激活状态 — 对接 SetBonusSystem.Instance.GetActiveSetBonuses
+        /// 同时结合 EquipmentManager.CountSetPieces 获取件数统计
+        /// </summary>
+        public void ShowSetBonusInfo(Hero hero)
+        {
+            if (hero == null) return;
+
+            var setBonusSystem = SetBonusSystem.Instance;
+
+            // 获取当前英雄各套装件数统计
+            var pieceCounts = EquipmentManager.CountSetPieces(hero);
+
+            // 获取已激活的套装效果（来自 SetBonusSystem）
+            var activeBonuses = setBonusSystem != null
+                ? setBonusSystem.GetActiveSetBonuses(hero)
+                : new List<ActiveSetBonus>();
+
+            // 清理旧UI
+            ClearSetBonusUIs();
+            EnsureSetBonusContainer();
+
+            // 记录快照
+            lastSetPieceCount = new Dictionary<string, int>(pieceCounts);
+
+            // 获取所有套装ID
+            var allSetIds = setBonusSystem != null
+                ? setBonusSystem.GetAllSetIds()
+                : new List<string>(pieceCounts.Keys);
+
+            // 为每个有件的套装创建UI
+            foreach (var setId in allSetIds)
+            {
+                int pieceCount = pieceCounts.TryGetValue(setId, out var c) ? c : 0;
+
+                // 只显示有至少1件装备关联的套装
+                if (pieceCount > 0 || HasSetEquipmentInBackpack(setId))
+                {
+                    // 使用真实套装系统数据替代Mock数据
+                    var defs = setBonusSystem != null
+                        ? setBonusSystem.GetSetDefinitions(setId)
+                        : new List<SetDefinition>();
+
+                    if (defs.Count > 0)
+                    {
+                        var ui = CreateSetBonusUIFromSystem(setId, defs, pieceCount);
+                        setBonusUIs.Add(ui);
+                    }
+                    else
+                    {
+                        // 降级：如果 SetBonusSystem 没有定义，尝试用 Mock 数据
+                        var mockData = GetSetDataById(setId);
+                        if (mockData != null)
+                        {
+                            var ui = CreateSetBonusUI(mockData, pieceCount);
+                            setBonusUIs.Add(ui);
+                        }
+                    }
+                }
+            }
+
+            // 打印激活的套装效果到日志
+            foreach (var bonus in activeBonuses)
+            {
+                Debug.Log($"[套装] {hero.Data.heroName} 激活 {bonus.setName}（{bonus.equippedCount}件/{bonus.requiredCount}件需求）");
+                foreach (var effect in bonus.bonuses)
+                {
+                    Debug.Log($"  效果：{effect.description}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 使用 SetBonusSystem 的 SetDefinition 数据创建套装UI
+        /// 支持任意数量的阈值（2件、4件等）
+        /// </summary>
+        private SetBonusUI CreateSetBonusUIFromSystem(string setId, List<SetDefinition> defs, int pieceCount)
+        {
+            var ui = new SetBonusUI { setId = setId };
+
+            // 获取套装名和颜色
+            string setName = defs.Count > 0 ? defs[0].setName : setId;
+            Color setColor = GetSetColor(setId);
+            int maxPieces = 4; // 默认总件数
+
+            // 找出最高阈值作为总件数
+            foreach (var def in defs)
+            {
+                if (def.requiredCount > maxPieces)
+                    maxPieces = def.requiredCount;
+            }
+
+            // 根节点
+            var rootGo = new GameObject($"SetBonus_{setId}");
+            rootGo.transform.SetParent(setBonusContainer, false);
+            ui.rect = rootGo.AddComponent<RectTransform>();
+
+            // 背景图（用于动画脉冲）
+            var rootBg = rootGo.AddComponent<Image>();
+            rootBg.color = new Color(0.1f, 0.1f, 0.15f, 0.8f);
+            rootBg.raycastTarget = false;
+
+            // 垂直布局
+            var vlg = rootGo.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = 4f;
+            vlg.padding = new RectOffset(8, 8, 6, 6);
+            vlg.childAlignment = TextAnchor.UpperCenter;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+
+            // ---- 第一行：套装名 + 进度条 + "X/Y" ----
+            var row1Go = new GameObject("Row1_Progress");
+            row1Go.transform.SetParent(rootGo.transform, false);
+            var row1Rect = row1Go.AddComponent<RectTransform>();
+            row1Rect.sizeDelta = new Vector2(0, 28);
+
+            var row1Layout = row1Go.AddComponent<HorizontalLayoutGroup>();
+            row1Layout.spacing = 6f;
+            row1Layout.padding = new RectOffset(0, 0, 2, 2);
+            row1Layout.childAlignment = TextAnchor.MiddleLeft;
+            row1Layout.childControlWidth = true;
+            row1Layout.childControlHeight = true;
+            row1Layout.childForceExpandWidth = true;
+            row1Layout.childForceExpandHeight = false;
+
+            // 套装名
+            var nameGo = new GameObject("SetName");
+            nameGo.transform.SetParent(row1Go.transform, false);
+            var nameRect = nameGo.AddComponent<RectTransform>();
+            ui.setNameText = nameGo.AddComponent<Text>();
+            ui.setNameText.text = setName;
+            ui.setNameText.fontSize = 13;
+            ui.setNameText.fontStyle = FontStyle.Bold;
+            ui.setNameText.color = setColor;
+            ui.setNameText.alignment = TextAnchor.MiddleLeft;
+            var nameLayoutEl = nameGo.AddComponent<LayoutElement>();
+            nameLayoutEl.minWidth = 100;
+            nameLayoutEl.flexibleWidth = 0;
+
+            // 进度条背景
+            var barBgGo = new GameObject("BarBg");
+            barBgGo.transform.SetParent(row1Go.transform, false);
+            var barBgRect = barBgGo.AddComponent<RectTransform>();
+            var barBgImage = barBgGo.AddComponent<Image>();
+            barBgImage.color = new Color(0.2f, 0.2f, 0.25f, 1f);
+            barBgImage.raycastTarget = false;
+            var barBgLayoutEl = barBgGo.AddComponent<LayoutElement>();
+            barBgLayoutEl.flexibleWidth = 1;
+            barBgLayoutEl.minHeight = 16;
+
+            // 进度条填充
+            var barFillGo = new GameObject("BarFill");
+            barFillGo.transform.SetParent(barBgGo.transform, false);
+            var barFillRect = barFillGo.AddComponent<RectTransform>();
+            barFillRect.anchorMin = Vector2.zero;
+            barFillRect.anchorMax = new Vector2(Mathf.Clamp01(pieceCount / (float)maxPieces), 1f);
+            barFillRect.offsetMin = barFillRect.offsetMax = Vector2.zero;
+            ui.progressBarFill = barFillGo.AddComponent<Image>();
+
+            // 检查是否达到任意阈值
+            bool anyActive = false;
+            foreach (var def in defs)
+            {
+                if (pieceCount >= def.requiredCount) { anyActive = true; break; }
+            }
+            ui.progressBarFill.color = anyActive ? new Color(1f, 0.85f, 0.2f) : setColor;
+            ui.progressBarFill.raycastTarget = false;
+
+            // "X/Y" 文字
+            var progTextGo = new GameObject("ProgressText");
+            progTextGo.transform.SetParent(row1Go.transform, false);
+            var progTextRect = progTextGo.AddComponent<RectTransform>();
+            ui.progressText = progTextGo.AddComponent<Text>();
+            ui.progressText.text = $"{pieceCount}/{maxPieces}";
+            ui.progressText.fontSize = 12;
+            ui.progressText.fontStyle = FontStyle.Bold;
+            ui.progressText.color = anyActive ? new Color(1f, 0.85f, 0.2f) : new Color(0.7f, 0.7f, 0.7f);
+            ui.progressText.alignment = TextAnchor.MiddleCenter;
+            var progLayoutEl = progTextGo.AddComponent<LayoutElement>();
+            progLayoutEl.minWidth = 36;
+            progLayoutEl.flexibleWidth = 0;
+
+            // ---- 效果行：按阈值从小到大显示 ----
+            defs.Sort((a, b) => a.requiredCount.CompareTo(b.requiredCount));
+
+            // 为2件和4件效果分别创建行
+            if (defs.Count >= 1)
+                ui.bonusLine2 = CreateBonusLineFromSystem(rootGo.transform, defs[0], pieceCount);
+            if (defs.Count >= 2)
+                ui.bonusLine4 = CreateBonusLineFromSystem(rootGo.transform, defs[1], pieceCount);
+
+            return ui;
+        }
+
+        /// <summary>
+        /// 从 SetDefinition 创建一个套装效果行
+        /// </summary>
+        private Text CreateBonusLineFromSystem(Transform parent, SetDefinition def, int pieceCount)
+        {
+            bool isActive = pieceCount >= def.requiredCount;
+            string effectDesc = string.Join(", ", def.bonuses.ConvertAll(b => b.description));
+            string icon = isActive ? "✅" : "🔒";
+            string text = $"{icon} {def.requiredCount}件: {effectDesc}";
+
+            return CreateBonusLine(parent, $"BonusLine_{def.requiredCount}", text, isActive);
+        }
+
+        /// <summary>
+        /// 根据套装ID返回对应的标识颜色
+        /// </summary>
+        private static Color GetSetColor(string setId)
+        {
+            return setId switch
+            {
+                "set_flame" => new Color(1f, 0.3f, 0.2f),    // 烈焰-红色
+                "set_rock" => new Color(0.3f, 0.55f, 1f),    // 磐石-蓝色
+                "set_wind" => new Color(0.3f, 0.9f, 0.5f),   // 疾风-绿色
+                "set_fate" => new Color(0.7f, 0.3f, 1f),     // 命运-紫色
+                "iron_wall" => new Color(0.3f, 0.55f, 1f),   // 铁壁-蓝色（兼容旧Mock）
+                "berserker" => new Color(1f, 0.3f, 0.2f),    // 狂战-红色（兼容旧Mock）
+                _ => new Color(0.7f, 0.7f, 0.7f)
+            };
+        }
+
+        #endregion
+
+        // ================================================================
+        // 装备对比系统
+        // ================================================================
+
+        #region 装备对比
+
+        /// <summary>
+        /// 对比两件装备的属性差异
+        /// 返回对比描述字符串，用于UI显示
+        /// current: 当前穿戴的装备（可能为null表示空槽位）
+        /// candidate: 准备穿戴的候选装备
+        /// </summary>
+        public string CompareEquipments(EquipmentData current, EquipmentData candidate)
+        {
+            if (candidate == null) return "";
+            if (current == null)
+            {
+                // 空槽位 → 只显示候选装备属性（全部为增益）
+                string stats = GetEquipStats(candidate);
+                return $"<color=#44FF44>新装备（空槽位）</color>\n{stats}";
+            }
+
+            // 计算各属性差值（含强化加成）
+            int atkDiff = candidate.EnhancedAttackBonus - current.EnhancedAttackBonus;
+            int defDiff = candidate.EnhancedDefenseBonus - current.EnhancedDefenseBonus;
+            int hpDiff = candidate.EnhancedHealthBonus - current.EnhancedHealthBonus;
+            int spdDiff = candidate.EnhancedSpeedBonus - current.EnhancedSpeedBonus;
+            float critDiff = candidate.EnhancedCritRateBonus - current.EnhancedCritRateBonus;
+
+            // 战力评分对比
+            int currentPower = PlayerInventory.GetEquipmentPower(current);
+            int candidatePower = PlayerInventory.GetEquipmentPower(candidate);
+            int powerDiff = candidatePower - currentPower;
+
+            string result = $"<b>装备对比</b>\n";
+            result += FormatCompareLine("⚔攻击", current.EnhancedAttackBonus, candidate.EnhancedAttackBonus, atkDiff);
+            result += FormatCompareLine("🛡防御", current.EnhancedDefenseBonus, candidate.EnhancedDefenseBonus, defDiff);
+            result += FormatCompareLine("❤生命", current.EnhancedHealthBonus, candidate.EnhancedHealthBonus, hpDiff);
+            result += FormatCompareLine("💨速度", current.EnhancedSpeedBonus, candidate.EnhancedSpeedBonus, spdDiff);
+
+            if (critDiff != 0f)
+            {
+                string critColor = critDiff > 0 ? "#44FF44" : "#FF4444";
+                string critSign = critDiff > 0 ? "+" : "";
+                result += $"暴击: {critColor}>{critSign}{critDiff * 100:F1}%</color>\n";
+            }
+
+            // 战力评分
+            string powerColor = powerDiff > 0 ? "#44FF44" : powerDiff < 0 ? "#FF4444" : "#CCCCCC";
+            string powerSign = powerDiff > 0 ? "+" : "";
+            result += $"<b>战力: {powerColor}>{currentPower} → {candidatePower} ({powerSign}{powerDiff})</color></b>";
+
+            return result;
+        }
+
+        /// <summary>
+        /// 格式化单行对比文本
+        /// </summary>
+        private static string FormatCompareLine(string label, int currentVal, int candidateVal, int diff)
+        {
+            if (diff == 0)
+                return $"{label}: {currentVal} → {candidateVal}\n";
+            string color = diff > 0 ? "#44FF44" : "#FF4444";
+            string sign = diff > 0 ? "+" : "";
+            return $"{label}: {currentVal} → <color={color}>{candidateVal} ({sign}{diff})</color>\n";
+        }
+
+        /// <summary>
+        /// 更新对比区域显示
+        /// </summary>
+        private void UpdateCompareDisplay(string compareResult)
+        {
+            EnsureComparePanel();
+
+            if (compareText == null) return;
+
+            if (string.IsNullOrEmpty(compareResult))
+            {
+                compareText.text = "选中背包装备查看对比";
+                compareText.color = new Color(0.5f, 0.5f, 0.5f);
+            }
+            else
+            {
+                compareText.text = compareResult;
+                compareText.color = Color.white;
+            }
+        }
+
+        /// <summary>
+        /// 确保对比区域容器存在（程序化创建）
+        /// </summary>
+        private void EnsureComparePanel()
+        {
+            if (comparePanel != null) return;
+
+            Transform parent = statsPanel != null ? statsPanel.parent : transform;
+            GameObject go = new GameObject("ComparePanel");
+            go.transform.SetParent(parent, false);
+            comparePanel = go.AddComponent<RectTransform>();
+
+            var rect = comparePanel;
+            rect.anchorMin = new Vector2(0.22f, 0.10f);
+            rect.anchorMax = new Vector2(0.98f, 0.18f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+
+            var bg = go.AddComponent<Image>();
+            bg.color = new Color(0.06f, 0.06f, 0.1f, 0.9f);
+            bg.raycastTarget = false;
+
+            var textGo = new GameObject("CompareText");
+            textGo.transform.SetParent(go.transform, false);
+            compareText = textGo.AddComponent<Text>();
+            compareText.fontSize = 11;
+            compareText.alignment = TextAnchor.UpperLeft;
+            compareText.color = new Color(0.5f, 0.5f, 0.5f);
+            compareText.text = "选中背包装备查看对比";
+            var textRect = textGo.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector4(8, 4, 8, 4);
+            textRect.offsetMax = new Vector4(-8, -4, -8, -4);
+        }
+
+        #endregion
+
+        // ================================================================
+        // 装备穿脱对接 — Hero.Equip/Unequip + PlayerInventory
+        // ================================================================
+
+        #region 装备穿脱
+
+        /// <summary>
+        /// 将装备穿戴到英雄身上
+        /// 对接 Hero.Equip(equipment) + PlayerInventory.EquipToHero
+        /// 如果目标槽位已有装备，自动替换（旧装备回到背包）
+        /// </summary>
+        public void OnEquipToHero(Hero hero, EquipmentData equip)
+        {
+            if (hero == null || equip == null)
+            {
+                Debug.LogWarning("[EquipPanel] 穿戴失败：英雄或装备为空");
+                return;
+            }
+
+            var inventory = PlayerInventory.Instance;
+            if (inventory == null)
+            {
+                Debug.LogError("[EquipPanel] PlayerInventory 实例不存在！");
+                return;
+            }
+
+            // 检查装备是否在背包中
+            if (!inventory.Equipments.Contains(equip))
+            {
+                Debug.LogWarning($"[EquipPanel] 装备 {equip.equipmentName} 不在背包中，无法穿戴");
+                return;
+            }
+
+            // 检查目标槽位是否已有装备 → 自动替换
+            EquipmentData existingEquip = hero.GetEquippedItem(equip.slot);
+            if (existingEquip != null)
+            {
+                // 卸下旧装备回到背包
+                var unequipped = hero.Unequip(equip.slot);
+                if (unequipped != null)
+                {
+                    inventory.AddEquipment(unequipped);
+                    Debug.Log($"[EquipPanel] 替换：{unequipped.equipmentName} 卸下回到背包");
+                }
+            }
+
+            // 穿戴新装备（从背包移除 → 英雄装备）
+            if (inventory.EquipToHero(equip, hero))
+            {
+                Debug.Log($"[EquipPanel] 穿戴 {equip.equipmentName} → {hero.Data.heroName}（{equip.slot}槽位）");
+            }
+        }
+
+        /// <summary>
+        /// 从英雄身上卸下装备
+        /// 对接 Hero.Unequip(slot) + PlayerInventory.AddEquipment
+        /// 卸下的装备自动回到背包
+        /// </summary>
+        public void OnUnequipFromHero(Hero hero, EquipmentSlot slot)
+        {
+            if (hero == null)
+            {
+                Debug.LogWarning("[EquipPanel] 卸下失败：英雄为空");
+                return;
+            }
+
+            var inventory = PlayerInventory.Instance;
+            if (inventory == null)
+            {
+                Debug.LogError("[EquipPanel] PlayerInventory 实例不存在！");
+                return;
+            }
+
+            // 检查目标槽位是否有装备
+            EquipmentData equipped = hero.GetEquippedItem(slot);
+            if (equipped == null)
+            {
+                Debug.LogWarning($"[EquipPanel] {hero.Data.heroName} 的 {slot} 槽位没有装备");
+                return;
+            }
+
+            // 使用 PlayerInventory.UnequipFromHero 统一处理
+            inventory.UnequipFromHero(slot, hero);
+            Debug.Log($"[EquipPanel] 卸下 {equipped.equipmentName} ← {hero.Data.heroName}（{slot}槽位）");
+        }
+
+        #endregion
     }
 }
