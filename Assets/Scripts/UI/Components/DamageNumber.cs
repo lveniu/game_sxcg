@@ -117,7 +117,7 @@ namespace Game.UI
         /// </summary>
         public void PlayCrit(int damage)
         {
-            Play($\"暴击 -{damage}\", new Color(1f, 0.2f, 0.2f), true);
+            Play($"暴击 -{damage}", new Color(1f, 0.2f, 0.2f), true);
         }
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace Game.UI
         /// </summary>
         public void PlayDamage(int damage)
         {
-            Play($\"-{damage}\", new Color(1f, 0.6f, 0.4f), false);
+            Play($"-{damage}", new Color(1f, 0.6f, 0.4f), false);
         }
 
         private void KillAnimation()

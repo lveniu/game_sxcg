@@ -562,7 +562,7 @@ namespace Game.UI
             rect.offsetMax = Vector2.zero;
             var t = go.AddComponent<Text>();
             t.text = text;
-            t.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
+            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             t.fontSize = fontSize;
             t.alignment = alignment;
             t.color = color;

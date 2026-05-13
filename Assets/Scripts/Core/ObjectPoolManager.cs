@@ -78,7 +78,7 @@ public class ObjectPoolManager : MonoBehaviour
         // 回收所有池中的对象
         if (_damagePopupPool != null)
         {
-            while (_damagePopupPool.Count > 0)
+            while (_damagePopupPool.countInRange > 0)
             {
                 var item = _damagePopupPool.Get();
                 Destroy(item.gameObject);
@@ -86,7 +86,7 @@ public class ObjectPoolManager : MonoBehaviour
         }
         if (_damageNumberPool != null)
         {
-            while (_damageNumberPool.Count > 0)
+            while (_damageNumberPool.countInRange > 0)
             {
                 var item = _damageNumberPool.Get();
                 Destroy(item.gameObject);
@@ -94,7 +94,7 @@ public class ObjectPoolManager : MonoBehaviour
         }
         if (_toastPool != null)
         {
-            while (_toastPool.Count > 0)
+            while (_toastPool.countInRange > 0)
             {
                 var item = _toastPool.Get();
                 Destroy(item);
@@ -252,8 +252,8 @@ public class ObjectPoolManager : MonoBehaviour
     public string GetPoolStats()
     {
         return $"[ObjectPoolStats]\n" +
-               $"  DamagePopup: 池={_damagePopupPool?.Count} 已创建总数未知\n" +
-               $"  DamageNumber: 池={_damageNumberPool?.Count}\n" +
-               $"  Toast: 池={_toastPool?.Count}";
+               $"  DamagePopup: 池={_damagePopupPool?.countInRange} 已创建总数未知\n" +
+               $"  DamageNumber: 池={_damageNumberPool?.countInRange}\n" +
+               $"  Toast: 池={_toastPool?.countInRange}";
     }
 }

@@ -267,7 +267,7 @@ namespace Game.UI
                 emptyText.text = currentTab == ItemCategory.Material ? "暂无材料" :
                                  currentTab == ItemCategory.Consumable ? "暂无消耗品" :
                                  currentTab == ItemCategory.Equipment ? "暂无装备" : "背包空空如也~";
-                emptyText.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
+                emptyText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 emptyText.fontSize = 20;
                 emptyText.alignment = TextAnchor.MiddleCenter;
                 emptyText.color = new Color(0.6f, 0.6f, 0.6f);
@@ -610,7 +610,7 @@ namespace Game.UI
                 noHeroGo.transform.SetParent(heroListContainer, false);
                 var t = noHeroGo.AddComponent<Text>();
                 t.text = "当前没有英雄";
-                t.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
+                t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 t.fontSize = 18;
                 t.alignment = TextAnchor.MiddleCenter;
                 t.color = Color.gray;
@@ -642,7 +642,7 @@ namespace Game.UI
                 if (hero.EquippedItems.TryGetValue(equip.slot, out var equipped))
                     currentEquip = $" (当前: {equipped.equipmentName})";
                 label.text = $"{GetClassIcon(hero.Data.heroClass)} {hero.Data.heroName}{currentEquip}";
-                label.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
+                label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 label.fontSize = 18;
                 label.alignment = TextAnchor.MiddleCenter;
                 label.color = Color.white;
@@ -862,7 +862,7 @@ namespace Game.UI
             rect.offsetMax = offsetMax;
             var t = go.AddComponent<Text>();
             t.text = text;
-            t.font = Resources.GetBuiltinAsset<Font>("LegacyRuntime.ttf");
+            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             t.fontSize = fontSize;
             t.alignment = alignment;
             t.color = color;

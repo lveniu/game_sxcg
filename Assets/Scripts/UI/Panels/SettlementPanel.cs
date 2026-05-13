@@ -249,7 +249,7 @@ namespace Game.UI
                 btn.onClick.AddListener(() => OnLootSelected(drop, btnGo));
 
                 var btnText = btnGo.AddComponent<Text>();
-                btnText.font = Resources.GetBuiltinAsset<Font>("Arial.ttf");
+                btnText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 btnText.fontSize = 14;
                 btnText.color = Color.white;
                 btnText.text = drop.GetDisplayText();
@@ -468,7 +468,7 @@ namespace Game.UI
                 // 英雄名称
                 var nameGo = CreateChildObject("HeroName", row1);
                 var nameText = nameGo.gameObject.AddComponent<Text>();
-                nameText.font = Resources.GetBuiltinAsset<Font>("Arial.ttf");
+                nameText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 nameText.fontSize = 16;
                 nameText.color = Color.white;
                 nameText.text = $"{GetClassIcon(hero.Data.heroClass)} {hero.Data.heroName}";
@@ -480,7 +480,7 @@ namespace Game.UI
                 // 等级
                 var levelGo = CreateChildObject("HeroLevel", row1);
                 var levelTextComp = levelGo.gameObject.AddComponent<Text>();
-                levelTextComp.font = Resources.GetBuiltinAsset<Font>("Arial.ttf");
+                levelTextComp.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 levelTextComp.fontSize = 14;
                 levelTextComp.color = new Color(1f, 0.85f, 0.2f);
                 int mockLevel = MockHeroExpData.GetLevel(hero);
@@ -541,7 +541,7 @@ namespace Game.UI
                 expTextGo.offsetMin = Vector2.zero;
                 expTextGo.offsetMax = Vector2.zero;
                 var expText = expTextGo.gameObject.AddComponent<Text>();
-                expText.font = Resources.GetBuiltinAsset<Font>("Arial.ttf");
+                expText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 expText.fontSize = 11;
                 expText.color = Color.white;
                 expText.alignment = TextAnchor.MiddleCenter;
@@ -556,7 +556,7 @@ namespace Game.UI
                 var row3Rt = row3;
                 row3Rt.sizeDelta = new Vector2(0f, 20f);
                 var expGainText = row3.gameObject.AddComponent<Text>();
-                expGainText.font = Resources.GetBuiltinAsset<Font>("Arial.ttf");
+                expGainText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 expGainText.fontSize = 14;
                 expGainText.color = new Color(0.4f, 1f, 0.4f);
                 expGainText.text = $"+{expReward} EXP";
@@ -569,7 +569,7 @@ namespace Game.UI
                 var row4Rt = row4;
                 row4Rt.sizeDelta = new Vector2(0f, 24f);
                 var levelUpText = row4.gameObject.AddComponent<Text>();
-                levelUpText.font = Resources.GetBuiltinAsset<Font>("Arial.ttf");
+                levelUpText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 levelUpText.fontSize = 18;
                 levelUpText.fontStyle = FontStyle.Bold;
                 levelUpText.color = new Color(1f, 0.85f, 0.1f);
@@ -584,7 +584,7 @@ namespace Game.UI
                 var row5Rt = row5;
                 row5Rt.sizeDelta = new Vector2(0f, 20f);
                 var starUpText = row5.gameObject.AddComponent<Text>();
-                starUpText.font = Resources.GetBuiltinAsset<Font>("Arial.ttf");
+                starUpText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 starUpText.fontSize = 14;
                 starUpText.fontStyle = FontStyle.Bold;
                 starUpText.color = new Color(1f, 0.6f, 0.1f);
@@ -599,7 +599,7 @@ namespace Game.UI
                 var row6Rt = row6;
                 row6Rt.sizeDelta = new Vector2(0f, 18f);
                 var statsText = row6.gameObject.AddComponent<Text>();
-                statsText.font = Resources.GetBuiltinAsset<Font>("Arial.ttf");
+                statsText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 statsText.fontSize = 12;
                 statsText.color = new Color(0.8f, 0.8f, 0.8f);
                 statsText.text = "";
@@ -927,7 +927,7 @@ namespace Game.UI
             floatRt.sizeDelta = new Vector2(40f, 20f);
 
             var floatText = floatGo.AddComponent<Text>();
-            floatText.font = Resources.GetBuiltinAsset<Font>("Arial.ttf");
+            floatText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
             floatText.fontSize = 16;
             floatText.color = color;
             floatText.text = text;

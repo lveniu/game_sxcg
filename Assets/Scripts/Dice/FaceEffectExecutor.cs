@@ -452,7 +452,7 @@ public class FaceEffectExecutor
                 // 计算实际金币：基础奖励 + 利息（按当前金币百分比）
                 int totalGold = goldBonus;
                 if (interestBonus > 0)
-                    totalGold += Mathf.RoundToInt((inventory.Gold ?? 0) * interestBonus);
+                    totalGold += Mathf.RoundToInt(inventory.Gold * interestBonus);
                 inventory.AddGold(totalGold);
                 Debug.Log($"[FaceEffect] 经济效果：金币+{totalGold}（基础{goldBonus}，利息{interestBonus * 100}%）");
             }
