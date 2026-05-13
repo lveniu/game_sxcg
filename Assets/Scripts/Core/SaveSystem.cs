@@ -33,6 +33,11 @@ public class SaveData
 
     // 骰子状态
     public DiceSaveData diceData;
+
+    // 地图进度
+    public List<string> visitedNodeIds = new List<string>();
+    public string mapCurrentNodeId;
+    public int shopLevel = 1;
 }
 
 [System.Serializable]
@@ -230,6 +235,41 @@ public class SaveSystem : MonoBehaviour
             achManager.TrackProgress("level_reached", data.maxLevelReached);
         }
 
+        // 8. 恢复地图节点路径
+        var mapSys = RoguelikeMapSystem.Instance;
+        if (mapSys?.CurrentMap != null && data.visitedNodeIds != null)
+        {
+            var visitedSet = new HashSet<string>(data.visitedNodeIds);
+            mapSys.CurrentMap.BuildIndex();
+            foreach (var layer in mapSys.CurrentMap.layers)
+            {
+                foreach (var node in layer)
+                {
+                    if (visitedSet.Contains(node.nodeId))
+                    {
+                        node.isVisited = true;
+                        node.isAvailable = false;
+                    }
+                }
+            }
+            // 恢复当前节点
+            if (!string.IsNullOrEmpty(data.mapCurrentNodeId))
+            {
+                mapSys.CurrentMap.currentNodeId = data.mapCurrentNodeId;
+            }
+            // 重新标记可达节点
+            mapSys.RefreshAvailableNodes();
+            Debug.Log($"[SaveSystem] 地图路径恢复完成: {data.visitedNodeIds.Count}个已访问节点");
+        }
+
+        // 9. 恢复商店等级
+        var shopMgr = ShopManager.Instance;
+        if (shopMgr != null)
+        {
+            shopMgr.SetShopLevelForLoad(data.shopLevel);
+            Debug.Log($"[SaveSystem] 商店等级恢复: Lv{data.shopLevel}");
+        }
+
         OnLoadComplete?.Invoke(data);
         Debug.Log("[SaveSystem] 状态恢复完成");
         return true;
@@ -329,6 +369,26 @@ public class SaveSystem : MonoBehaviour
             diceData.freeRerollCount = rgm.DiceRoller.FreeRerolls;
             data.diceData = diceData;
         }
+
+        // 地图节点路径
+        var mapSys = RoguelikeMapSystem.Instance;
+        if (mapSys?.CurrentMap != null)
+        {
+            data.mapCurrentNodeId = mapSys.CurrentMap.currentNodeId ?? "";
+            foreach (var layer in mapSys.CurrentMap.layers)
+            {
+                foreach (var node in layer)
+                {
+                    if (node.isVisited)
+                        data.visitedNodeIds.Add(node.nodeId);
+                }
+            }
+        }
+
+        // 商店等级
+        var shop = ShopManager.Instance;
+        if (shop != null)
+            data.shopLevel = shop.ShopLevel;
 
         return data;
     }

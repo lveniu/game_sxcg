@@ -915,6 +915,9 @@ public class RoguelikeMapSystem
     /// <summary>
     /// 标记可达节点
     /// </summary>
+    /// <summary>供 SaveSystem 恢复存档后刷新可达节点（public）</summary>
+    public void RefreshAvailableNodes() => MarkAvailableNodes();
+
     void MarkAvailableNodes()
     {
         if (CurrentMap == null) return;

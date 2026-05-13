@@ -47,6 +47,12 @@ public class ShopManager : MonoBehaviour
         return true;
     }
 
+    /// <summary>存档恢复时直接设置商店等级（跳过金币检查）</summary>
+    public void SetShopLevelForLoad(int level)
+    {
+        ShopLevel = Mathf.Clamp(level, 1, MaxShopLevel);
+    }
+
     /// <summary>商店等级对应的高级商品概率</summary>
     public float GetHighRarityChance()
     {
