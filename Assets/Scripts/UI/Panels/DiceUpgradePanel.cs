@@ -573,22 +573,20 @@ namespace Game.UI
 
             var displayData = UIConfigBridge.GetSpecialFaceDisplay(selectedEffectId);
 
-            // 优先通过 DiceUpgradeEngine 执行升级（带金币扣费逻辑）
+            // 统一通过 DiceUpgradeEngine 执行升级（含金币扣费 + 回滚）
             var engine = DiceUpgradeEngine.Instance;
-            if (engine != null)
+            if (engine == null)
             {
-                bool success = engine.ApplyEffect(currentDiceIndex, selectedFaceIndex, selectedEffectId);
-                if (!success)
-                {
-                    UpdateStatus("❌ 升级失败，请查看日志");
-                    return;
-                }
+                Debug.LogError("[骰子升级] DiceUpgradeEngine 实例不存在，无法执行升级");
+                UpdateStatus("❌ 升级引擎不可用，请检查初始化");
+                return;
             }
-            else
+
+            bool success = engine.ApplyEffect(currentDiceIndex, selectedFaceIndex, selectedEffectId);
+            if (!success)
             {
-                // fallback：直接升级（无金币扣费）
-                var dice = diceRoller.Dices[currentDiceIndex];
-                dice.UpgradeFace(selectedFaceIndex, selectedEffectId);
+                UpdateStatus("❌ 升级失败（金币不足或效果无效），请查看日志");
+                return;
             }
 
             Debug.Log($"[骰子升级] 骰子{currentDiceIndex + 1} 第{selectedFaceIndex + 1}面 → {displayData.nameCN}");

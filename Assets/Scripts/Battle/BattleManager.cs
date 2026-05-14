@@ -568,8 +568,30 @@ public class BattleManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 英雄战斗状态快照 — 用于 SimulateBattle 的保存/恢复
+    /// </summary>
+    private struct HeroSnapshot
+    {
+        public Hero hero;
+        public int currentHealth;
+        public int battleAttack;
+        public float battleAttackSpeed;
+        public float battleCritRate;
+        public int battleDefense;
+        public int battleSpeed;
+        public float battleDodgeRate;
+        public float battleCritDamage;
+        public float lifeStealRate;
+        public float battleThornsRate;
+        public bool isStunned;
+        public bool hasArmorBreak;
+        public int lightningChainBounces;
+    }
+
+    /// <summary>
     /// 快速模拟战斗（无动画，纯数值计算）
     /// maxRounds 从 battle_formulas.json 读取
+    /// 使用快照保存/恢复机制，避免浅拷贝污染原始状态
     /// </summary>
     public bool SimulateBattle()
     {
@@ -577,41 +599,91 @@ public class BattleManager : MonoBehaviour
         var simPlayers = new List<Hero>(playerUnits);
         var simEnemies = new List<Hero>(enemyUnits);
 
-        for (int round = 0; round < maxRounds; round++)
+        // === 保存所有单位状态快照 ===
+        var allUnits = new List<Hero>(simPlayers);
+        allUnits.AddRange(simEnemies);
+        var snapshots = new List<HeroSnapshot>(allUnits.Count);
+        foreach (var unit in allUnits)
         {
-            // 我方行动
-            foreach (var unit in simPlayers)
+            if (unit == null) continue;
+            snapshots.Add(new HeroSnapshot
             {
-                if (unit == null || unit.IsDead) continue;
-                AutoChessAI.TakeAction(unit, simEnemies, simPlayers);
-            }
-
-            // 敌方行动
-            foreach (var unit in simEnemies)
-            {
-                if (unit == null || unit.IsDead) continue;
-                AutoChessAI.TakeAction(unit, simPlayers, simEnemies);
-            }
-
-            // 清理死亡（先尝试复活）
-            if (RelicSystem.Instance != null)
-            {
-                for (int i = simPlayers.Count - 1; i >= 0; i--)
-                {
-                    var h = simPlayers[i];
-                    if (h != null && h.IsDead && RelicSystem.Instance.TryRevive(h))
-                        continue;
-                }
-            }
-            simPlayers.RemoveAll(u => u == null || u.IsDead);
-            simEnemies.RemoveAll(u => u == null || u.IsDead);
-
-            // 检查结束
-            if (simPlayers.Count == 0 || simEnemies.Count == 0)
-                break;
+                hero = unit,
+                currentHealth = unit.CurrentHealth,
+                battleAttack = unit.BattleAttack,
+                battleAttackSpeed = unit.BattleAttackSpeed,
+                battleCritRate = unit.BattleCritRate,
+                battleDefense = unit.BattleDefense,
+                battleSpeed = unit.BattleSpeed,
+                battleDodgeRate = unit.BattleDodgeRate,
+                battleCritDamage = unit.BattleCritDamage,
+                lifeStealRate = unit.LifeStealRate,
+                battleThornsRate = unit.BattleThornsRate,
+                isStunned = unit.IsStunned,
+                hasArmorBreak = unit.HasArmorBreak,
+                lightningChainBounces = unit.LightningChainBounces,
+            });
         }
 
-        return simEnemies.Count == 0 && simPlayers.Count > 0;
+        try
+        {
+            for (int round = 0; round < maxRounds; round++)
+            {
+                // 我方行动
+                foreach (var unit in simPlayers)
+                {
+                    if (unit == null || unit.IsDead) continue;
+                    AutoChessAI.TakeAction(unit, simEnemies, simPlayers);
+                }
+
+                // 敌方行动
+                foreach (var unit in simEnemies)
+                {
+                    if (unit == null || unit.IsDead) continue;
+                    AutoChessAI.TakeAction(unit, simPlayers, simEnemies);
+                }
+
+                // 清理死亡（先尝试复活）
+                if (RelicSystem.Instance != null)
+                {
+                    for (int i = simPlayers.Count - 1; i >= 0; i--)
+                    {
+                        var h = simPlayers[i];
+                        if (h != null && h.IsDead && RelicSystem.Instance.TryRevive(h))
+                            continue;
+                    }
+                }
+                simPlayers.RemoveAll(u => u == null || u.IsDead);
+                simEnemies.RemoveAll(u => u == null || u.IsDead);
+
+                // 检查结束
+                if (simPlayers.Count == 0 || simEnemies.Count == 0)
+                    break;
+            }
+
+            return simEnemies.Count == 0 && simPlayers.Count > 0;
+        }
+        finally
+        {
+            // === 恢复所有单位状态 ===
+            foreach (var snap in snapshots)
+            {
+                if (snap.hero == null) continue;
+                snap.hero.SetCurrentHealth(snap.currentHealth);
+                snap.hero.BattleAttack = snap.battleAttack;
+                snap.hero.BattleAttackSpeed = snap.battleAttackSpeed;
+                snap.hero.BattleCritRate = snap.battleCritRate;
+                snap.hero.BattleDefense = snap.battleDefense;
+                snap.hero.BattleSpeed = snap.battleSpeed;
+                snap.hero.BattleDodgeRate = snap.battleDodgeRate;
+                snap.hero.BattleCritDamage = snap.battleCritDamage;
+                snap.hero.LifeStealRate = snap.lifeStealRate;
+                snap.hero.BattleThornsRate = snap.battleThornsRate;
+                snap.hero.SetStunned(snap.isStunned);
+                snap.hero.HasArmorBreak = snap.hasArmorBreak;
+                snap.hero.LightningChainBounces = snap.lightningChainBounces;
+            }
+        }
     }
 
     public void StopBattle()
