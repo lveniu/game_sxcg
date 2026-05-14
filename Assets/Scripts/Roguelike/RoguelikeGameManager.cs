@@ -253,4 +253,108 @@ public class RoguelikeGameManager : MonoBehaviour
     public void AddHeroForLoad(Hero hero) { PlayerHeroes.Add(hero); }
     public void SetSelectedHero(Hero hero) { SelectedHero = hero; }
     public void SetLevelForLoad(int current, int maxReached) { CurrentLevel = current; MaxLevelReached = maxReached; }
+
+    // ===== 肉鸽运行恢复 =====
+
+    /// <summary>
+    /// 从 RoguelikeRunData 恢复肉鸽运行状态
+    /// </summary>
+    public void ResumeRun(RoguelikeRunData data)
+    {
+        if (data == null)
+        {
+            Debug.LogError("[肉鸽] ResumeRun: data is null");
+            return;
+        }
+
+        // 1. 恢复关卡进度
+        CurrentLevel = data.currentFloor;
+        MaxLevelReached = data.currentFloor;
+        IsGameOver = false;
+
+        // 2. 初始化子系统
+        RewardSystem = new RoguelikeRewardSystem();
+        RelicSystem = new RelicSystem();
+        DiceRoller = new DiceRoller(3);
+        LevelGenerator = new LevelGenerator();
+
+        // 3. 恢复金币
+        var inv = PlayerInventory.Instance;
+        if (inv != null)
+            inv.ForceSetGold(data.currentGold);
+
+        // 4. 恢复英雄
+        PlayerHeroes.Clear();
+        SelectedHero = null;
+        for (int i = 0; i < data.selectedHeroes.Count; i++)
+        {
+            string heroId = data.selectedHeroes[i];
+            var heroData = GameData.CreateHeroDataByTemplateName(heroId);
+            if (heroData == null)
+            {
+                // 尝试通过JSON ID创建
+                heroData = GameData.CreateHeroByJsonId(heroId);
+            }
+            if (heroData == null)
+            {
+                Debug.LogWarning($"[肉鸽] ResumeRun: 无法创建英雄 {heroId}, 跳过");
+                continue;
+            }
+
+            var heroGO = new GameObject($"Hero_{heroId}");
+            var hero = heroGO.AddComponent<Hero>();
+            hero.Initialize(heroData, 1);
+
+            // 恢复血量
+            if (data.currentPlayerHP != null && data.currentPlayerHP.ContainsKey(heroId))
+            {
+                hero.SetCurrentHealth(data.currentPlayerHP[heroId]);
+            }
+
+            PlayerHeroes.Add(hero);
+
+            // 第一个英雄作为默认选中
+            if (i == 0)
+                SelectedHero = hero;
+        }
+
+        // 5. 恢复遗物
+        if (RelicSystem != null)
+        {
+            RelicSystem.ClearRelicsForLoad();
+            foreach (var relicId in data.ownedRelics)
+            {
+                var relic = GameData.GetRelicDataById(relicId);
+                if (relic != null)
+                    RelicSystem.AcquireRelic(relic);
+            }
+        }
+
+        // 6. 恢复商店等级
+        var shopMgr = ShopManager.Instance;
+        if (shopMgr != null)
+            shopMgr.SetShopLevelForLoad(data.shopLevel);
+
+        // 7. 恢复地图访问节点
+        var mapSys = RoguelikeMapSystem.Instance;
+        if (mapSys?.CurrentMap != null && data.visitedNodes != null && data.visitedNodes.Count > 0)
+        {
+            mapSys.CurrentMap.BuildIndex();
+            var allNodes = new List<RoguelikeMapNode>();
+            foreach (var layer in mapSys.CurrentMap.layers)
+                allNodes.AddRange(layer);
+
+            foreach (int nodeIdx in data.visitedNodes)
+            {
+                if (nodeIdx >= 0 && nodeIdx < allNodes.Count)
+                {
+                    allNodes[nodeIdx].isVisited = true;
+                    allNodes[nodeIdx].isAvailable = false;
+                }
+            }
+            mapSys.RefreshAvailableNodes();
+        }
+
+        Debug.Log($"[肉鸽] 运行恢复完成! Floor={data.currentFloor}, Heroes={PlayerHeroes.Count}, Relics={data.ownedRelics.Count}, Gold={data.currentGold}, Seed={data.seed}");
+    }
 }

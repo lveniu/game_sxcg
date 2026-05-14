@@ -75,6 +75,10 @@ public class SaveSystem : MonoBehaviour
     private const string SAVE_KEY = "game_save_v1";
     private const string HAS_SAVE_KEY = "has_save";
 
+    // 肉鸽运行存档键
+    private const string RUN_SAVE_KEY = "roguelike_run_v1";
+    private const string HAS_RUN_SAVE_KEY = "has_roguelike_run";
+
     public static bool HasSave => PlayerPrefs.GetInt(HAS_SAVE_KEY, 0) == 1;
 
     /// <summary>存档是否为失败状态</summary>
@@ -273,6 +277,57 @@ public class SaveSystem : MonoBehaviour
         OnLoadComplete?.Invoke(data);
         Debug.Log("[SaveSystem] 状态恢复完成");
         return true;
+    }
+
+    // ===== 肉鸽运行存档 =====
+
+    /// <summary>保存肉鸽运行数据</summary>
+    public void SaveRoguelikeRun(RoguelikeRunData data)
+    {
+        if (data == null)
+        {
+            Debug.LogError("[SaveSystem] SaveRoguelikeRun: data is null");
+            return;
+        }
+
+        data.BeforeSerialize();
+        string json = JsonUtility.ToJson(data, true);
+        PlayerPrefs.SetString(RUN_SAVE_KEY, json);
+        PlayerPrefs.SetInt(HAS_RUN_SAVE_KEY, 1);
+        PlayerPrefs.Save();
+        Debug.Log($"[SaveSystem] 肉鸽运行存档完成 Floor{data.currentFloor} Gold{data.currentGold}");
+    }
+
+    /// <summary>加载肉鸽运行数据</summary>
+    public RoguelikeRunData LoadRoguelikeRun()
+    {
+        if (!HasSavedRun()) return null;
+
+        string json = PlayerPrefs.GetString(RUN_SAVE_KEY, "");
+        if (string.IsNullOrEmpty(json)) return null;
+
+        var data = JsonUtility.FromJson<RoguelikeRunData>(json);
+        if (data != null)
+        {
+            data.AfterDeserialize();
+            Debug.Log($"[SaveSystem] 肉鸽运行读档完成 Floor{data.currentFloor}");
+        }
+        return data;
+    }
+
+    /// <summary>是否存在肉鸽运行存档</summary>
+    public bool HasSavedRun()
+    {
+        return PlayerPrefs.GetInt(HAS_RUN_SAVE_KEY, 0) == 1;
+    }
+
+    /// <summary>删除肉鸽运行存档（结算后调用）</summary>
+    public void DeleteSavedRun()
+    {
+        PlayerPrefs.DeleteKey(RUN_SAVE_KEY);
+        PlayerPrefs.DeleteKey(HAS_RUN_SAVE_KEY);
+        PlayerPrefs.Save();
+        Debug.Log("[SaveSystem] 肉鸽运行存档已删除");
     }
 
     /// <summary>删除存档</summary>

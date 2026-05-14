@@ -792,6 +792,41 @@ public static class GameData
     }
 
     /// <summary>根据卡牌名查找CardData</summary>
+    /// <summary>获取所有卡牌数据（Resources + 工厂方法）</summary>
+    public static List<CardData> GetAllCardData()
+    {
+        var result = new List<CardData>();
+
+        // 从 Resources/Cards 加载
+        var resources = Resources.LoadAll<CardData>("Cards");
+        if (resources != null)
+            result.AddRange(resources);
+
+        // 补充工厂方法创建的卡牌（去重）
+        var candidates = CreateRewardCards();
+        if (candidates != null)
+        {
+            foreach (var c in candidates)
+            {
+                if (c?.Data != null && !result.Exists(x => x.cardName == c.Data.cardName))
+                    result.Add(c.Data);
+            }
+        }
+
+        var starterDeck = CreateStartingDeck();
+        if (starterDeck != null)
+        {
+            foreach (var c in starterDeck)
+            {
+                if (c?.Data != null && !result.Exists(x => x.cardName == c.Data.cardName))
+                    result.Add(c.Data);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>根据卡牌名查找CardData</summary>
     public static CardData GetCardDataByName(string cardName)
     {
         // 先尝试从Resources加载

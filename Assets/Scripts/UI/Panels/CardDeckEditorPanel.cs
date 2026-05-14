@@ -401,15 +401,15 @@ namespace Game.UI
 
         // ════════════════════════ 工具方法 ════════════════════════
 
-        // FE-21: 统一稀有度色标 Common=#808080 Rare=#4FC3F7 Epic=#AB47BC Legendary=#FFD740
+        // FE-21: 统一稀有度色标 White=#808080 Blue=#4FC3F7 Purple=#AB47BC Gold=#FFD740
         private static Color RarityColor(string r) => r switch
         {
-            "Common"=>new Color(0.50f,0.50f,0.50f), "Rare"=>new Color(0.31f,0.76f,0.97f),
-            "Epic"=>new Color(0.67f,0.28f,0.74f), "Legendary"=>new Color(1.00f,0.84f,0.25f), _=>Color.gray
+            "White"=>new Color(0.50f,0.50f,0.50f), "Blue"=>new Color(0.31f,0.76f,0.97f),
+            "Purple"=>new Color(0.67f,0.28f,0.74f), "Gold"=>new Color(1.00f,0.84f,0.25f), _=>Color.gray
         };
         private static string RarityLabel(string r) => r switch
         {
-            "Common"=>"● 普通","Rare"=>"● 精良","Epic"=>"● 史诗","Legendary"=>"● 传说",_=>r
+            "White"=>"● 普通","Blue"=>"● 精良","Purple"=>"● 史诗","Gold"=>"● 传说",_=>r
         };
         private static Color TypeColor(string t) => t switch
         {
