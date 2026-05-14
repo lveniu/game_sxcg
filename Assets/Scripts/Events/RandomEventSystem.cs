@@ -909,6 +909,28 @@ public static class RandomEventSystem
     /// </summary>
     public static int GetCurrentLevel() => _currentLevel;
 
+    /// <summary>
+    /// 获取指定关卡可用的事件列表（前端事件选择面板用）
+    /// 过滤 minLevel/maxLevel 范围，按权重降序排列
+    /// </summary>
+    /// <param name="floor">当前层数</param>
+    /// <returns>可用事件列表（按权重降序）</returns>
+    public static List<RandomEventData> GetAvailableEvents(int floor)
+    {
+        var library = GetEventLibrary();
+        var result = new List<RandomEventData>();
+
+        foreach (var evt in library)
+        {
+            if (evt.minLevel > 0 && floor < evt.minLevel) continue;
+            if (evt.maxLevel > 0 && floor > evt.maxLevel) continue;
+            result.Add(evt);
+        }
+
+        result.Sort((a, b) => b.weight.CompareTo(a.weight));
+        return result;
+    }
+
     // ====================================================================
     // 硬编码事件库（12个中文事件，覆盖各种类型）
     // ====================================================================

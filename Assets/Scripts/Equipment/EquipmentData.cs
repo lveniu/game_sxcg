@@ -101,11 +101,22 @@ public class EquipmentData : ScriptableObject, IItem
     public void ApplyEnhance()
     {
         // 属性由 GetEnhancedStat 动态计算，
-        // 此处仅提升强化等级（实际提升由调用方负责）
-        // 这里可以做额外的副作用处理，如更新描述等
+        // 此处仅更新描述（去掉旧前缀，加新前缀，避免重复拼接）
         if (enhanceLevel > 0)
         {
-            description = $"强化+{enhanceLevel} " + description;
+            // 移除可能存在的旧强化前缀
+            string desc = description;
+            int prefixIdx = desc.IndexOf("强化+");
+            if (prefixIdx >= 0)
+            {
+                // 跳过 "强化+N " 前缀部分
+                int spaceIdx = desc.IndexOf(' ', prefixIdx);
+                if (spaceIdx >= 0)
+                    desc = desc.Substring(spaceIdx + 1);
+                else
+                    desc = desc.Substring(0, prefixIdx);
+            }
+            description = $"强化+{enhanceLevel} {desc}";
         }
     }
 
