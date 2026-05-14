@@ -218,13 +218,21 @@ namespace Game.UI
                 var starText = FindChildText(go, "StarText");
                 if (starText != null) starText.text = GetStarString(card.StarLevel);
 
-                // 卡牌边框颜色（按类型区分）
+                // 卡牌边框颜色（FE-21: 统一稀有度色标）
                 var borderImage = FindChildImage(go, "Border");
-                if (borderImage != null) borderImage.color = GetCardColor(card.Type);
+                if (borderImage != null) borderImage.color = GetRarityColor(card.Data.rarity);
 
-                // 稀有度底色
+                // 稀有度底色（微调透明度，边框突出色标）
                 var bgImage = FindChildImage(go, "Background");
-                if (bgImage != null) bgImage.color = GetRarityColor(card.Data.rarity);
+                if (bgImage != null)
+                {
+                    var rc = GetRarityColor(card.Data.rarity);
+                    bgImage.color = new Color(rc.r * 0.3f, rc.g * 0.3f, rc.b * 0.3f, 0.85f);
+                }
+
+                // 卡牌名字按稀有度变色
+                var nameTextComp = FindChildText(go, "NameText");
+                if (nameTextComp != null) nameTextComp.color = GetRarityColor(card.Data.rarity);
 
                 // 持续性标签
                 var durationTag = FindChildText(go, "DurationTag");
@@ -725,17 +733,17 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// 稀有度色标（统一：灰/绿/蓝/金）
+        /// 稀有度色标（统一：Common=#808080 / Rare=#4FC3F7 / Epic=#AB47BC / Legendary=#FFD740）
         /// </summary>
         private static Color GetRarityColor(CardRarity rarity)
         {
             return rarity switch
             {
-                CardRarity.White  => new Color(0.75f, 0.75f, 0.75f), // 灰 - 普通
-                CardRarity.Blue   => new Color(0.2f, 0.85f, 0.3f),   // 绿 - 精良
-                CardRarity.Purple => new Color(0.3f, 0.5f, 0.9f),    // 蓝 - 史诗
-                CardRarity.Gold   => new Color(1f, 0.75f, 0.1f),     // 金 - 传说
-                _ => new Color(0.75f, 0.75f, 0.75f)
+                CardRarity.White  => new Color(0.50f, 0.50f, 0.50f), // #808080 - 普通
+                CardRarity.Blue   => new Color(0.31f, 0.76f, 0.97f), // #4FC3F7 - 精良
+                CardRarity.Purple => new Color(0.67f, 0.28f, 0.74f), // #AB47BC - 史诗
+                CardRarity.Gold   => new Color(1.00f, 0.84f, 0.25f), // #FFD740 - 传说
+                _ => new Color(0.50f, 0.50f, 0.50f)
             };
         }
 

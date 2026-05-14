@@ -74,7 +74,7 @@
             "max_level": -1
         },
         {
-            "id": "berserk_behemoth",
+            "id": "berserk_beast",
             "name_cn": "狂暴巨兽",
             "mechanic_type": "Berserk",
             "description": "血量每降低25%，攻击+50%",

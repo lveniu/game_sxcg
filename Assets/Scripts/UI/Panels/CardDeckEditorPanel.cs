@@ -205,7 +205,7 @@ namespace Game.UI
 
             // 卡牌内容
             MakeLabel("Type", rt, new Vector2(0.05f,0.72f), new Vector2(0.95f,0.88f), TypeEmoji(e.cardType), 10, TypeColor(e.cardType), TextAnchor.MiddleCenter);
-            MakeLabel("Name", rt, new Vector2(0.05f,0.45f), new Vector2(0.95f,0.7f), e.name, 12, Color.white, TextAnchor.MiddleCenter);
+            MakeLabel("Name", rt, new Vector2(0.05f,0.45f), new Vector2(0.95f,0.7f), e.name, 12, RarityColor(e.rarity), TextAnchor.MiddleCenter);
             MakeLabel("Cost", rt, new Vector2(0.05f,0.28f), new Vector2(0.95f,0.43f), e.cost==0?"免费":$"{e.cost}点", 10, new Color(1f,0.85f,0.3f), TextAnchor.MiddleCenter);
             MakeLabel("Star", rt, new Vector2(0.05f,0.12f), new Vector2(0.95f,0.26f), StarStr(e.starLevel), 10, new Color(1f,0.8f,0.2f), TextAnchor.MiddleCenter);
 
@@ -401,10 +401,11 @@ namespace Game.UI
 
         // ════════════════════════ 工具方法 ════════════════════════
 
+        // FE-21: 统一稀有度色标 Common=#808080 Rare=#4FC3F7 Epic=#AB47BC Legendary=#FFD740
         private static Color RarityColor(string r) => r switch
         {
-            "Common"=>new Color(0.75f,0.75f,0.75f), "Rare"=>new Color(0.2f,0.85f,0.3f),
-            "Epic"=>new Color(0.6f,0.3f,0.9f), "Legendary"=>new Color(1f,0.75f,0.1f), _=>Color.gray
+            "Common"=>new Color(0.50f,0.50f,0.50f), "Rare"=>new Color(0.31f,0.76f,0.97f),
+            "Epic"=>new Color(0.67f,0.28f,0.74f), "Legendary"=>new Color(1.00f,0.84f,0.25f), _=>Color.gray
         };
         private static string RarityLabel(string r) => r switch
         {

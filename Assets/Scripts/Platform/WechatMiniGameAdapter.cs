@@ -131,15 +131,7 @@ public static class WechatMiniGameAdapter
     }
 
     // ========== 分享模块 ==========
-
-    /// <summary>
-    /// 分享结果
-    /// </summary>
-    public struct ShareResult
-    {
-        public bool Success;
-        public string Message;
-    }
+    // ShareResult 已在 MiniGameAdapter.cs 中定义，此处不再重复声明
 
     /// <summary>
     /// 分享App消息：模拟 wx.shareAppMessage()

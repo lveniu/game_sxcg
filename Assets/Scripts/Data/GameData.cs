@@ -63,6 +63,16 @@ public static class GameData
         {"venom_spider", "毒液蜘蛛"},
         {"boss_standard", "普通Boss"},   // 对齐 enemies.json name_cn
         {"boss_mega", "巨型Boss"},
+        // 机制敌人（mechanic_enemies.json + enemies.json mechanic_enemies 段）
+        {"shield_guard", "护盾守卫"},
+        {"reflect_puppet", "反伤傀儡"},
+        {"split_mother", "分裂母体"},
+        {"berserk_beast", "狂暴巨兽"},
+        {"summon_lord", "召唤领主"},
+        {"bomb_timer", "定时炸弹"},
+        {"stealth_assassin", "隐身刺客"},
+        {"curse_spreader", "诅咒法师"},
+        {"elemental_shifter", "元素使者"},
     };
 
     /// <summary>
