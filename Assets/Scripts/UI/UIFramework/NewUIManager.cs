@@ -41,8 +41,9 @@ namespace Game.UI
         public RoguelikeMapPanel roguelikeMapPanel;
         public InventoryPanel inventoryPanel;
 
-        [Header("子面板 - 卡组编辑")]
+        [Header("子面板 - 卡组编辑&合成")]
         public CardDeckEditorPanel cardDeckEditorPanel;
+        public CardMergePanel cardMergePanel;
 
         [Header("子面板 - 骰子升级&遗物")]
         public DiceUpgradePanel diceUpgradePanel;
@@ -182,6 +183,7 @@ namespace Game.UI
                 "Equip" => equipPanel,
                 "RoguelikeMap" => roguelikeMapPanel,
                 "Inventory" => inventoryPanel,
+                "CardMerge" => (UIPanel)cardMergePanel,
                 "CardDeckEditor" => cardDeckEditorPanel,
                 "DiceUpgrade" => diceUpgradePanel,
                 "Relic" => relicPanel,
@@ -211,6 +213,7 @@ namespace Game.UI
                 "Equip" => equipPanel as T,
                 "RoguelikeMap" => roguelikeMapPanel as T,
                 "Inventory" => inventoryPanel as T,
+                "CardMerge" => cardMergePanel as T,
                 "CardDeckEditor" => cardDeckEditorPanel as T,
                 "DiceUpgrade" => diceUpgradePanel as T,
                 "Relic" => relicPanel as T,

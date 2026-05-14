@@ -65,7 +65,15 @@ namespace Game.UI
             var bar = MakeChild("TitleBar", rectTransform, new Vector2(0,0.92f), new Vector2(1,1));
             AddBg(bar, new Color(0.12f,0.12f,0.18f,0.9f));
             MakeLabel("Title", bar, new Vector2(0.05f,0), new Vector2(0.55f,1), "🃏 卡组编辑", 20, Color.white, TextAnchor.MiddleLeft);
-            countText = MakeLabel("Count", bar, new Vector2(0.55f,0), new Vector2(0.78f,1), "0/12", 16, new Color(1f,0.85f,0.3f), TextAnchor.MiddleCenter);
+            countText = MakeLabel("Count", bar, new Vector2(0.55f,0), new Vector2(0.68f,1), "0/12", 16, new Color(1f,0.85f,0.3f), TextAnchor.MiddleCenter);
+
+            // FE-21: 合成入口按钮（标题栏，关闭按钮左侧）
+            var mergeEntryRt = MakeChild("MergeEntryBtn", bar, new Vector2(0.7f,0.15f), new Vector2(0.83f,0.85f));
+            AddBg(mergeEntryRt, new Color(0.2f, 0.45f, 0.2f));
+            var mergeEntryBtn = mergeEntryRt.gameObject.AddComponent<Button>();
+            mergeEntryBtn.onClick.AddListener(OpenMergePanel);
+            MakeLabel("M", mergeEntryRt, Vector2.zero, Vector2.one, "⚗", 18, Color.white, TextAnchor.MiddleCenter);
+
             var closeRt = MakeChild("CloseBtn", bar, new Vector2(0.85f,0.15f), new Vector2(0.98f,0.85f));
             AddBg(closeRt, new Color(0.6f,0.2f,0.2f));
             var closeBtn = closeRt.gameObject.AddComponent<Button>();
@@ -437,5 +445,12 @@ namespace Game.UI
 
         private static void ClearChildren(RectTransform container, int skip=0)
         { for(int i=container.childCount-1;i>=skip;i--) { var ch=container.GetChild(i); if(ch!=null) Object.Destroy(ch.gameObject); } }
+
+        /// <summary>FE-21: 打开卡牌合成面板</summary>
+        private void OpenMergePanel()
+        {
+            Hide();
+            UIPanelManager.Instance?.OpenPanel("CardMerge");
+        }
     }
 }
