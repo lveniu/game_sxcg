@@ -102,89 +102,45 @@ public class SetBonusSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// 初始化预设套装定义
-    /// 包含：烈焰（攻击型）、磐石（防御型）、疾风（速度型）、命运（暴击型）
+    /// 从 equipment_sets.json 加载套装定义
+    /// 通过 BalanceProvider 统一入口读取，支持热重载
     /// </summary>
     private void InitializeSets()
     {
-        // ===== 烈焰套装（攻击型）=====
-        var flameSet2 = new SetDefinition(
-            "set_flame", "烈焰套装", 2,
-            new List<SetBonusEffect>
-            {
-                new SetBonusEffect(SetBonusType.AttackPercent, 0.15f, "攻击力+15%"),
-            }
-        );
-        var flameSet4 = new SetDefinition(
-            "set_flame", "烈焰套装", 4,
-            new List<SetBonusEffect>
-            {
-                new SetBonusEffect(SetBonusType.AttackPercent, 0.15f, "攻击力+15%"),
-                new SetBonusEffect(SetBonusType.LifeStealFlat, 0.08f, "吸血+8%"),
-            }
-        );
+        setDefinitions.Clear();
 
-        // ===== 磐石套装（防御型）=====
-        var rockSet2 = new SetDefinition(
-            "set_rock", "磐石套装", 2,
-            new List<SetBonusEffect>
-            {
-                new SetBonusEffect(SetBonusType.DefensePercent, 0.20f, "防御力+20%"),
-            }
-        );
-        var rockSet4 = new SetDefinition(
-            "set_rock", "磐石套装", 4,
-            new List<SetBonusEffect>
-            {
-                new SetBonusEffect(SetBonusType.DefensePercent, 0.20f, "防御力+20%"),
-                new SetBonusEffect(SetBonusType.HealthPercent, 0.15f, "生命值+15%"),
-                new SetBonusEffect(SetBonusType.ThornsFlat, 0.10f, "荆棘反伤+10%"),
-            }
-        );
+        var config = BalanceProvider.EquipmentSets;
+        if (config?.sets == null || config.sets.Count == 0)
+        {
+            Debug.LogError("[SetBonusSystem] equipment_sets.json 加载失败或为空，套装系统不可用");
+            return;
+        }
 
-        // ===== 疾风套装（速度型）=====
-        var windSet2 = new SetDefinition(
-            "set_wind", "疾风套装", 2,
-            new List<SetBonusEffect>
-            {
-                new SetBonusEffect(SetBonusType.SpeedPercent, 0.20f, "速度+20%"),
-            }
-        );
-        var windSet4 = new SetDefinition(
-            "set_wind", "疾风套装", 4,
-            new List<SetBonusEffect>
-            {
-                new SetBonusEffect(SetBonusType.SpeedPercent, 0.20f, "速度+20%"),
-                new SetBonusEffect(SetBonusType.DodgeFlat, 0.12f, "闪避率+12%"),
-            }
-        );
+        foreach (var setEntry in config.sets)
+        {
+            if (string.IsNullOrEmpty(setEntry.setId)) continue;
 
-        // ===== 命运套装（暴击型）=====
-        var fateSet2 = new SetDefinition(
-            "set_fate", "命运套装", 2,
-            new List<SetBonusEffect>
+            foreach (var tier in setEntry.tiers)
             {
-                new SetBonusEffect(SetBonusType.CritRateFlat, 0.15f, "暴击率+15%"),
-            }
-        );
-        var fateSet4 = new SetDefinition(
-            "set_fate", "命运套装", 4,
-            new List<SetBonusEffect>
-            {
-                new SetBonusEffect(SetBonusType.CritRateFlat, 0.15f, "暴击率+15%"),
-                new SetBonusEffect(SetBonusType.CritDamageFlat, 0.30f, "暴击伤害+30%"),
-            }
-        );
+                var bonuses = new List<SetBonusEffect>();
+                foreach (var b in tier.bonuses)
+                {
+                    if (System.Enum.TryParse<SetBonusType>(b.type, out var bonusType))
+                    {
+                        bonuses.Add(new SetBonusEffect(bonusType, b.value, b.description));
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[SetBonusSystem] 未知套装效果类型: {b.type} (套装: {setEntry.setId})");
+                    }
+                }
 
-        // 注册到字典
-        AddSetDefinition(flameSet2);
-        AddSetDefinition(flameSet4);
-        AddSetDefinition(rockSet2);
-        AddSetDefinition(rockSet4);
-        AddSetDefinition(windSet2);
-        AddSetDefinition(windSet4);
-        AddSetDefinition(fateSet2);
-        AddSetDefinition(fateSet4);
+                var def = new SetDefinition(setEntry.setId, setEntry.setName, tier.requiredCount, bonuses);
+                AddSetDefinition(def);
+            }
+        }
+
+        Debug.Log($"[SetBonusSystem] 从 JSON 加载完成，共 {setDefinitions.Count} 个套装定义");
     }
 
     /// <summary>
