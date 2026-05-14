@@ -29,6 +29,7 @@ public static class BalanceProvider
     private static HeroExpFileConfig _heroExpConfig;
     private static RoguelikeMapFileConfig _roguelikeMap;
     private static RandomEventsFileConfig _randomEvents;
+    private static EquipmentSetsFileConfig _equipmentSets;
 
     // BE-19: 阵营连携
     private static FactionSynergiesConfig _factionSynergies;
@@ -48,6 +49,7 @@ public static class BalanceProvider
     public static HeroExpFileConfig HeroExpConfig => _heroExpConfig ?? (_heroExpConfig = ConfigLoader.LoadHeroExpConfig());
     public static RoguelikeMapFileConfig RoguelikeMapConfig => _roguelikeMap ?? (_roguelikeMap = ConfigLoader.LoadRoguelikeMap());
     public static RandomEventsFileConfig RandomEventsConfig => _randomEvents ?? (_randomEvents = ConfigLoader.LoadRandomEvents());
+    public static EquipmentSetsFileConfig EquipmentSets => _equipmentSets ?? (_equipmentSets = ConfigLoader.LoadEquipmentSets());
 
     // BE-19: 阵营连携
     public static FactionSynergiesConfig FactionSynergies => _factionSynergies ?? (_factionSynergies = ConfigLoader.LoadFactionSynergies());
@@ -72,6 +74,7 @@ public static class BalanceProvider
         _heroExpConfig = null;
         _roguelikeMap = null;
         _randomEvents = null;
+        _equipmentSets = null;
         _factionSynergies = null;  // BE-19
         GameBalance.ReloadConfigs();
         Debug.Log("[BalanceProvider] 所有配置已重新加载");

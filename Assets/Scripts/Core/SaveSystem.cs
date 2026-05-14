@@ -46,6 +46,7 @@ public class HeroSaveEntry
 {
     public string heroName;      // 用名字反向查找HeroData
     public int level;
+    public int starLevel = 1;    // 英雄星级（1-3）
     public int currentHealth;
     public int exp;             // 经验值
     public int equippedWeapon;   // 装备索引(-1=无)
@@ -155,7 +156,7 @@ public class SaveSystem : MonoBehaviour
             inv.ForceSetGold(data.gold);
         }
 
-        // 2. 恢复英雄
+        // 2. 恢复英雄（含星级）
         rgm.ClearHeroesForLoad();
         for (int i = 0; i < data.heroes.Count; i++)
         {
@@ -165,11 +166,9 @@ public class SaveSystem : MonoBehaviour
 
             var heroGO = new GameObject($"Hero_{entry.heroName}");
             var hero = heroGO.AddComponent<Hero>();
-            // 使用现有Initialize方法，然后设置等级和经验
-            hero.Initialize(heroData, 1); // 先用1星初始化
+            hero.Initialize(heroData, entry.starLevel > 0 ? entry.starLevel : 1);
             hero.SetLevel(entry.level);
             hero.SetExp(entry.exp);
-            // 设置当前血量（Initialize会将血量设为MaxHealth，这里覆盖为存档值）
             hero.SetCurrentHealth(entry.currentHealth);
 
             rgm.AddHeroForLoad(hero);
@@ -275,6 +274,20 @@ public class SaveSystem : MonoBehaviour
             Debug.Log($"[SaveSystem] 商店等级恢复: Lv{data.shopLevel}");
         }
 
+        // 10. 恢复骰子状态
+        if (rgm.DiceRoller != null && data.diceData != null)
+        {
+            rgm.DiceRoller.SetFreeRerolls(data.diceData.freeRerollCount);
+            if (data.diceData.faceValues != null && data.diceData.faceValues.Count > 0)
+            {
+                for (int di = 0; di < rgm.DiceRoller.Dices.Length && di < data.diceData.faceValues.Count; di++)
+                {
+                    rgm.DiceRoller.Dices[di].SetValue(data.diceData.faceValues[di]);
+                }
+            }
+            Debug.Log($"[SaveSystem] 骰子恢复: {data.diceData.faceValues?.Count ?? 0}个骰子, {data.diceData.freeRerollCount}次免费重掷");
+        }
+
         OnLoadComplete?.Invoke(data);
         Debug.Log("[SaveSystem] 状态恢复完成");
         return true;
@@ -374,6 +387,7 @@ public class SaveSystem : MonoBehaviour
                 {
                     heroName = hero.Data.heroName,
                     level = hero.HeroLevel,
+                    starLevel = hero.StarLevel,
                     currentHealth = hero.CurrentHealth,
                     exp = hero.CurrentExp,
                     equippedWeapon = -1,
@@ -386,6 +400,33 @@ public class SaveSystem : MonoBehaviour
 
                 if (hero == rgm.SelectedHero)
                     data.selectedHeroIndex = i;
+            }
+
+            // 英雄已装备的装备（也加入 equipment 列表，标记所属英雄索引）
+            for (int i = 0; i < rgm.PlayerHeroes.Count; i++)
+            {
+                var hero = rgm.PlayerHeroes[i];
+                if (hero == null) continue;
+                var heroEntry = data.heroes.Find(h => h.heroName == hero.Data?.heroName);
+                if (heroEntry == null) continue;
+
+                foreach (var kvp in hero.EquippedItems)
+                {
+                    if (kvp.Value == null) continue;
+                    int eqIdx = data.equipments.Count;
+                    data.equipments.Add(new EquipmentSaveEntry
+                    {
+                        equipName = kvp.Value.equipmentName,
+                        equippedToHeroIndex = i
+                    });
+                    switch (kvp.Key)
+                    {
+                        case EquipmentSlot.Weapon: heroEntry.equippedWeapon = eqIdx; break;
+                        case EquipmentSlot.Armor: heroEntry.equippedArmor = eqIdx; break;
+                        case EquipmentSlot.Accessory: heroEntry.equippedAccessory = eqIdx; break;
+                        case EquipmentSlot.Artifact: heroEntry.equippedArtifact = eqIdx; break;
+                    }
+                }
             }
         }
 
