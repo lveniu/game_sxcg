@@ -339,10 +339,10 @@ public static class WebGLBuildPipeline
         {
             foreach (string file in Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
             {
-                try { size += new FileInfo(file).Length; } catch { }
+                try { size += new FileInfo(file).Length; } catch (System.Exception) { // 文件可能被锁定或已删除，跳过 }
             }
         }
-        catch { }
+        catch (System.Exception) { // 目录可能不可访问，返回已统计的大小 }
         return size;
     }
 
