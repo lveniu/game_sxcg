@@ -113,7 +113,24 @@ public class GameStateMachine : MonoBehaviour
                 {
                     IsGameWon = true;
                     OnLevelEnded?.Invoke(CurrentLevel, true);
-                    ChangeState(GameState.RoguelikeReward);
+
+                    // 检查是否击败最终Boss → 胜利结算
+                    var mapSys = RoguelikeMapSystem.Instance;
+                    if (mapSys != null && mapSys.IsFinalBossDefeated())
+                    {
+                        Debug.Log($"[GameStateMachine] 最终Boss已击败！通关结算");
+                        // 标记为胜利结算（GameOverPanel 会显示通关）
+                        var rgm = RoguelikeGameManager.Instance;
+                        if (rgm != null)
+                        {
+                            rgm.GameOver(); // 触发 OnGameOver 事件和统计
+                        }
+                        ChangeState(GameState.GameOver);
+                    }
+                    else
+                    {
+                        ChangeState(GameState.RoguelikeReward);
+                    }
                 }
                 break;
             case GameState.RoguelikeReward:

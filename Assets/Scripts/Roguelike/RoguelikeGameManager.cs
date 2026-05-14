@@ -20,6 +20,7 @@ public class RoguelikeGameManager : MonoBehaviour
     public Hero SelectedHero { get; private set; }
     public List<Hero> PlayerHeroes { get; private set; } = new List<Hero>();
     public DiceCombination LastDiceCombo { get; private set; }
+    public int RunSeed { get; private set; }
     public bool IsGameOver { get; private set; }
     public int MaxLevelReached { get; private set; }
 
@@ -48,6 +49,7 @@ public class RoguelikeGameManager : MonoBehaviour
         CurrentLevel = 0;
         IsGameOver = false;
         MaxLevelReached = 0;
+        RunSeed = UnityEngine.Random.Range(0, int.MaxValue);
         PlayerHeroes.Clear();
 
         RewardSystem = new RoguelikeRewardSystem();
@@ -273,6 +275,7 @@ public class RoguelikeGameManager : MonoBehaviour
         // 1. 恢复关卡进度
         CurrentLevel = data.currentFloor;
         MaxLevelReached = data.currentFloor;
+        RunSeed = data.seed;
         IsGameOver = false;
 
         // 2. 初始化子系统
@@ -437,7 +440,7 @@ public class RoguelikeGameManager : MonoBehaviour
             currentFloor = CurrentLevel,
             currentGold = PlayerInventory.Instance?.Gold ?? 0,
             shopLevel = ShopManager.Instance?.ShopLevel ?? 1,
-            seed = UnityEngine.Random.Range(0, int.MaxValue)
+            seed = RunSeed
         };
 
         // 英雄

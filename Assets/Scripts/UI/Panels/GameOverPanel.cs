@@ -87,6 +87,12 @@ namespace Game.UI
                 SaveSystem.Instance.SaveAsFailed();
                 Debug.Log("[GameOverPanel] 阵亡 → 存档已标记失败状态并保留");
             }
+            else if (!isDefeat && SaveSystem.Instance != null)
+            {
+                // 通关：清除肉鸽运行存档（已完成）
+                SaveSystem.Instance.DeleteSavedRun();
+                Debug.Log("[GameOverPanel] 通关 → 肉鸽运行存档已清除");
+            }
         }
 
         protected override void OnHide()
