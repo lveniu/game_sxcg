@@ -175,6 +175,48 @@ public class GameStateMachine : MonoBehaviour
     }
 
     /// <summary>
+    /// 从肉鸽运行存档恢复游戏 — 由 SaveLoadPanel "继续游戏" 按钮调用
+    /// 流程：加载 RoguelikeRunData → RoguelikeGameManager.ResumeRun() → 跳转 MapSelect
+    /// </summary>
+    public void ResumeSavedRun()
+    {
+        var saveSys = SaveSystem.Instance;
+        if (saveSys == null || !saveSys.HasSavedRun())
+        {
+            Debug.LogWarning("[StateMachine] 没有肉鸽运行存档可恢复");
+            return;
+        }
+
+        var runData = saveSys.LoadRoguelikeRun();
+        if (runData == null)
+        {
+            Debug.LogError("[StateMachine] 肉鸽运行存档加载失败");
+            return;
+        }
+
+        // 确保RoguelikeGameManager存在
+        var rgm = RoguelikeGameManager.Instance;
+        if (rgm == null)
+        {
+            Debug.LogError("[StateMachine] RoguelikeGameManager不存在，无法恢复");
+            return;
+        }
+
+        // 恢复肉鸽运行状态
+        rgm.ResumeRun(runData);
+
+        // 同步关卡进度到状态机
+        CurrentLevel = runData.currentFloor;
+        IsGameWon = false;
+        IsGameLost = false;
+
+        // 跳转到地图选择，让玩家从上次位置继续
+        ChangeState(GameState.MapSelect);
+
+        Debug.Log($"[StateMachine] 肉鸽存档恢复完成 → Floor {runData.currentFloor}, 跳转MapSelect");
+    }
+
+    /// <summary>
     /// BE-10: 战斗结算 — 给存活英雄分配经验
     /// </summary>
     private void GrantBattleExp()

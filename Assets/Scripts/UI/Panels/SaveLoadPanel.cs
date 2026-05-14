@@ -594,12 +594,20 @@ namespace Game.UI
                 return;
             }
 
-            // 通知状态机跳转到对应状态（根据关卡数判断）
+            // 通知状态机跳转到对应状态
             var gsm = GameStateMachine.Instance;
             if (gsm != null)
             {
-                // 加载存档后跳转到地图选择（恢复肉鸽进度）
-                gsm.GoToState(GameState.MapSelect);
+                // 如果有肉鸽运行存档，优先恢复肉鸽进度
+                if (SaveSystem.Instance.HasSavedRun())
+                {
+                    gsm.ResumeSavedRun();
+                }
+                else
+                {
+                    // 没有肉鸽运行存档，仅恢复普通存档后跳转地图选择
+                    gsm.ChangeState(GameState.MapSelect);
+                }
             }
 
             // 关闭面板
