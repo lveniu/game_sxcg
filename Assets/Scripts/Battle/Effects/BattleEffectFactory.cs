@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
-using System.Collections.Generic;
 
 /// <summary>
 /// 战斗特效工厂 — 纯代码生成特效 GameObject（不依赖外部资源）
@@ -44,8 +43,10 @@ public class BattleEffectFactory : IBattleEffectProvider
     {
         var go = CreateEffectBase(pos, "HitEffect", 80);
         var img = go.GetComponent<Image>();
-        img.color = new Color(1f, 0.2f, 0.2f, 0.9f);
         var rt = go.GetComponent<RectTransform>();
+        if (img == null || rt == null) { SafeRecycle(EFFECT_HIT, go); return; }
+
+        img.color = new Color(1f, 0.2f, 0.2f, 0.9f);
         rt.sizeDelta = new Vector2(80, 80);
 
         var seq = DOTween.Sequence();
@@ -64,16 +65,16 @@ public class BattleEffectFactory : IBattleEffectProvider
         for (int i = 0; i < 3; i++)
         {
             float delay = i * 0.15f;
-            int index = i;
             var go = CreateEffectBase(pos, "HealEffect", 80);
             var img = go.GetComponent<Image>();
-            img.color = new Color(0.2f, 1f, 0.3f, 1f);
             var rt = go.GetComponent<RectTransform>();
+            var canvas = go.GetComponent<Canvas>();
+            if (img == null || rt == null) { SafeRecycle(EFFECT_HEAL, go); continue; }
+
+            img.color = new Color(0.2f, 1f, 0.3f, 1f);
             rt.sizeDelta = new Vector2(50, 50);
 
-            // 使用绿色圆角矩形作为"+"号的简化表现
-            var canvas = go.GetComponent<Canvas>();
-            canvas.sortingOrder = 10 + i;
+            if (canvas != null) canvas.sortingOrder = 10 + i;
 
             var seq = DOTween.Sequence();
             seq.AppendInterval(delay);
@@ -92,11 +93,12 @@ public class BattleEffectFactory : IBattleEffectProvider
     {
         var go = CreateEffectBase(pos, "ShieldEffect", 80);
         var img = go.GetComponent<Image>();
-        img.color = new Color(0.2f, 0.5f, 1f, 0.8f);
         var rt = go.GetComponent<RectTransform>();
+        if (img == null || rt == null) { SafeRecycle(EFFECT_SHIELD, go); return; }
+
+        img.color = new Color(0.2f, 0.5f, 1f, 0.8f);
         rt.sizeDelta = new Vector2(90, 90);
 
-        // 模拟六边形轮廓：用Outline组件 + 蓝色半透明
         var outline = go.AddComponent<Outline>();
         outline.effectColor = new Color(0.3f, 0.6f, 1f, 1f);
         outline.effectDistance = new Vector2(4, 4);
@@ -119,15 +121,22 @@ public class BattleEffectFactory : IBattleEffectProvider
         // 中心金色闪光
         var centerGo = CreateEffectBase(pos, "CritCenter", 80);
         var centerImg = centerGo.GetComponent<Image>();
-        centerImg.color = new Color(1f, 0.85f, 0.1f, 1f);
         var centerRt = centerGo.GetComponent<RectTransform>();
-        centerRt.sizeDelta = new Vector2(100, 100);
+        if (centerImg != null && centerRt != null)
+        {
+            centerImg.color = new Color(1f, 0.85f, 0.1f, 1f);
+            centerRt.sizeDelta = new Vector2(100, 100);
 
-        var centerSeq = DOTween.Sequence();
-        centerSeq.Append(centerRt.DOScale(2f, 0.15f).SetEase(Ease.OutQuad));
-        centerSeq.Append(centerRt.DOScale(0f, 0.15f).SetEase(Ease.InQuad));
-        centerSeq.Join(centerImg.DOFade(0f, 0.15f));
-        centerSeq.OnComplete(() => Recycle(EFFECT_CRIT, centerGo));
+            var centerSeq = DOTween.Sequence();
+            centerSeq.Append(centerRt.DOScale(2f, 0.15f).SetEase(Ease.OutQuad));
+            centerSeq.Append(centerRt.DOScale(0f, 0.15f).SetEase(Ease.InQuad));
+            centerSeq.Join(centerImg.DOFade(0f, 0.15f));
+            centerSeq.OnComplete(() => Recycle(EFFECT_CRIT, centerGo));
+        }
+        else
+        {
+            SafeRecycle(EFFECT_CRIT, centerGo);
+        }
 
         // 8个方向的射线
         for (int i = 0; i < 8; i++)
@@ -138,11 +147,11 @@ public class BattleEffectFactory : IBattleEffectProvider
 
             var rayGo = CreateEffectBase(pos, "CritRay", 80);
             var rayImg = rayGo.GetComponent<Image>();
-            rayImg.color = new Color(1f, 0.75f, 0f, 0.9f);
             var rayRt = rayGo.GetComponent<RectTransform>();
-            rayRt.sizeDelta = new Vector2(8, 30);
+            if (rayImg == null || rayRt == null) { SafeRecycle(EFFECT_CRIT, rayGo); continue; }
 
-            // 旋转射线朝向正确方向
+            rayImg.color = new Color(1f, 0.75f, 0f, 0.9f);
+            rayRt.sizeDelta = new Vector2(8, 30);
             rayRt.localEulerAngles = new Vector3(0, 0, angle - 90f);
 
             var seq = DOTween.Sequence();
@@ -158,13 +167,14 @@ public class BattleEffectFactory : IBattleEffectProvider
 
     private void PlayDeathEffect(Vector3 pos)
     {
-        // 多个碎片
         for (int i = 0; i < 6; i++)
         {
             var go = CreateEffectBase(pos, "DeathFragment", 80);
             var img = go.GetComponent<Image>();
-            img.color = new Color(0.5f, 0.5f, 0.5f, 0.9f);
             var rt = go.GetComponent<RectTransform>();
+            if (img == null || rt == null) { SafeRecycle(EFFECT_DEATH, go); continue; }
+
+            img.color = new Color(0.5f, 0.5f, 0.5f, 0.9f);
             rt.sizeDelta = new Vector2(20, 20);
 
             float randomAngle = Random.Range(0f, 360f);
@@ -190,16 +200,15 @@ public class BattleEffectFactory : IBattleEffectProvider
     {
         var go = CreateEffectBase(pos, "LevelUpBeam", 80);
         var img = go.GetComponent<Image>();
-        img.color = new Color(1f, 0.85f, 0.1f, 0.8f);
         var rt = go.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(30, 0); // 从高度0开始
+        if (img == null || rt == null) { SafeRecycle(EFFECT_LEVELUP, go); return; }
+
+        img.color = new Color(1f, 0.85f, 0.1f, 0.8f);
+        rt.sizeDelta = new Vector2(30, 0);
 
         var seq = DOTween.Sequence();
-        // 从下到上展开
         seq.Append(rt.DOSizeDelta(new Vector2(30, 200), 0.3f).SetEase(Ease.OutQuad));
-        // 向上飘移
         seq.Join(rt.DOLocalMoveY(rt.localPosition.y + 50f, 0.3f).SetEase(Ease.OutQuad));
-        // 渐隐
         seq.Append(img.DOFade(0f, 0.3f));
         seq.Join(rt.DOSizeDelta(new Vector2(50, 200), 0.3f));
         seq.OnComplete(() => Recycle(EFFECT_LEVELUP, go));
@@ -266,11 +275,11 @@ public class BattleEffectFactory : IBattleEffectProvider
 
         // 设置 Canvas 大小和缩放
         var canvasRt = go.GetComponent<RectTransform>();
-        canvasRt.sizeDelta = new Vector2(100, 100);
-
-        // 让 WorldSpace Canvas 在屏幕上看起来大小合适
-        float scale = 0.01f;
-        canvasRt.localScale = new Vector3(scale, scale, scale);
+        if (canvasRt != null)
+        {
+            canvasRt.sizeDelta = new Vector2(100, 100);
+            canvasRt.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+        }
 
         return go;
     }
@@ -278,8 +287,6 @@ public class BattleEffectFactory : IBattleEffectProvider
     /// <summary>
     /// 回收特效到对象池
     /// </summary>
-    /// <param name="effectType">特效类型</param>
-    /// <param name="go">特效对象</param>
     private void Recycle(string effectType, GameObject go)
     {
         if (go == null) return;
@@ -288,7 +295,6 @@ public class BattleEffectFactory : IBattleEffectProvider
         go.transform.localScale = Vector3.one;
         go.transform.localRotation = Quaternion.identity;
 
-        // 尝试回收
         var rt = go.GetComponent<RectTransform>();
         if (rt != null)
         {
@@ -298,5 +304,17 @@ public class BattleEffectFactory : IBattleEffectProvider
         }
 
         BattleEffectManager.Instance?.ReturnToPool(effectType, go);
+    }
+
+    /// <summary>
+    /// 安全回收 — 组件缺失时直接 Destroy 而非回收到池
+    /// </summary>
+    private void SafeRecycle(string effectType, GameObject go)
+    {
+        if (go == null) return;
+
+        // 组件缺失的对象不应回池，直接销毁
+        Debug.LogWarning($"[BattleEffectFactory] 特效对象缺少组件，销毁而非回池: {go.name}");
+        Object.Destroy(go);
     }
 }
