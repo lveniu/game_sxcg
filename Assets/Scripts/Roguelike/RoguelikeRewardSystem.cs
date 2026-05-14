@@ -316,8 +316,16 @@ public class RoguelikeRewardSystem
                 if (diceRoller != null && reward.DiceIndex < diceRoller.Dices.Length)
                 {
                     var dice = diceRoller.Dices[reward.DiceIndex];
-                    dice.UpgradeFace(reward.FaceIndex, $"升级+{reward.NewFaceValue}");
-                    Debug.Log($"[奖励] 骰子{reward.DiceIndex + 1}面{reward.FaceIndex + 1}升级为{reward.NewFaceValue}");
+                    // 使用 int 重载真正改变面值，string 重载只改效果文本
+                    bool upgraded = dice.UpgradeFace(reward.FaceIndex, reward.NewFaceValue);
+                    if (upgraded)
+                    {
+                        Debug.Log($"[奖励] 骰子{reward.DiceIndex + 1}面{reward.FaceIndex + 1}面值升级为{reward.NewFaceValue}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[奖励] 骰子面值升级失败：骰子{reward.DiceIndex + 1}面{reward.FaceIndex + 1}，目标值{reward.NewFaceValue}");
+                    }
                 }
                 break;
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -306,13 +307,23 @@ public class SaveSystem : MonoBehaviour
         string json = PlayerPrefs.GetString(RUN_SAVE_KEY, "");
         if (string.IsNullOrEmpty(json)) return null;
 
-        var data = JsonUtility.FromJson<RoguelikeRunData>(json);
-        if (data != null)
+        try
         {
-            data.AfterDeserialize();
-            Debug.Log($"[SaveSystem] 肉鸽运行读档完成 Floor{data.currentFloor}");
+            var data = JsonUtility.FromJson<RoguelikeRunData>(json);
+            if (data != null)
+            {
+                data.AfterDeserialize();
+                Debug.Log($"[SaveSystem] 肉鸽运行读档完成 Floor{data.currentFloor}");
+            }
+            return data;
         }
-        return data;
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveSystem] 肉鸽运行读档失败，存档可能损坏：{e.Message}");
+            // 存档损坏时清除，避免反复崩溃
+            DeleteSavedRun();
+            return null;
+        }
     }
 
     /// <summary>是否存在肉鸽运行存档</summary>

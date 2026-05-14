@@ -488,6 +488,11 @@ public class Hero : MonoBehaviour
     public void SetLevel(int level) { HeroLevel = level; RecalculateStats(); }
 
     /// <summary>
+    /// 设置星级并重算属性（用于存档恢复）
+    /// </summary>
+    public void SetStarLevel(int star) { StarLevel = Mathf.Clamp(star, 1, 3); RecalculateStats(); }
+
+    /// <summary>
     /// 设置当前经验值
     /// </summary>
     public void SetExp(int exp) { CurrentExp = exp; }

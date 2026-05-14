@@ -55,6 +55,16 @@ public class CardInstance : IItem
     /// <summary>根据等级获取效果倍率（等级1=1.0，每级+15%）</summary>
     public float LevelMultiplier => 1f + (Level - 1) * LevelBonusPerLevel;
 
+    /// <summary>
+    /// 综合效果倍率 = 等级倍率 × 稀有度倍率
+    /// </summary>
+    public float TotalMultiplier => LevelMultiplier * Data.RarityMultiplier;
+
+    /// <summary>
+    /// 最终效果值 = 基础effectValue × 综合倍率
+    /// </summary>
+    public float TotalEffectValue => Data.effectValue * TotalMultiplier;
+
     public CardInstance(CardData data)
     {
         Data = data;
@@ -117,17 +127,31 @@ public class CardInstance : IItem
     {
         if (Level >= MaxLevel) return false;
         Level++;
-        UnityEngine.Debug.Log($"卡牌升级：{CardName} → 等级{Level}，效果倍率{LevelMultiplier:F2}");
+        UnityEngine.Debug.Log($"卡牌升级：{CardName} → 等级{Level}，效果倍率{LevelMultiplier:F2}，综合倍率{TotalMultiplier:F2}");
         return true;
     }
 
     /// <summary>
-    /// 能否与另一张同名同星卡合成
+    /// 能否与另外两张同名同星卡进行3合1合成升星
+    /// </summary>
+    public bool CanMergeWith(CardInstance b, CardInstance c)
+    {
+        if (b == null || c == null) return false;
+        if (Data.cardType == CardType.Evolution) return false;
+        if (b.Data.cardType == CardType.Evolution || c.Data.cardType == CardType.Evolution) return false;
+        if (StarLevel >= 3) return false;
+        // 三张必须同名同星级
+        return Data.cardName == b.Data.cardName && Data.cardName == c.Data.cardName
+            && StarLevel == b.StarLevel && StarLevel == c.StarLevel;
+    }
+
+    /// <summary>
+    /// 旧版2合1兼容接口
     /// </summary>
     public bool CanMergeWith(CardInstance other)
     {
         if (other == null) return false;
-        if (Data.cardType == CardType.Evolution) return false; // 进化卡不可合成
+        if (Data.cardType == CardType.Evolution) return false;
         return Data.cardName == other.Data.cardName && StarLevel == other.StarLevel && StarLevel < 3;
     }
 
@@ -161,7 +185,7 @@ public class CardInstance : IItem
     }
 
     /// <summary>
-    /// 获取效果描述
+    /// 获取效果描述（含稀有度倍率和等级信息）
     /// </summary>
     public string GetEffectDescription()
     {
@@ -172,6 +196,15 @@ public class CardInstance : IItem
         {
             desc += $"\n[等级{Level}] 效果倍率×{LevelMultiplier:F2}";
         }
+
+        // 附加稀有度倍率信息（非白卡时显示）
+        if (Data.rarity != CardRarity.White)
+        {
+            desc += $"\n[{CardRarityConfig.GetNameCn(Data.rarity)}] 稀有度倍率×{Data.RarityMultiplier:F1}";
+        }
+
+        // 综合效果值
+        desc += $"\n实际效果值: {TotalEffectValue:F1}";
 
         if (Data.requiredCombo != DiceCombinationType.None)
         {

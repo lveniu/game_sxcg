@@ -100,9 +100,12 @@ public class RoguelikeGameManager : MonoBehaviour
             achMgr.TrackProgress("level_reached", CurrentLevel);
         }
 
-        // 自动存档
+        // 自动存档（常规存档 + 肉鸽运行存档）
         if (SaveSystem.Instance != null)
+        {
             SaveSystem.Instance.Save();
+            SaveRun();
+        }
     }
 
     /// <summary>
@@ -330,7 +333,73 @@ public class RoguelikeGameManager : MonoBehaviour
             }
         }
 
-        // 6. 恢复商店等级
+        // 6. 恢复卡牌
+        if (inv != null && data.ownedCards != null)
+        {
+            inv.ClearCardsForLoad();
+            foreach (var cardName in data.ownedCards)
+            {
+                var cardData = GameData.GetCardDataByName(cardName);
+                if (cardData != null)
+                    inv.AddCard(new CardInstance(cardData));
+                else
+                    Debug.LogWarning($"[肉鸽] ResumeRun: 无法创建卡牌 {cardName}, 跳过");
+            }
+        }
+
+        // 7. 恢复装备
+        if (inv != null && data.ownedEquipments != null)
+        {
+            inv.ClearEquipmentsForLoad();
+            foreach (var equipName in data.ownedEquipments)
+            {
+                var equipData = GameData.CreateEquipmentByName(equipName);
+                if (equipData != null)
+                    inv.AddEquipment(equipData);
+                else
+                    Debug.LogWarning($"[肉鸽] ResumeRun: 无法创建装备 {equipName}, 跳过");
+            }
+        }
+
+        // 8. 恢复骰子面值和效果
+        if (DiceRoller != null && data.diceFaces != null && data.diceFaces.Count > 0)
+        {
+            int sides = data.diceSides > 0 ? data.diceSides : 6;
+            int count = data.diceCount > 0 ? data.diceCount : 3;
+            DiceRoller = new DiceRoller(count);
+            for (int di = 0; di < count && di < DiceRoller.Dices.Length; di++)
+            {
+                var dice = DiceRoller.Dices[di];
+                for (int fi = 0; fi < sides && (di * sides + fi) < data.diceFaces.Count; fi++)
+                {
+                    int faceVal = data.diceFaces[di * sides + fi];
+                    dice.UpgradeFace(fi, faceVal);
+
+                    // 恢复面效果
+                    if (data.diceFaceEffects != null && (di * sides + fi) < data.diceFaceEffects.Count)
+                    {
+                        string effect = data.diceFaceEffects[di * sides + fi];
+                        if (!string.IsNullOrEmpty(effect))
+                            dice.AddSpecialEffect(fi, effect);
+                    }
+                }
+            }
+        }
+
+        // 9. 恢复英雄星级和等级
+        if (data.heroStarLevels != null)
+        {
+            foreach (var hero in PlayerHeroes)
+            {
+                string heroId = hero.HeroData?.templateName ?? hero.name;
+                if (data.heroStarLevels.ContainsKey(heroId))
+                    hero.SetStarLevel(data.heroStarLevels[heroId]);
+                if (data.heroLevels.ContainsKey(heroId))
+                    hero.SetLevel(data.heroLevels[heroId]);
+            }
+        }
+
+        // 10. 恢复商店等级
         var shopMgr = ShopManager.Instance;
         if (shopMgr != null)
             shopMgr.SetShopLevelForLoad(data.shopLevel);
@@ -356,5 +425,87 @@ public class RoguelikeGameManager : MonoBehaviour
         }
 
         Debug.Log($"[肉鸽] 运行恢复完成! Floor={data.currentFloor}, Heroes={PlayerHeroes.Count}, Relics={data.ownedRelics.Count}, Gold={data.currentGold}, Seed={data.seed}");
+    }
+
+    /// <summary>
+    /// 采集当前运行状态为 RoguelikeRunData（用于肉鸽存档）
+    /// </summary>
+    public RoguelikeRunData CaptureRunData()
+    {
+        var data = new RoguelikeRunData
+        {
+            currentFloor = CurrentLevel,
+            currentGold = PlayerInventory.Instance?.Gold ?? 0,
+            shopLevel = ShopManager.Instance?.ShopLevel ?? 1,
+            seed = UnityEngine.Random.Range(0, int.MaxValue)
+        };
+
+        // 英雄
+        foreach (var hero in PlayerHeroes)
+        {
+            string heroId = hero.HeroData?.templateName ?? hero.name;
+            data.selectedHeroes.Add(heroId);
+            data.currentPlayerHP[heroId] = hero.CurrentHealth;
+            data.heroStarLevels[heroId] = hero.StarLevel;
+            data.heroLevels[heroId] = hero.HeroLevel;
+        }
+
+        // 遗物
+        if (RelicSystem != null)
+            data.ownedRelics = RelicSystem.GetOwnedRelicIds();
+
+        // 卡牌
+        var inv = PlayerInventory.Instance;
+        if (inv != null)
+        {
+            foreach (var card in inv.Cards)
+                data.ownedCards.Add(card.Data?.cardName ?? card.ToString());
+            foreach (var equip in inv.Equipments)
+                data.ownedEquipments.Add(equip.equipmentName ?? equip.name);
+        }
+
+        // 骰子面值和效果（扁平化存储）
+        if (DiceRoller != null)
+        {
+            data.diceCount = DiceRoller.Dices.Length;
+            data.diceSides = DiceRoller.Dices.Length > 0 ? DiceRoller.Dices[0].Faces.Length : 6;
+            foreach (var dice in DiceRoller.Dices)
+            {
+                for (int fi = 0; fi < dice.Faces.Length; fi++)
+                {
+                    data.diceFaces.Add(dice.Faces[fi]);
+                    data.diceFaceEffects.Add(dice.GetFaceEffect(fi) ?? "");
+                }
+            }
+        }
+
+        // 访问节点
+        var mapSys = RoguelikeMapSystem.Instance;
+        if (mapSys?.CurrentMap != null)
+        {
+            mapSys.CurrentMap.BuildIndex();
+            int idx = 0;
+            foreach (var layer in mapSys.CurrentMap.layers)
+            {
+                foreach (var node in layer)
+                {
+                    if (node.isVisited)
+                        data.visitedNodes.Add(idx);
+                    idx++;
+                }
+            }
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// 保存肉鸽运行存档（在每个关卡开始时调用）
+    /// </summary>
+    public void SaveRun()
+    {
+        if (SaveSystem.Instance == null) return;
+        var runData = CaptureRunData();
+        SaveSystem.Instance.SaveRoguelikeRun(runData);
     }
 }

@@ -230,6 +230,17 @@ public class RelicSystem
     public void ClearRelicsForLoad() { OwnedRelics.Clear(); }
 
     /// <summary>
+    /// 获取所有已拥有遗物的ID列表（用于存档）
+    /// </summary>
+    public List<string> GetOwnedRelicIds()
+    {
+        var ids = new List<string>();
+        foreach (var relic in OwnedRelics)
+            ids.Add(relic.Data.relicId);
+        return ids;
+    }
+
+    /// <summary>
     /// 获取遗物数量
     /// </summary>
     public int RelicCount => OwnedRelics.Count;
