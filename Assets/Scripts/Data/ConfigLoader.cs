@@ -30,7 +30,16 @@ public static class ConfigLoader
             return null;
         }
 
-        var obj = JObject.Parse(textAsset.text);
+        JObject obj;
+        try
+        {
+            obj = JObject.Parse(textAsset.text);
+        }
+        catch (Newtonsoft.Json.JsonReaderException ex)
+        {
+            Debug.LogError($"[ConfigLoader] 配置 JSON 解析失败 Data/{key}: {ex.Message}");
+            return null;
+        }
         _cache[key] = obj;
         return obj;
     }

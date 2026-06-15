@@ -136,7 +136,22 @@ public class SaveSystem : MonoBehaviour
         string json = PlayerPrefs.GetString(SAVE_KEY, "");
         if (string.IsNullOrEmpty(json)) return null;
 
-        var data = JsonUtility.FromJson<SaveData>(json);
+        SaveData data;
+        try
+        {
+            data = JsonUtility.FromJson<SaveData>(json);
+        }
+        catch (System.ArgumentException ex)
+        {
+            Debug.LogError($"[SaveSystem] 存档反序列化失败，可能已损坏：{ex.Message}");
+            DeleteSave(); // 损坏存档直接清理，避免重复崩溃
+            return null;
+        }
+        if (data == null)
+        {
+            Debug.LogWarning("[SaveSystem] 存档反序列化为 null");
+            return null;
+        }
         Debug.Log($"[SaveSystem] 读档完成 Lv{data.currentLevel}");
         return data;
     }
