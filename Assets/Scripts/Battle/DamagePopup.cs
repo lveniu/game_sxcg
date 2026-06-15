@@ -97,7 +97,7 @@ public class DamagePopup : MonoBehaviour
 
         var rt = go.GetComponent<RectTransform>();
         Vector2 screenPos = Camera.main != null ? Camera.main.WorldToScreenPoint(worldPos) : Vector2.zero;
-        rt.position = screenPos;
+        if (rt != null) rt.position = screenPos;
 
         StartCoroutine(AnimatePopup(rt, go, false));
     }
@@ -118,7 +118,7 @@ public class DamagePopup : MonoBehaviour
         // 设置位置
         var rt = GetComponent<RectTransform>();
         Vector2 screenPos = Camera.main != null ? Camera.main.WorldToScreenPoint(worldPos) : Vector2.zero;
-        rt.position = screenPos;
+        if (rt != null) rt.position = screenPos;
 
         _scale = scale;
         _isPoolBacked = true;
@@ -140,8 +140,11 @@ public class DamagePopup : MonoBehaviour
 
         var rt = go.GetComponent<RectTransform>();
         Vector2 screenPos = Camera.main != null ? Camera.main.WorldToScreenPoint(worldPos) : Vector2.zero;
-        rt.position = screenPos;
-        rt.sizeDelta = new Vector2(100, 40);
+        if (rt != null)
+        {
+            rt.position = screenPos;
+            rt.sizeDelta = new Vector2(100, 40);
+        }
 
         StartCoroutine(AnimatePopup(rt, go, true));
     }
@@ -199,7 +202,7 @@ public class DamagePopup : MonoBehaviour
     {
         float timer = 0f;
         var rt = GetComponent<RectTransform>();
-        Vector2 startPos = rt.anchoredPosition;
+        Vector2 startPos = rt != null ? rt.anchoredPosition : Vector2.zero;
         Vector2 randomOffset = new Vector2(Random.Range(-spreadRange, spreadRange), 0);
         Text txt = GetComponent<Text>();
         Color startColor = txt != null ? txt.color : Color.white;

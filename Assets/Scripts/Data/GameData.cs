@@ -276,26 +276,50 @@ public static class GameData
         _ => ""
     };
 
+    /// <summary>
+    /// 创建预设英雄数据：AssassinHero
+    /// </summary>
+
     public static HeroData CreateAssassinHero()
     {
         return CreateHeroByJsonId("assassin");
     }
 
     // 兼容旧调用 — 转发到三职业版本
+    /// <summary>
+    /// 创建预设英雄数据：TankHero
+    /// </summary>
+
     public static HeroData CreateTankHero() => CreateWarriorHero();
+    /// <summary>
+    /// 创建预设英雄数据：ArcherHero
+    /// </summary>
+
     public static HeroData CreateArcherHero() => CreateMageHero();
 
     // ========== 敌人数据模板 ==========
+
+    /// <summary>
+    /// 创建预设英雄数据：EnemyGrunt
+    /// </summary>
 
     public static HeroData CreateEnemyGrunt(int levelId = 1)
     {
         return CreateEnemyFromTemplate("小怪", "小怪", levelId, desc: "普通小怪");
     }
 
+    /// <summary>
+    /// 创建预设英雄数据：EnemyElite
+    /// </summary>
+
     public static HeroData CreateEnemyElite(int levelId = 1)
     {
         return CreateEnemyFromTemplate("精英", "精英", levelId, CreatePierceShotSkill(), "精英敌人");
     }
+
+    /// <summary>
+    /// 创建预设英雄数据：EnemyBoss
+    /// </summary>
 
     public static HeroData CreateEnemyBoss(int levelId = 1)
     {
@@ -303,6 +327,10 @@ public static class GameData
     }
 
     // ========== 技能数据 ==========
+
+    /// <summary>
+    /// 创建预设技能数据：NormalAttack
+    /// </summary>
 
     public static SkillData CreateNormalAttack()
     {
@@ -315,6 +343,10 @@ public static class GameData
         skill.description = "普通攻击";
         return skill;
     }
+
+    /// <summary>
+    /// 创建预设技能数据：ShieldBashSkill
+    /// </summary>
 
     public static SkillData CreateShieldBashSkill()
     {
@@ -329,6 +361,10 @@ public static class GameData
         return skill;
     }
 
+    /// <summary>
+    /// 创建预设技能数据：PierceShotSkill
+    /// </summary>
+
     public static SkillData CreatePierceShotSkill()
     {
         var skill = ScriptableObject.CreateInstance<SkillData>();
@@ -341,6 +377,10 @@ public static class GameData
         return skill;
     }
 
+    /// <summary>
+    /// 创建预设技能数据：BackstabSkill
+    /// </summary>
+
     public static SkillData CreateBackstabSkill()
     {
         var skill = ScriptableObject.CreateInstance<SkillData>();
@@ -352,6 +392,10 @@ public static class GameData
         skill.description = "潜行到敌人背后造成致命伤害";
         return skill;
     }
+
+    /// <summary>
+    /// 创建预设技能数据：AOESmashSkill
+    /// </summary>
 
     public static SkillData CreateAOESmashSkill()
     {
@@ -367,40 +411,72 @@ public static class GameData
 
     // ========== 卡牌数据 ==========
 
+    /// <summary>
+    /// 创建预设卡牌数据：PowerTrainingCard
+    /// </summary>
+
     public static CardData CreatePowerTrainingCard()
     {
         return CreateCard("力量训练", CardType.Attribute, CardRarity.White, CardEffectId.PowerTraining, 0, "本局永久+3攻击", 3);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：ArmorTrainingCard
+    /// </summary>
 
     public static CardData CreateArmorTrainingCard()
     {
         return CreateCard("坚固护甲", CardType.Attribute, CardRarity.White, CardEffectId.ArmorTraining, 0, "本局永久+3防御", 3);
     }
 
+    /// <summary>
+    /// 创建预设卡牌数据：SpeedTrainingCard
+    /// </summary>
+
     public static CardData CreateSpeedTrainingCard()
     {
         return CreateCard("灵敏训练", CardType.Attribute, CardRarity.White, CardEffectId.SpeedTraining, 0, "本局永久+2速度", 2);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：SlashCard
+    /// </summary>
 
     public static CardData CreateSlashCard()
     {
         return CreateCard("斩击", CardType.Battle, CardRarity.White, CardEffectId.Slash, 1, "本场攻击+50%，对子时伤害翻倍", 50, DiceCombinationType.Pair, 2f);
     }
 
+    /// <summary>
+    /// 创建预设卡牌数据：RerollCard
+    /// </summary>
+
     public static CardData CreateRerollCard()
     {
         return CreateCard("重摇", CardType.Battle, CardRarity.White, CardEffectId.Reroll, 1, "消耗1点，重新掷该骰子");
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：ShieldBashCard
+    /// </summary>
 
     public static CardData CreateShieldBashCard()
     {
         return CreateCard("护盾冲击", CardType.Battle, CardRarity.Blue, CardEffectId.ShieldBash, 2, "消耗2点，获得护盾并冲撞，三条时护盾+50%", 30, DiceCombinationType.ThreeOfAKind, 1.5f);
     }
 
+    /// <summary>
+    /// 创建预设卡牌数据：FindWeaknessCard
+    /// </summary>
+
     public static CardData CreateFindWeaknessCard()
     {
         return CreateCard("寻找弱点", CardType.Battle, CardRarity.Blue, CardEffectId.FindWeakness, 1, "本场暴击率+30%，顺子时额外+20%", 30, DiceCombinationType.Straight, 1.67f);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：EvolutionAwakenCard
+    /// </summary>
 
     public static CardData CreateEvolutionAwakenCard()
     {
@@ -451,30 +527,54 @@ public static class GameData
 
     // ========== 扩展卡牌 ==========
 
+    /// <summary>
+    /// 创建预设卡牌数据：FlameSlashCard
+    /// </summary>
+
     public static CardData CreateFlameSlashCard()
     {
         return CreateCard("火焰斩", CardType.Battle, CardRarity.Blue, CardEffectId.FlameSlash, 2, "本场攻击附加20%火焰伤害，三条时变成范围AOE", 20, DiceCombinationType.ThreeOfAKind, 2f);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：FrostArmorCard
+    /// </summary>
 
     public static CardData CreateFrostArmorCard()
     {
         return CreateCard("冰霜护甲", CardType.Battle, CardRarity.Blue, CardEffectId.FrostArmor, 1, "获得护盾并减速敌人，顺子时护盾翻倍", 25, DiceCombinationType.Straight, 2f);
     }
 
+    /// <summary>
+    /// 创建预设卡牌数据：WindStepCard
+    /// </summary>
+
     public static CardData CreateWindStepCard()
     {
         return CreateCard("疾风步", CardType.Battle, CardRarity.Blue, CardEffectId.WindStep, 1, "本场速度+50%，对子时闪避+20%", 50, DiceCombinationType.Pair, 1.5f);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：HolyBlessCard
+    /// </summary>
 
     public static CardData CreateHolyBlessCard()
     {
         return CreateCard("神圣祝福", CardType.Attribute, CardRarity.Gold, CardEffectId.HolyBless, 0, "本局永久+5生命上限", 5);
     }
 
+    /// <summary>
+    /// 创建预设卡牌数据：FatalBlowCard
+    /// </summary>
+
     public static CardData CreateFatalBlowCard()
     {
         return CreateCard("致命一击", CardType.Battle, CardRarity.Purple, CardEffectId.FatalBlow, 2, "本场暴击伤害+50%，三条时必暴", 50, DiceCombinationType.ThreeOfAKind, 2f);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：SummonBoostCard
+    /// </summary>
 
     public static CardData CreateSummonBoostCard()
     {
@@ -483,10 +583,18 @@ public static class GameData
 
     // ========== 扩展敌人 ==========
 
+    /// <summary>
+    /// 创建预设英雄数据：EnemyBomber
+    /// </summary>
+
     public static HeroData CreateEnemyBomber(int levelId = 1)
     {
         return CreateEnemyFromTemplate("自爆怪", "自爆怪", levelId, desc: "死亡时对周围造成高额伤害");
     }
+
+    /// <summary>
+    /// 创建预设英雄数据：EnemyHealer
+    /// </summary>
 
     public static HeroData CreateEnemyHealer(int levelId = 1)
     {
@@ -508,9 +616,21 @@ public static class GameData
 
     // ========== 英雄进化形态 ==========
 
+    /// <summary>
+    /// 创建预设英雄数据：TankEvolved
+    /// </summary>
+
     public static HeroData CreateTankEvolved() => CreateWarriorEvolved();
 
+    /// <summary>
+    /// 创建预设英雄数据：ArcherEvolved
+    /// </summary>
+
     public static HeroData CreateArcherEvolved() => CreateMageEvolved();
+
+    /// <summary>
+    /// 创建预设英雄数据：AssassinEvolved
+    /// </summary>
 
     public static HeroData CreateAssassinEvolved()
     {
@@ -532,30 +652,54 @@ public static class GameData
 
     // ========== 再扩展英雄 ==========
 
+    /// <summary>
+    /// 创建预设英雄数据：MageHero
+    /// </summary>
+
     public static HeroData CreateMageHero()
     {
         return CreateHeroByJsonId("mage");
     }
+
+    /// <summary>
+    /// 创建预设英雄数据：WarriorHero
+    /// </summary>
 
     public static HeroData CreateWarriorHero()
     {
         return CreateHeroByJsonId("warrior");
     }
 
+    /// <summary>
+    /// 创建预设英雄数据：MageEvolved
+    /// </summary>
+
     public static HeroData CreateMageEvolved()
     {
         return CreateHeroFromTemplate("大法师", "大法师", CreateNormalAttack(), CreateMeteorSkill(), desc: "元素的终极代言，陨石毁天灭地");
     }
+
+    /// <summary>
+    /// 创建预设英雄数据：WarriorEvolved
+    /// </summary>
 
     public static HeroData CreateWarriorEvolved()
     {
         return CreateHeroFromTemplate("狂战士", "狂战士", CreateNormalAttack(), CreateBerserkSkill(), desc: "鲜血与屠杀的化身，越战越勇");
     }
 
+    /// <summary>
+    /// 创建预设英雄数据：ChainKnightHero
+    /// </summary>
+
     public static HeroData CreateChainKnightHero()
     {
         return CreateHeroFromTemplate("链甲使者", "链甲使者", CreateNormalAttack(), CreateShieldReflectSkill(), desc: "铁壁防御，反弹伤害");
     }
+
+    /// <summary>
+    /// 创建预设英雄数据：WanderingMageHero
+    /// </summary>
 
     public static HeroData CreateWanderingMageHero()
     {
@@ -647,30 +791,54 @@ public static class GameData
 
     // ========== 再扩展敌人 ==========
 
+    /// <summary>
+    /// 创建预设英雄数据：EnemyShielder
+    /// </summary>
+
     public static HeroData CreateEnemyShielder(int levelId = 1)
     {
         return CreateEnemyFromTemplate("护盾怪", "护盾怪", levelId, desc: "开场自带护盾");
     }
+
+    /// <summary>
+    /// 创建预设英雄数据：EnemySplitter
+    /// </summary>
 
     public static HeroData CreateEnemySplitter(int levelId = 1)
     {
         return CreateEnemyFromTemplate("分裂怪", "分裂怪", levelId, desc: "死亡时分裂成2个小怪");
     }
 
+    /// <summary>
+    /// 创建预设英雄数据：EnemyStealth
+    /// </summary>
+
     public static HeroData CreateEnemyStealth(int levelId = 1)
     {
         return CreateEnemyFromTemplate("隐身怪", "隐身怪", levelId, desc: "每3回合隐身1回合");
     }
+
+    /// <summary>
+    /// 创建预设英雄数据：EnemyCurseMage
+    /// </summary>
 
     public static HeroData CreateEnemyCurseMage(int levelId = 1)
     {
         return CreateEnemyFromTemplate("诅咒巫师", "诅咒巫师", levelId, CreateCurseSkill(), "攻击降低目标攻击力，持续2回合");
     }
 
+    /// <summary>
+    /// 创建预设英雄数据：EnemyHeavyKnight
+    /// </summary>
+
     public static HeroData CreateEnemyHeavyKnight(int levelId = 1)
     {
         return CreateEnemyFromTemplate("重装骑士", "重装骑士", levelId, desc: "极高防御，每次受击只造成1点伤害");
     }
+
+    /// <summary>
+    /// 创建预设英雄数据：EnemyVenomSpider
+    /// </summary>
 
     public static HeroData CreateEnemyVenomSpider(int levelId = 1)
     {
@@ -692,30 +860,54 @@ public static class GameData
 
     // ========== 再扩展卡牌 ==========
 
+    /// <summary>
+    /// 创建预设卡牌数据：FireballCard
+    /// </summary>
+
     public static CardData CreateFireballCard()
     {
         return CreateCard("火球术", CardType.Battle, CardRarity.Purple, CardEffectId.Fireball, 2, "本场攻击变AOE，三条时伤害+50%", 30, DiceCombinationType.ThreeOfAKind, 1.5f);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：ChainStrikeCard
+    /// </summary>
 
     public static CardData CreateChainStrikeCard()
     {
         return CreateCard("连环斩", CardType.Battle, CardRarity.Blue, CardEffectId.ChainStrike, 2, "本场攻击2次，对子时3次", 2, DiceCombinationType.Pair, 2f);
     }
 
+    /// <summary>
+    /// 创建预设卡牌数据：LifeStealCard
+    /// </summary>
+
     public static CardData CreateLifeStealCard()
     {
         return CreateCard("吸血攻击", CardType.Battle, CardRarity.Blue, CardEffectId.LifeSteal, 1, "本场攻击造成伤害的30%转化为生命，顺子时50%", 30, DiceCombinationType.Straight, 1.67f);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：ReviveCard
+    /// </summary>
 
     public static CardData CreateReviveCard()
     {
         return CreateCard("复活术", CardType.Attribute, CardRarity.Gold, CardEffectId.Revive, 0, "本局永久+1复活次数", 1);
     }
 
+    /// <summary>
+    /// 创建预设卡牌数据：PoisonBladeCard
+    /// </summary>
+
     public static CardData CreatePoisonBladeCard()
     {
         return CreateCard("毒刃", CardType.Battle, CardRarity.Blue, CardEffectId.PoisonBlade, 1, "本场攻击附加中毒，对子时毒害翻倍", 5, DiceCombinationType.Pair, 2f);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：EnergyBurstCard
+    /// </summary>
 
     public static CardData CreateEnergyBurstCard()
     {
@@ -723,6 +915,10 @@ public static class GameData
     }
 
     // ========== 第四轮新卡牌 ==========
+
+    /// <summary>
+    /// 创建预设卡牌数据：ArmorBreakCard
+    /// </summary>
 
     public static CardData CreateArmorBreakCard()
     {
@@ -739,15 +935,27 @@ public static class GameData
         return card;
     }
 
+    /// <summary>
+    /// 创建预设卡牌数据：GroupHealCard
+    /// </summary>
+
     public static CardData CreateGroupHealCard()
     {
         return CreateCard("群体治疗", CardType.Battle, CardRarity.Purple, CardEffectId.GroupHeal, 2, "立即恢复全体友方20%生命，三条时30%", 20, DiceCombinationType.ThreeOfAKind, 1.5f);
     }
 
+    /// <summary>
+    /// 创建预设卡牌数据：LightningChainCard
+    /// </summary>
+
     public static CardData CreateLightningChainCard()
     {
         return CreateCard("闪电链", CardType.Battle, CardRarity.Purple, CardEffectId.LightningChain, 2, "攻击弹射到3个目标，顺子时5次", 3, DiceCombinationType.Straight, 2f);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：ThornsCard
+    /// </summary>
 
     public static CardData CreateThornsCard()
     {
@@ -764,10 +972,18 @@ public static class GameData
         return card;
     }
 
+    /// <summary>
+    /// 创建预设卡牌数据：BerserkPotionCard
+    /// </summary>
+
     public static CardData CreateBerserkPotionCard()
     {
         return CreateCard("狂暴药水", CardType.Battle, CardRarity.Purple, CardEffectId.BerserkPotion, 2, "本场攻击+80%，但防御-30%，三条时攻击+120%", 80, DiceCombinationType.ThreeOfAKind, 1.5f);
     }
+
+    /// <summary>
+    /// 创建预设卡牌数据：ShieldResonanceCard
+    /// </summary>
 
     public static CardData CreateShieldResonanceCard()
     {

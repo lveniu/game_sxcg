@@ -1,5 +1,3 @@
-using UnityEngine;
-using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
@@ -503,6 +501,9 @@ public struct HeroStatTemplate
         CritRate = c; SummonCost = cost; HeroClass = cls;
     }
 
+    /// <summary>
+    /// 按倍率缩放英雄属性模板
+    /// </summary>
     public HeroStatTemplate Scale(float multiplier)
     {
         return new HeroStatTemplate(

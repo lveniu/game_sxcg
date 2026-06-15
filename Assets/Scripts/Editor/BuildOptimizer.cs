@@ -4,7 +4,6 @@ using UnityEngine;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 /// <summary>
 /// 构建优化分析工具

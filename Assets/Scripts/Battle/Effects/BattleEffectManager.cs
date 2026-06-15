@@ -254,7 +254,10 @@ public class BattleEffectManager : MonoBehaviour
         img.raycastTarget = false;
 
         var rt = go.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(100, 100);
+        if (rt != null)
+        {
+            rt.sizeDelta = new Vector2(100, 100);
+        }
 
         go.SetActive(false);
         return go;

@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using DG.Tweening;
 
 /// <summary>
 /// 战斗管理器 — 管理自走棋自动战斗流程
@@ -686,6 +685,9 @@ public class BattleManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 停止战斗，关闭战斗循环
+    /// </summary>
     public void StopBattle()
     {
         IsBattleActive = false;
