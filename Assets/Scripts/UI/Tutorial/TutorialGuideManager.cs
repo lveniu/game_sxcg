@@ -18,6 +18,9 @@ public class TutorialGuideManager : MonoBehaviour
     /// <summary>引导步骤数据（JSON配置或硬编码）</summary>
     private List<TutorialGuideStep> steps = new List<TutorialGuideStep>();
 
+    /// <summary>缓存的步骤列表（避免运行时重复 new 产生 GC，Update/复用场景 Clear() 后重填）</summary>
+    private List<TutorialGuideStep> _cachedTutorialSteps;
+
     /// <summary>当前步骤索引</summary>
     private int currentStepIndex = -1;
 
@@ -91,6 +94,9 @@ public class TutorialGuideManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
+        // 初始化缓存列表（仅分配一次，后续 InitializeSteps 中 Clear() 复用）
+        _cachedTutorialSteps = new List<TutorialGuideStep>();
+
         // 读取设置
         guideEnabled = PlayerPrefs.GetInt(PREFS_GUIDE_ENABLED, 1) == 1;
 
@@ -138,7 +144,9 @@ public class TutorialGuideManager : MonoBehaviour
             timeoutTimer += Time.deltaTime;
             if (timeoutTimer >= step.timeout)
             {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 Debug.Log($"[TutorialGuideManager] 步骤 {step.stepID} 超时自动完成");
+#endif
                 CompleteCurrentStep();
             }
         }
@@ -485,75 +493,78 @@ public class TutorialGuideManager : MonoBehaviour
     /// </summary>
     private void InitializeSteps()
     {
-        steps = new List<TutorialGuideStep>
+        // 复用缓存列表（仅 Awake 时 new 一次），Clear 后重填，避免每次初始化 new List 产生 GC
+        _cachedTutorialSteps.Clear();
+
+        // Step1: 选择英雄
+        _cachedTutorialSteps.Add(new TutorialGuideStep
         {
-            // Step1: 选择英雄
-            new TutorialGuideStep
-            {
-                stepID = "hero_select",
-                title = GetLocText("tutorial.hero_select_title", "选择你的英雄"),
-                description = GetLocText("tutorial.hero_select_desc", "从三位英雄中选择一位作为你的初始角色。\n每位英雄拥有独特的技能和属性！"),
-                highlightPath = "HeroCards",
-                highlightShape = "rect",
-                waitForEvent = "click",
-                timeout = 30f,
-                showFinger = true,
-                showBubble = true
-            },
-            // Step2: 掷骰子
-            new TutorialGuideStep
-            {
-                stepID = "dice_roll",
-                title = GetLocText("tutorial.dice_roll_title", "掷出命运之骰"),
-                description = GetLocText("tutorial.dice_roll_desc", "点击掷骰按钮，投掷骰子获取本关资源。\n骰面结果决定你的战斗加成！"),
-                highlightPath = "RollButton",
-                highlightShape = "rect",
-                waitForEvent = "click",
-                timeout = 30f,
-                showFinger = true,
-                showBubble = true
-            },
-            // Step3: 锁定骰子
-            new TutorialGuideStep
-            {
-                stepID = "dice_lock",
-                title = GetLocText("tutorial.dice_lock_title", "锁定有利骰子"),
-                description = GetLocText("tutorial.dice_lock_desc", "点击骰子可以锁定它，锁定的骰子不会被重摇。\n保留好结果，重摇不满意的面！"),
-                highlightPath = "DiceContainer",
-                highlightShape = "rect",
-                waitForEvent = "click",
-                timeout = 20f,
-                showFinger = true,
-                showBubble = true
-            },
-            // Step4: 确认组合
-            new TutorialGuideStep
-            {
-                stepID = "dice_confirm",
-                title = GetLocText("tutorial.dice_confirm_title", "确认骰子组合"),
-                description = GetLocText("tutorial.dice_confirm_desc", "确认你的骰子结果，进入战斗阶段。\n三条、顺子、对子各有不同加成！"),
-                highlightPath = "ConfirmButton",
-                highlightShape = "rect",
-                waitForEvent = "click",
-                timeout = 20f,
-                showFinger = true,
-                showBubble = true
-            },
-            // Step5: 战斗
-            new TutorialGuideStep
-            {
-                stepID = "battle",
-                title = GetLocText("tutorial.battle_start_title", "战斗开始！"),
-                description = GetLocText("tutorial.battle_start_desc", "战斗自动进行，你可以加速或跳过。\n胜利后获得金币和经验奖励！"),
-                highlightPath = "SpeedButton",
-                highlightShape = "rect",
-                waitForEvent = "state_change",
-                triggerState = "Settlement",
-                timeout = 0f,
-                showFinger = true,
-                showBubble = true
-            }
-        };
+            stepID = "hero_select",
+            title = GetLocText("tutorial.hero_select_title", "选择你的英雄"),
+            description = GetLocText("tutorial.hero_select_desc", "从三位英雄中选择一位作为你的初始角色。\n每位英雄拥有独特的技能和属性！"),
+            highlightPath = "HeroCards",
+            highlightShape = "rect",
+            waitForEvent = "click",
+            timeout = 30f,
+            showFinger = true,
+            showBubble = true
+        });
+        // Step2: 掷骰子
+        _cachedTutorialSteps.Add(new TutorialGuideStep
+        {
+            stepID = "dice_roll",
+            title = GetLocText("tutorial.dice_roll_title", "掷出命运之骰"),
+            description = GetLocText("tutorial.dice_roll_desc", "点击掷骰按钮，投掷骰子获取本关资源。\n骰面结果决定你的战斗加成！"),
+            highlightPath = "RollButton",
+            highlightShape = "rect",
+            waitForEvent = "click",
+            timeout = 30f,
+            showFinger = true,
+            showBubble = true
+        });
+        // Step3: 锁定骰子
+        _cachedTutorialSteps.Add(new TutorialGuideStep
+        {
+            stepID = "dice_lock",
+            title = GetLocText("tutorial.dice_lock_title", "锁定有利骰子"),
+            description = GetLocText("tutorial.dice_lock_desc", "点击骰子可以锁定它，锁定的骰子不会被重摇。\n保留好结果，重摇不满意的面！"),
+            highlightPath = "DiceContainer",
+            highlightShape = "rect",
+            waitForEvent = "click",
+            timeout = 20f,
+            showFinger = true,
+            showBubble = true
+        });
+        // Step4: 确认组合
+        _cachedTutorialSteps.Add(new TutorialGuideStep
+        {
+            stepID = "dice_confirm",
+            title = GetLocText("tutorial.dice_confirm_title", "确认骰子组合"),
+            description = GetLocText("tutorial.dice_confirm_desc", "确认你的骰子结果，进入战斗阶段。\n三条、顺子、对子各有不同加成！"),
+            highlightPath = "ConfirmButton",
+            highlightShape = "rect",
+            waitForEvent = "click",
+            timeout = 20f,
+            showFinger = true,
+            showBubble = true
+        });
+        // Step5: 战斗
+        _cachedTutorialSteps.Add(new TutorialGuideStep
+        {
+            stepID = "battle",
+            title = GetLocText("tutorial.battle_start_title", "战斗开始！"),
+            description = GetLocText("tutorial.battle_start_desc", "战斗自动进行，你可以加速或跳过。\n胜利后获得金币和经验奖励！"),
+            highlightPath = "SpeedButton",
+            highlightShape = "rect",
+            waitForEvent = "state_change",
+            triggerState = "Settlement",
+            timeout = 0f,
+            showFinger = true,
+            showBubble = true
+        });
+
+        // 指向缓存列表，保持外部访问入口不变
+        steps = _cachedTutorialSteps;
     }
 
     /// <summary>

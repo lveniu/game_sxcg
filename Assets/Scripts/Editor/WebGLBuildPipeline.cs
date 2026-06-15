@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.Rendering;
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
@@ -339,10 +340,15 @@ public static class WebGLBuildPipeline
         {
             foreach (string file in Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
             {
-                try { size += new FileInfo(file).Length; } catch (System.Exception) { // 文件可能被锁定或已删除，跳过 }
+                try { size += new FileInfo(file).Length; }
+                catch (Exception ex) { UnityEngine.Debug.LogWarning($"Failed to get file size: {file}, {ex.Message}"); }
             }
         }
-        catch (System.Exception) { // 目录可能不可访问，返回已统计的大小 }
+        catch (Exception ex)
+        {
+            // 目录可能不可访问，返回已统计的大小
+            UnityEngine.Debug.LogWarning($"Failed to enumerate directory: {path}, {ex.Message}");
+        }
         return size;
     }
 
