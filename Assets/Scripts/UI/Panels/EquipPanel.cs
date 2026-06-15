@@ -344,6 +344,10 @@ namespace Game.UI
                 item.starText = go.transform.Find("StarText")?.GetComponent<Text>();
                 item.bgImage = go.GetComponent<Image>();
                 item.button = go.GetComponent<Button>();
+                if (item.bgImage == null || item.button == null)
+                {
+                    Debug.LogWarning($"[EquipPanel] HeroItem_{index} prefab 缺少 Image/Button 组件");
+                }
             }
             else
             {
@@ -644,6 +648,10 @@ namespace Game.UI
                 item.statText = go.transform.Find("StatText")?.GetComponent<Text>();
                 item.bgImage = go.GetComponent<Image>();
                 item.button = go.GetComponent<Button>();
+                if (item.bgImage == null || item.button == null)
+                {
+                    Debug.LogWarning($"[EquipPanel] BackpackItem_{index} prefab 缺少 Image/Button 组件");
+                }
             }
             else
             {
@@ -1708,6 +1716,11 @@ namespace Game.UI
             enhancePreviewText.color = new Color(0.5f, 0.5f, 0.5f);
             enhancePreviewText.text = "选择装备查看强化信息";
             var textRect = textGo.GetComponent<RectTransform>();
+            if (textRect == null)
+            {
+                Debug.LogWarning("[EquipPanel] textGo 缺少 RectTransform，跳过预览文字布局");
+                return;
+            }
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
             textRect.offsetMin = textRect.offsetMax = Vector2.zero;

@@ -367,6 +367,11 @@ namespace Game.UI
             txt.color = Color.white;
             txt.alignment = TextAnchor.MiddleCenter;
             var txtRect = textObj.GetComponent<RectTransform>();
+            if (txtRect == null)
+            {
+                Debug.LogWarning("[EventPanel] textObj 缺少 RectTransform，跳过该选项创建");
+                return null;
+            }
             txtRect.anchorMin = Vector2.zero;
             txtRect.anchorMax = Vector2.one;
             txtRect.sizeDelta = Vector2.zero;
@@ -386,6 +391,11 @@ namespace Game.UI
             var cg = btnObj.GetComponent<CanvasGroup>() ?? btnObj.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             var btnRt = btnObj.GetComponent<RectTransform>();
+            if (btnRt == null)
+            {
+                Debug.LogWarning("[EventPanel] btnObj 缺少 RectTransform，跳过入场动画");
+                return btnObj;
+            }
             float originalY = btnRt.anchoredPosition.y;
             btnRt.anchoredPosition = new Vector2(btnRt.anchoredPosition.x, originalY - 30f);
 
@@ -409,6 +419,11 @@ namespace Game.UI
                 ?? btnObj.AddComponent<UnityEngine.EventSystems.EventTrigger>();
 
             var btnTransform = btnObj.GetComponent<RectTransform>();
+            if (btnTransform == null)
+            {
+                Debug.LogWarning("[EventPanel] AddHoverEffects: btnObj 缺少 RectTransform，跳过缩放效果");
+                return;
+            }
 
             // PointerEnter: scale 1.0→1.03 + 亮度提升
             var entryEnter = new UnityEngine.EventSystems.EventTrigger.Entry
@@ -1071,6 +1086,11 @@ namespace Game.UI
             txt.color = Color.white;
             txt.alignment = TextAnchor.MiddleCenter;
             var txtRect = textObj.GetComponent<RectTransform>();
+            if (txtRect == null)
+            {
+                Debug.LogWarning("[EventPanel] textObj 缺少 RectTransform，跳过该选项创建");
+                return null;
+            }
             txtRect.anchorMin = Vector2.zero;
             txtRect.anchorMax = Vector2.one;
             txtRect.sizeDelta = Vector2.zero;

@@ -827,6 +827,11 @@ namespace Game.UI
 
             // "LEVEL UP!" 从中心放大弹出（0→1.5→1.0，OutBack）
             var rt = levelUpTextGo.GetComponent<RectTransform>();
+            if (rt == null)
+            {
+                Debug.LogWarning("[SettlementPanel] levelUpTextGo 缺少 RectTransform，跳过升级动画");
+                return;
+            }
             rt.localScale = Vector3.zero;
 
             var seq = DOTween.Sequence();
@@ -918,6 +923,11 @@ namespace Game.UI
                 }
 
                 var starUpRt = starUpTextGo.GetComponent<RectTransform>();
+                if (starUpRt == null)
+                {
+                    Debug.LogWarning("[SettlementPanel] starUpTextGo 缺少 RectTransform，跳过进化动画");
+                    return;
+                }
                 starUpRt.localScale = Vector3.zero;
                 starUpRt.DOKill();
                 starUpRt.DOScale(1.2f, 0.2f).SetEase(Ease.OutBack).SetLink(gameObject)

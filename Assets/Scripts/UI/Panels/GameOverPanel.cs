@@ -208,6 +208,11 @@ namespace Game.UI
             go.transform.SetParent(transform, false);
 
             var rt = go.GetComponent<RectTransform>();
+            if (rt == null)
+            {
+                Debug.LogWarning("[GameOverPanel] StatsContainer 缺少 RectTransform，放弃创建容器");
+                return;
+            }
             rt.anchorMin = new Vector2(0.05f, 0.25f);
             rt.anchorMax = new Vector2(0.95f, 0.7f);
             rt.offsetMin = Vector2.zero;
@@ -258,6 +263,11 @@ namespace Game.UI
                 rowGo.transform.SetParent(statsContainer, false);
 
                 var rowRt = rowGo.GetComponent<RectTransform>();
+                if (rowRt == null)
+                {
+                    Debug.LogWarning($"[GameOverPanel] StatRow_{row} 缺少 RectTransform，跳过该行创建");
+                    continue;
+                }
                 rowRt.anchorMin = new Vector2(0, 1);
                 rowRt.anchorMax = new Vector2(1, 1);
                 rowRt.pivot = new Vector2(0.5f, 1);
@@ -294,6 +304,11 @@ namespace Game.UI
             cardGo.transform.SetParent(parentRow.transform, false);
 
             var cardRt = cardGo.GetComponent<RectTransform>();
+            if (cardRt == null)
+            {
+                Debug.LogWarning($"[GameOverPanel] StatCard_{label} 缺少 RectTransform，跳过该卡片创建");
+                return;
+            }
             cardRt.sizeDelta = Vector2.zero;
 
             // 背景
